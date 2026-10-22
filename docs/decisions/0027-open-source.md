@@ -19,3 +19,4 @@
 
 ## 修订（同日）
 作者："https://ludics.space/sense 不用这个，直接覆盖 https://ludics.space/"。下载页改为 ludics.space 首页（原来的「Worldlines Space」首页被替换，旧的 index.html 留了备份），demo 在 ludics.space/demo/，二维码改指 https://ludics.space。
+- 再修订：作者要求「里面全部删除，ludics.space 只保留一个 sense」。S3 bucket `ludics.space` 清空后只放下载页（index.html、icon.png）和 demo/。原有 387 个文件（旧首页、app-*、covers/、旧 demo/ 等）删除前完整备份到作者本机 `~/Backups/ludics.space-2026-10-23/`，bucket 没开版本控制，要恢复就从这里传回去。
