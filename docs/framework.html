@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- 由 SENSE.md 与决策 0021–0023 整理出的图解，不是定义文档；两者冲突时以 SENSE.md 为准。在线版：https://claude.ai/artifact/U2E4a4rxKYBpy8LhC1Rc15 -->
+<title>Sense 系统框架</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+SC:wght@400;600;700&display=swap">
+<style>
+/* Layout: one long sheet of pocket paper; five numbered plates, because the order (loop → card → engine → look → boundary) is how the system is read. Single cream look by choice, colors set explicitly. */
+:root{
+  color-scheme:light;
+  --paper:#f6ead3; --sheet:#fffaf0; --line:#e3c896; --ink:#3a2416; --ink-2:#8a6a4e;
+  --orange:#e8762c; --orange-2:#b4561c;
+  --stone:#a39c92; --bronze:#c4773b; --silver:#9fb0bf; --gold:#e3a72f;
+  --k-dec:#d9643a; --k-rec:#8a6fd1; --k-per:#d06a8a; --k-fol:#2f9a92; --k-int:#7f9a33; --k-quo:#4f7bd1; --k-col:#c08a2a;
+  --pixel:"DotGothic16", ui-monospace, "Hiragino Sans", monospace;
+  --body:"Noto Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65;
+  background-image:radial-gradient(color-mix(in srgb,var(--line) 55%,transparent) 1px,transparent 1.4px);background-size:14px 14px}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px;display:flex;flex-direction:column;gap:36px}
+header.top{display:flex;flex-direction:column;gap:8px}
+.eyebrow{font-family:var(--pixel);font-size:13px;letter-spacing:.12em;color:var(--orange-2)}
+h1{font-family:var(--pixel);font-weight:400;font-size:clamp(32px,6vw,56px);line-height:1.1;margin:0;text-wrap:balance}
+.lede{margin:0;max-width:62ch;color:var(--ink-2)}
+.plate{background:var(--sheet);border:3px solid var(--ink);border-radius:14px;box-shadow:6px 6px 0 var(--orange);padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.plate>h2{margin:0;display:flex;align-items:baseline;gap:12px;font-family:var(--pixel);font-weight:400;font-size:24px;text-wrap:balance}
+.plate>h2 .n{font-size:14px;color:#fff;background:var(--orange);padding:2px 8px;border-radius:4px;box-shadow:0 3px 0 var(--orange-2)}
+.plate>p{margin:0;max-width:70ch;color:var(--ink-2)}
+.scroll{overflow-x:auto;border-radius:10px}
+svg text{font-family:var(--body)}
+svg .px{font-family:var(--pixel)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.box{border:2px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff;min-width:0;display:flex;flex-direction:column;gap:6px}
+.box h3{margin:0;font-family:var(--pixel);font-weight:400;font-size:16px}
+.box p,.box li{margin:0;font-size:13px;color:var(--ink-2)}
+.box ul{margin:0;padding-left:18px}
+.tag{display:inline-block;font-family:var(--pixel);font-size:11px;padding:1px 7px;border-radius:99px;color:#fff;background:var(--orange)}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:13px;background:#fff}
+th{text-align:left;font-family:var(--pixel);font-weight:400;color:var(--orange-2);padding:10px 12px;border-bottom:2px solid var(--line)}
+td{padding:8px 12px;border-top:1px dashed var(--line);vertical-align:top}
+td.num{text-align:center;font-variant-numeric:tabular-nums}
+code,.cmd{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.cmd{display:block;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--ink);color:#fbe3c0;border-radius:8px;padding:12px 14px;line-height:1.7}
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.tier{border:3px solid var(--c);border-radius:10px;background:#fff;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tier b{font-family:var(--pixel);font-weight:400;font-size:18px;display:flex;align-items:center;gap:8px}
+.tier b::before{content:"";width:12px;height:12px;background:var(--c);box-shadow:2px 2px 0 rgba(0,0,0,.18)}
+.tier p{margin:0;font-size:13px;color:var(--ink-2)}
+.tier .up{font-size:12px;color:var(--ink);border-top:1px dashed var(--line);padding-top:6px}
+.themes{display:flex;gap:12px;flex-wrap:wrap}
+.theme{width:150px;border-radius:10px;border:2px solid var(--line);overflow:hidden;background:#fff}
+.theme .sw{height:56px;display:flex;align-items:flex-end;gap:6px;padding:8px}
+.theme .sw i{width:18px;height:18px;border-radius:4px;border:1px solid rgba(0,0,0,.12)}
+.theme b{display:block;font-family:var(--pixel);font-weight:400;font-size:13px;padding:6px 10px}
+.kinds{display:flex;flex-wrap:wrap;gap:8px}
+.kinds span{font-size:12px;padding:3px 10px;border-radius:99px;color:#fff;background:var(--c)}
+.type{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.spec{font-size:12px;color:var(--ink-2)}
+footer{font-size:12px;color:var(--ink-2)}
+@media (max-width:520px){.plate{padding:16px;box-shadow:4px 4px 0 var(--orange)}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">SENSE · 口袋 · 2026-10-22</div>
+    <h1>Sense 系统框架</h1>
+    <p class="lede">一张卡从进口袋到变成你的口味，中间经过哪些机制；后台的 agent 怎么被调起来；界面用哪套设计语言。图里的数字都是现在 app 里真实在用的值。</p>
+  </header>
+
+  <section class="plate" id="loop">
+    <h2><span class="n">1</span>总循环</h2>
+    <p>五层从左往右流，你的每个动作再流回左边。左边的入口只负责"放进来"，右边的产出只负责"给你看、给你东西"，中间的档位和追踪台决定一张卡值不值得 agent 花力气。</p>
+    <div class="scroll">
+      <svg viewBox="0 0 1060 470" width="1060" height="470" role="img" aria-label="Sense 总循环图">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3a2416"/></marker>
+          <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e8762c"/></marker>
+        </defs>
+        <!-- column heads -->
+        <g class="px" font-size="14" fill="#b4561c">
+          <text x="20" y="28">入口</text><text x="230" y="28">口袋</text><text x="430" y="28">档位</text><text x="640" y="28">追踪台 · 引擎</text><text x="860" y="28">产出</text>
+        </g>
+        <!-- sources -->
+        <g font-size="13" fill="#3a2416">
+          <rect x="20" y="44" width="170" height="300" rx="10" fill="#fff" stroke="#e3c896" stroke-width="2"/>
+          <text x="36" y="72">会话日志（你说的话）</text>
+          <text x="36" y="100">浏览器履历 · 书签</text>
+          <text x="36" y="128">YouTube / YouTube Music</text>
+          <text x="36" y="156">Spotify 导入</text>
+          <text x="36" y="184">⌃⌘A 截图</text>
+          <text x="36" y="212">剪贴板（要你打开）</text>
+          <text x="36" y="240">桌面 / 下载 文件名</text>
+          <text x="36" y="268">Steam 游戏目录</text>
+          <text x="36" y="306" fill="#8a6a4e" font-size="12">读取边界就脱敏</text>
+          <text x="36" y="324" fill="#8a6a4e" font-size="12">原始记录读完即删</text>
+        </g>
+        <!-- pocket -->
+        <g font-size="13" fill="#3a2416">
+          <rect x="230" y="44" width="160" height="300" rx="10" fill="#fff" stroke="#e3c896" stroke-width="2"/>
+          <text x="246" y="72" class="px" font-size="15">七种卡</text>
+          <g font-size="12">
+            <rect x="246" y="84" width="58" height="22" rx="11" fill="#d9643a"/><text x="256" y="100" fill="#fff">判断</text>
+            <rect x="312" y="84" width="58" height="22" rx="11" fill="#4f7bd1"/><text x="322" y="100" fill="#fff">金句</text>
+            <rect x="246" y="112" width="58" height="22" rx="11" fill="#d06a8a"/><text x="256" y="128" fill="#fff">人物</text>
+            <rect x="312" y="112" width="58" height="22" rx="11" fill="#2f9a92"/><text x="322" y="128" fill="#fff">关注</text>
+            <rect x="246" y="140" width="58" height="22" rx="11" fill="#7f9a33"/><text x="256" y="156" fill="#fff">兴趣</text>
+            <rect x="312" y="140" width="58" height="22" rx="11" fill="#c08a2a"/><text x="322" y="156" fill="#fff">收藏</text>
+            <rect x="246" y="168" width="58" height="22" rx="11" fill="#8a6fd1"/><text x="256" y="184" fill="#fff">推荐</text>
+          </g>
+          <text x="246" y="222">每张卡带</text>
+          <text x="246" y="242" fill="#8a6a4e" font-size="12">· 证据（日期、来源）</text>
+          <text x="246" y="262" fill="#8a6a4e" font-size="12">· 领域（动画、音乐…）</text>
+          <text x="246" y="282" fill="#8a6a4e" font-size="12">· 属性（为什么）</text>
+          <text x="246" y="302" fill="#8a6a4e" font-size="12">· 档位</text>
+        </g>
+        <!-- tiers -->
+        <g font-size="13" fill="#3a2416">
+          <rect x="430" y="44" width="170" height="60" rx="10" fill="#fff" stroke="#a39c92" stroke-width="3"/><text x="446" y="70" class="px" font-size="15">石</text><text x="446" y="92" fill="#8a6a4e" font-size="12">刚进来，没处理过 7 天碎</text>
+          <rect x="430" y="124" width="170" height="60" rx="10" fill="#fff" stroke="#c4773b" stroke-width="3"/><text x="446" y="150" class="px" font-size="15">铜</text><text x="446" y="172" fill="#8a6a4e" font-size="12">有点在意，60 天归档</text>
+          <rect x="430" y="204" width="170" height="60" rx="10" fill="#fff" stroke="#9fb0bf" stroke-width="3"/><text x="446" y="230" class="px" font-size="15">银</text><text x="446" y="252" fill="#8a6a4e" font-size="12">只盯它自己的动向</text>
+          <rect x="430" y="284" width="170" height="60" rx="10" fill="#fff" stroke="#e3a72f" stroke-width="3"/><text x="446" y="310" class="px" font-size="15">金</text><text x="446" y="332" fill="#8a6a4e" font-size="12">一种口味，往外推荐</text>
+          <path d="M515 104 V124" stroke="#3a2416" stroke-width="2" marker-end="url(#ar)"/>
+          <path d="M515 184 V204" stroke="#3a2416" stroke-width="2" marker-end="url(#ar)"/>
+          <path d="M515 264 V284" stroke="#3a2416" stroke-width="2" marker-end="url(#ar)"/>
+          <text x="524" y="119" font-size="11" fill="#b4561c">碰过</text>
+          <text x="524" y="199" font-size="11" fill="#b4561c">跟 / 碰满门槛</text>
+          <text x="524" y="279" font-size="11" fill="#b4561c">两张银融合</text>
+        </g>
+        <!-- engine -->
+        <g font-size="13" fill="#3a2416">
+          <rect x="640" y="44" width="180" height="300" rx="10" fill="#3a2416"/>
+          <text x="656" y="72" class="px" font-size="15" fill="#fbe3c0">转盘 · 8 个座位</text>
+          <circle cx="730" cy="150" r="54" fill="none" stroke="#e8762c" stroke-width="3" stroke-dasharray="10 8"/>
+          <circle cx="730" cy="150" r="20" fill="#e8762c"/>
+          <text x="719" y="155" fill="#fff" class="px" font-size="12">30s</text>
+          <text x="656" y="232" fill="#fbe3c0" font-size="12">银、金自动上座</text>
+          <text x="656" y="252" fill="#fbe3c0" font-size="12">石、铜、用例手动放（≤6）</text>
+          <text x="656" y="272" fill="#fbe3c0" font-size="12">到点就起一个 claude -p</text>
+          <text x="656" y="292" fill="#fbe3c0" font-size="12">一次只跑一个座位</text>
+          <text x="656" y="322" fill="#e8762c" font-size="12">另：品味整理每周 · 委托每周</text>
+        </g>
+        <!-- outputs -->
+        <g font-size="13" fill="#3a2416">
+          <rect x="860" y="44" width="180" height="300" rx="10" fill="#fff" stroke="#e3c896" stroke-width="2"/>
+          <text x="876" y="72" class="px" font-size="15">Sense 页</text>
+          <text x="876" y="92" fill="#8a6a4e" font-size="12">按领域放作品、歌手</text>
+          <text x="876" y="126" class="px" font-size="15">展示卡</text>
+          <text x="876" y="146" fill="#8a6a4e" font-size="12">一张图，可存</text>
+          <text x="876" y="180" class="px" font-size="15">更新卡</text>
+          <text x="876" y="200" fill="#8a6a4e" font-size="12">银卡查到的新一话、新作</text>
+          <text x="876" y="234" class="px" font-size="15">新铜卡</text>
+          <text x="876" y="254" fill="#8a6a4e" font-size="12">金卡按口味推荐出来的</text>
+          <text x="876" y="288" class="px" font-size="15">用例结果</text>
+          <text x="876" y="308" fill="#8a6a4e" font-size="12">按你写的用例跑一遍</text>
+        </g>
+        <!-- forward arrows -->
+        <path d="M190 194 H226" stroke="#3a2416" stroke-width="2.5" marker-end="url(#ar)"/>
+        <path d="M390 194 H426" stroke="#3a2416" stroke-width="2.5" marker-end="url(#ar)"/>
+        <path d="M600 234 H636" stroke="#3a2416" stroke-width="2.5" marker-end="url(#ar)"/>
+        <path d="M600 314 H636" stroke="#3a2416" stroke-width="2.5" marker-end="url(#ar)"/>
+        <path d="M820 194 H856" stroke="#3a2416" stroke-width="2.5" marker-end="url(#ar)"/>
+        <!-- feedback loop -->
+        <path d="M950 344 V410 H105 V348" fill="none" stroke="#e8762c" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ao)"/>
+        <path d="M515 410 V348" fill="none" stroke="#e8762c" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ao)"/>
+        <rect x="250" y="394" width="560" height="34" rx="17" fill="#fffaf0" stroke="#e8762c" stroke-width="2"/>
+        <text x="270" y="416" font-size="13" fill="#b4561c">你的反应：打开 · 留下 / 丢掉 · 跟 · 抽卡二选一 · 答「是 / 不是」· 融合</text>
+        <text x="20" y="456" font-size="12" fill="#8a6a4e">反应写进操作记录：卡的档位、门槛、属性的证据都从这里改；任务进度也从这里算。</text>
+      </svg>
+    </div>
+  </section>
+
+  <section class="plate" id="tiers">
+    <h2><span class="n">2</span>一张卡的一生</h2>
+    <p>档位表示 agent 愿意为它花多少力气，跟卡是不是"好"无关。只有金卡会往外找新东西，其他档位都只看卡自己。</p>
+    <div class="tiers">
+      <div class="tier" style="--c:var(--stone)"><b>石卡</b><p>刚进口袋：截图、扫出来的履历、整理出来的作品。</p><p class="up">一次都没处理过的，7 天后碎掉（截图 30 天），快碎时卡面出裂纹。碎卡进仓库，只留标题和来源，能捡回来。</p></div>
+      <div class="tier" style="--c:var(--bronze)"><b>铜卡</b><p>你有点在意：留下过、打开过；或者跨很多周反复看过（品味整理里的「常驻」）。</p><p class="up">→ 银：你点「跟」，或碰满门槛（现在 3 次，2–8 之间自己调）。60 天没碰归档。</p></div>
+      <div class="tier" style="--c:var(--silver)"><b>银卡</b><p>自动坐上追踪台，只盯它自己：作品查新一话、新作；人查新动向；判断和金句去日志里找新例子和反例。</p><p class="up">→ 金：两张以上银卡说得出同一个已确认的为什么，才能融合。</p></div>
+      <div class="tier" style="--c:var(--gold)"><b>金卡</b><p>一种口味。每周按这个口味往外找 2–3 样你还没有的，生成新的铜卡。</p><p class="up">拆开（unfuse）就退回原来那几张银卡。</p></div>
+    </div>
+    <div class="grid">
+      <div class="box"><h3>门槛自己调</h3><ul><li>自动升上银的卡被你取消跟：门槛 +1</li><li>你主动跟一张还没碰够的铜卡：门槛 −1</li><li>每次调整都记下原因，引擎面板里看得到</li></ul></div>
+      <div class="box"><h3>NEW 和碎卡</h3><p>从没打开、留下、跟过、放上追踪台的卡挂 NEW。石卡一直是 NEW 就会碎；抽卡时被另一张比下去会少 3 天（早碎），你也可以在卡上点「碾碎」立刻碎掉。碎卡记得"查到过"，以后整理和推荐会跳过它，也告诉 agent 你没理会，但不当成你讨厌。</p></div>
+      <div class="box"><h3>跨领域只提问</h3><p>"喜欢的番和听的歌是不是一个路子"这种联系，只能写成要问你的是非题。你答了「是」才算数，不会自己当成结论。</p></div>
+      <div class="box"><h3>任务不碰档位</h3><p>设置里的任务、XP、等级只是让你把口袋用起来。它们读操作记录，但不会改任何一张卡的档位。</p></div>
+    </div>
+  </section>
+
+  <section class="plate" id="engine">
+    <h2><span class="n">3</span>引擎</h2>
+    <p>桌面版不自带模型。每次要 agent 干活，就在本机起一个 Claude Code，用你登录的账号和它的默认模型。prompt 从标准输入进去，只收 JSON；工具按任务给，不给就是一个都没有。</p>
+    <code class="cmd">claude -p --output-format json --no-session-persistence --strict-mcp-config \
+  --max-turns &lt;轮数&gt; [--allowedTools &lt;工具&gt;] [--add-dir &lt;目录&gt;]
+# 工作目录 ~/Library/Application Support/Sense/agent
+# is_error（比如额度用完）→ 原话显示在那张卡或那个座位上</code>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>任务</th><th>什么时候跑</th><th>给它的工具</th><th>最多轮数</th><th>产出</th></tr></thead>
+        <tbody>
+          <tr><td>品味整理</td><td>启动时，之后每周；也可手动</td><td>不给工具（app 先在本机读好履历和听歌记录）</td><td class="num">6</td><td>按领域的作品卡，要问你的问题</td></tr>
+          <tr><td>银卡 · 作品 / 人 / 关注</td><td>座位节奏，每周或每月</td><td>WebSearch, WebFetch</td><td class="num">12</td><td>它自己的新一话、新作 → 更新卡</td></tr>
+          <tr><td>银卡 · 判断 / 金句</td><td>座位节奏</td><td>Read, Glob, Grep ＋ 会话日志目录</td><td class="num">30</td><td>新例子或反例 → 证据</td></tr>
+          <tr><td>金卡</td><td>每周</td><td>WebSearch, WebFetch</td><td class="num">14</td><td>2–3 样新东西 → 新铜卡</td></tr>
+          <tr><td>石卡 / 铜卡（手动放上）</td><td>座位节奏</td><td>不调 agent</td><td class="num">—</td><td>排进抽卡，问你还在不在意</td></tr>
+          <tr><td>用例</td><td>手动，或放上追踪台</td><td>WebSearch, WebFetch</td><td class="num">16</td><td>按用例跑一遍的结果</td></tr>
+          <tr><td>委托</td><td>每周，全部完成或过期后</td><td>不给工具</td><td class="num">4</td><td>新的 3 张委托</td></tr>
+          <tr><td>截图进口袋</td><td>⌃⌘A 截完</td><td>Read（只读那张临时图，读完删）</td><td class="num">16</td><td>一张石卡</td></tr>
+          <tr><td>挖日志</td><td>入口页手动</td><td>Read, Glob, Grep ＋ 会话日志目录</td><td class="num">40</td><td>候选卡</td></tr>
+          <tr><td>牌桌出一手</td><td>手动</td><td>WebSearch, WebFetch</td><td class="num">16</td><td>推荐，留下的进口袋</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid">
+      <div class="box"><h3>节拍</h3><ul><li>追踪台：每 30 秒看一次有没有到点的座位，一次只跑一个</li><li>新上座的银、金卡错开 2 小时排队</li><li>座位节奏：每天 / 每周 / 每月</li><li>归档检查：每小时</li><li>品味整理：每周，每小时检查一次</li></ul></div>
+      <div class="box"><h3>开关</h3><p>设置 → 引擎 → 暂停：追踪台和每周整理都停，手动按钮照常能用。app 关着的时候不跑，下次打开先补到点的。</p></div>
+      <div class="box"><h3>网页版</h3><p>网页版不联网，也不会自己转。它用 artifact 的 sample 能力问 Claude，结果标「未核实」。</p></div>
+    </div>
+  </section>
+
+  <section class="plate" id="look">
+    <h2><span class="n">4</span>设计语言</h2>
+    <p>像一个口袋里的卡牌游戏：像素字做标题和数字，正文用好读的黑体；卡的边框颜色就是档位，色点就是种类。界面上的颜色都来自同一组主题变量，换配色时卡、背景、展示卡一起变。</p>
+    <div class="themes">
+      <div class="theme"><div class="sw" style="background:#f6ead3"><i style="background:#e8762c"></i><i style="background:#fffdf7"></i></div><b>奶油橙 · 默认</b></div>
+      <div class="theme"><div class="sw" style="background:#fff4f7"><i style="background:#ec5f8f"></i><i style="background:#ffffff"></i></div><b>樱花粉</b></div>
+      <div class="theme"><div class="sw" style="background:#fbf6f3"><i style="background:#d93b3b"></i><i style="background:#ffffff"></i></div><b>红白</b></div>
+      <div class="theme"><div class="sw" style="background:#f1f5fa"><i style="background:#4a78d0"></i><i style="background:#ffffff"></i></div><b>晴空蓝</b></div>
+      <div class="theme"><div class="sw" style="background:#16302d"><i style="background:#e8c25a"></i><i style="background:#f1eadb"></i></div><b>牌桌绿</b></div>
+    </div>
+    <div class="type">
+      <div class="box"><h3>主题变量（每套配色都要给全）</h3><ul>
+        <li><code>--felt / --felt-2 / --felt-line</code> 底色、面板、分隔线</li>
+        <li><code>--chalk / --chalk-2</code> 底色上的字</li>
+        <li><code>--paper / --ink / --ink-2</code> 卡面和卡上的字</li>
+        <li><code>--accent / --accent-2 / --on-accent</code> 按钮、选中、进度</li>
+        <li><code>--deep*</code> 深一层的盒子（委托、转盘）</li>
+        <li><code>--bg-a … --bg-e</code> 背景像素漩涡的五级色</li></ul></div>
+      <div class="box"><h3>不随主题变的</h3>
+        <div class="kinds"><span style="--c:var(--stone)">石</span><span style="--c:var(--bronze)">铜</span><span style="--c:var(--silver)">银</span><span style="--c:var(--gold)">金</span></div>
+        <div class="kinds"><span style="--c:var(--k-dec)">判断</span><span style="--c:var(--k-quo)">金句</span><span style="--c:var(--k-per)">人物</span><span style="--c:var(--k-fol)">关注</span><span style="--c:var(--k-int)">兴趣</span><span style="--c:var(--k-col)">收藏</span><span style="--c:var(--k-rec)">推荐</span></div>
+        <p>档位色和种类色在所有主题里一样，这样换了配色也认得出一张卡。</p></div>
+      <div class="box"><h3>字</h3><p style="font-family:var(--pixel);font-size:22px;color:var(--ink)">DotGothic16 像素字</p><p class="spec">标题、标签、等级、数字。只用在短字上。</p><p style="font-size:16px;color:var(--ink)">Noto Sans SC 正文</p><p class="spec">卡面、说明、证据。正文 13–15px，行高 1.6。</p></div>
+    </div>
+    <div class="grid">
+      <div class="box"><h3>卡</h3><p>纸色卡面，3px 档位色边框，顶部是按卡 id 生成的像素图，左上角种类色点。点开是详情抽屉。</p></div>
+      <div class="box"><h3>领域面板</h3><p>Sense 页的基本单元：一个领域一块，按瀑布流排。一行一张卡：档位色块、标题、证据。</p></div>
+      <div class="box"><h3>任务便签</h3><p>任务板是软木板纹理，每个任务是钉着的纸条，轻微歪斜。完成了才出「领取」。</p></div>
+      <div class="box"><h3>角色</h3><p>12×14 像素小人，帽子跟着口袋里卡最多的领域换，衣服是主题色。属性只写计数（几张卡、跑过几次），不给品味打分。</p></div>
+      <div class="box"><h3>布局</h3><p>宽屏两栏：左边固定展示卡和要问你的，右边内容。980px 以下合成一栏，侧边留 16px。</p></div>
+      <div class="box"><h3>动效</h3><p>卡飞进口袋、升档时闪一下、背景像素慢慢转。系统设了减少动态时背景只画一帧。</p></div>
+    </div>
+  </section>
+
+  <section class="plate" id="boundary">
+    <h2><span class="n">5</span>数据边界</h2>
+    <div class="grid">
+      <div class="box"><h3>会读</h3><ul><li>你自己的 Chrome profile 的履历和书签（别人的 profile 不读）</li><li>Claude Code / Codex 会话里你自己打的字</li><li>你导入的 Takeout / Spotify 文件</li><li>你截的图、你打开剪贴板后复制的文字</li></ul></div>
+      <div class="box"><h3>不读</h3><ul><li>登录、支付、银行、医疗、签证、地址、邮件、日历、后台页面</li><li>密码管理器、聊天、邮件 app 里复制的东西</li><li>像密钥、邮箱、长串数字的文字</li></ul></div>
+      <div class="box"><h3>怎么存</h3><ul><li>状态只有一个文件：~/Library/Application Support/Sense/pocket-state.json</li><li>原始记录读完就删，卡里只留标题、次数、日期，不留链接（书签除外）</li><li>不上传；只有调 agent 时把整理好的摘要交给本机的 Claude Code</li></ul></div>
+    </div>
+  </section>
+
+  <footer>依据：docs/SENSE.md 与决策 0021–0023；数值取自 app 当前代码（m0/pocket.template.html、app/src-tauri/src/lib.rs）。</footer>
+</div>
+</body>
+</html>

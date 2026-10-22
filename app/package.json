@@ -1,0 +1,10 @@
+{
+  "name": "sense-pocket",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "ui": "node scripts/build-ui.mjs",
+    "dev": "cargo tauri dev",
+    "build": "cargo tauri build"
+  }
+}

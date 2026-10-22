@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sense.example/schema/taste-profile.schema.json",
+  "title": "Sense taste profile (v1)",
+  "description": "Judgment-based taste profile. No numeric scores are exposed to the user.",
+  "type": "object",
+  "required": ["version", "owner", "updated_at", "judgments"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "owner": { "type": "string" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "evidence": { "type": "array", "items": { "$ref": "#/$defs/Evidence" } },
+    "judgments": { "type": "array", "items": { "$ref": "#/$defs/Judgment" } },
+    "pending_questions": {
+      "description": "Cross-domain or conflicting inferences that must be confirmed before use (decision 0005).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/PendingQuestion" }
+    },
+    "history": { "type": "array", "items": { "$ref": "#/$defs/HistoryEntry" } }
+  },
+  "$defs": {
+    "Domain": { "type": "string", "enum": ["articles", "projects", "games", "work", "general"] },
+    "Scope": { "type": "string", "enum": ["work", "personal", "unknown"] },
+    "Evidence": {
+      "type": "object",
+      "required": ["id", "claim", "source", "observed_at", "kind", "scope"],
+      "properties": {
+        "id": { "type": "string" },
+        "claim": { "type": "string", "maxLength": 300, "description": "One sentence, already de-identified." },
+        "kind": { "type": "string", "enum": ["stated", "revealed"], "description": "stated = instruction files / explicit statements; revealed = behaviour in sessions, ratings, choices." },
+        "scope": { "$ref": "#/$defs/Scope" },
+        "source": {
+          "type": "object",
+          "required": ["tool", "ref"],
+          "properties": {
+            "tool": { "type": "string", "description": "claude-code | codex | manual | ..." },
+            "ref": { "type": "string", "description": "File path, session id + turn, or 'user said'." },
+            "project": { "type": "string", "description": "Anonymised project label, optional." }
+          }
+        },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "count": { "type": "integer", "minimum": 1, "description": "How many times the pattern was seen." }
+      }
+    },
+    "Judgment": {
+      "type": "object",
+      "required": ["id", "text", "domains", "status", "evidence_ids", "created_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string", "description": "Natural-language judgment in the user's language, e.g. '你喜欢…但不喜欢…'." },
+        "domains": { "type": "array", "items": { "$ref": "#/$defs/Domain" }, "minItems": 1 },
+        "condition": { "type": "string", "description": "When it applies: '工作时' / '想放松的晚上' / empty = always." },
+        "status": { "type": "string", "enum": ["proposed", "confirmed", "edited", "rejected"] },
+        "evidence_ids": { "type": "array", "items": { "type": "string" } },
+        "created_at": { "type": "string", "format": "date-time" },
+        "confirmed_at": { "type": "string", "format": "date-time" },
+        "previous_text": { "type": "string", "description": "Agent's wording before the user edited it." }
+      }
+    },
+    "PendingQuestion": {
+      "type": "object",
+      "required": ["id", "question", "from_evidence_ids", "target_domain"],
+      "properties": {
+        "id": { "type": "string" },
+        "question": { "type": "string" },
+        "from_evidence_ids": { "type": "array", "items": { "type": "string" } },
+        "target_domain": { "$ref": "#/$defs/Domain" },
+        "if_yes_judgment": { "type": "string" }
+      }
+    },
+    "Request": {
+      "type": "object",
+      "required": ["id", "text", "domain", "asked_at"],
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "domain": { "$ref": "#/$defs/Domain" },
+        "state": { "type": "string", "description": "Current mood / energy parsed from the request, e.g. '今晚想放松'." },
+        "constraints": { "type": "array", "items": { "type": "string" }, "description": "Practical limits: platform, time, budget, '不想学复杂系统'." },
+        "asked_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Recommendation": {
+      "type": "object",
+      "required": ["id", "request_id", "item", "why"],
+      "properties": {
+        "id": { "type": "string" },
+        "request_id": { "type": "string" },
+        "item": {
+          "type": "object",
+          "required": ["title", "url", "domain"],
+          "properties": {
+            "title": { "type": "string" },
+            "url": { "type": "string" },
+            "domain": { "$ref": "#/$defs/Domain" },
+            "source": { "type": "string" }
+          }
+        },
+        "why": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["judgment_id", "text"],
+            "properties": {
+              "judgment_id": { "type": "string" },
+              "text": { "type": "string" },
+              "judgment_status": { "type": "string", "enum": ["proposed", "confirmed", "edited"] }
+            }
+          }
+        },
+        "reaction": { "$ref": "#/$defs/Correction" }
+      }
+    },
+    "Correction": {
+      "type": "object",
+      "required": ["kind", "at"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["like", "skip", "save", "almost", "reason_wrong"] },
+        "almost_label": { "type": "string", "enum": ["right_topic_too_shallow", "right_genre_wrong_mood", "right_idea_wrong_expression", "other"] },
+        "text": { "type": "string", "description": "Free text from the user, e.g. '我喜欢的是氛围'." },
+        "applied_to_judgment_ids": { "type": "array", "items": { "type": "string" } },
+        "at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "HistoryEntry": {
+      "type": "object",
+      "required": ["version", "at", "summary"],
+      "properties": {
+        "version": { "type": "integer" },
+        "at": { "type": "string", "format": "date-time" },
+        "summary": { "type": "string", "description": "One line shown at next session start: '上次你说…，这次我按…找'." },
+        "cause": { "type": "string", "enum": ["import", "confirm", "edit", "reject", "correction"] }
+      }
+    }
+  }
+}

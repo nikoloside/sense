@@ -1,0 +1,338 @@
+<title>Niko 的 Sense</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one phone-width column; a stack of cards, the top one active, two peeking behind.
+   Layers are told apart by the eyebrow colour and the card edge, not by boxes inside boxes. */
+:root{
+  --bg:#e7eaee; --card:#ffffff; --ink:#151a22; --muted:#5d6774; --line:#cfd5dd; --soft:#f1f3f6;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --latent:#8a6d1f; --signature:#2c2f36; --danger:#9b3b2d;
+  --shadow:0 18px 40px -24px rgba(21,26,34,.45), 0 2px 6px -2px rgba(21,26,34,.18);
+  --display:"Shippori Mincho","Hiragino Mincho ProN","Songti SC","Noto Serif SC",serif;
+  --body:"Noto Sans SC","PingFang SC","Hiragino Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1218; --card:#171c24; --ink:#e8ebef; --muted:#97a1ae; --line:#2a313b; --soft:#1f252e;
+  --accent:#7db3dc; --accent-ink:#0e1218; --latent:#d4b663; --signature:#d8dce2; --danger:#e08a7a;
+  --shadow:0 18px 40px -24px rgba(0,0,0,.8), 0 2px 6px -2px rgba(0,0,0,.5); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e1218; --card:#171c24; --ink:#e8ebef; --muted:#97a1ae; --line:#2a313b; --soft:#1f252e;
+  --accent:#7db3dc; --accent-ink:#0e1218; --latent:#d4b663; --signature:#d8dce2; --danger:#e08a7a;
+  --shadow:0 18px 40px -24px rgba(0,0,0,.8), 0 2px 6px -2px rgba(0,0,0,.5); color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:460px;margin:0 auto;padding-block:14px 28px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  min-height:100%;display:flex;flex-direction:column;gap:14px}
+
+header{display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.2;margin:0;letter-spacing:.01em;text-wrap:balance}
+.brand h1 small{font-family:var(--body);font-weight:500;font-size:12px;color:var(--muted);margin-left:8px;letter-spacing:.08em}
+.brand .date{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:4px 11px;font:500 12px var(--body);
+  letter-spacing:.04em;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.progress{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dots{display:flex;gap:4px;flex-wrap:wrap;max-width:60%}
+.dots i{width:14px;height:3px;background:var(--line);border-radius:2px}
+.dots i.done{background:var(--muted)} .dots i.now{background:var(--accent)}
+
+.stage{position:relative;flex:1;min-height:520px}
+.card{position:absolute;inset:0 0 auto 0;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
+  padding:18px 18px 16px;display:flex;flex-direction:column;gap:12px;touch-action:pan-y;user-select:none;-webkit-user-select:none;
+  transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .32s;will-change:transform}
+.card.behind1{transform:translateY(12px) scale(.965);opacity:.9;pointer-events:none}
+.card.behind2{transform:translateY(24px) scale(.93);opacity:.6;pointer-events:none}
+.card.gone{pointer-events:none}
+.card.dragging{transition:none}
+@media (prefers-reduced-motion: reduce){ .card{transition:none} }
+.card[data-layer="latent"]{border-style:dashed}
+.card[data-layer="generated"]{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+
+.eyebrow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.eyebrow b{font-weight:700;letter-spacing:.14em}
+.card[data-layer="latent"] .eyebrow b{color:var(--latent)}
+.card[data-layer="explicit"] .eyebrow b{color:var(--ink)}
+.card[data-layer="generated"] .eyebrow b{color:var(--accent)}
+.eyebrow .id{font-family:var(--mono);letter-spacing:0;text-transform:none}
+.card h2{font-family:var(--display);font-weight:700;font-size:21px;line-height:1.35;margin:0;text-wrap:balance;letter-spacing:.005em}
+
+dl{margin:0;display:grid;grid-template-columns:3.2em 1fr;gap:6px 10px;font-size:14px}
+dt{color:var(--muted);font-size:12px;letter-spacing:.1em;padding-top:3px}
+dd{margin:0;min-width:0}
+dd.contrast{color:var(--muted)}
+dd.reason,dd.question{font-weight:500}
+dd.question{color:var(--latent)}
+dd.missing{color:var(--muted);font-style:italic}
+.card[data-layer="latent"] .eyebrow b{color:var(--latent)}
+.sig{display:flex;flex-direction:column;gap:10px;font-size:14px}
+.sig .row{display:grid;grid-template-columns:4.2em 1fr;gap:4px 10px}
+.sig .row .k{color:var(--muted);font-size:12px;letter-spacing:.1em;padding-top:3px}
+.sig .row .center{color:var(--muted)} .sig .row .you{font-weight:500}
+.sig .note{border-top:1px solid var(--line);padding-top:10px;color:var(--ink)}
+.sig .note b{font-size:12px;letter-spacing:.1em;color:var(--muted);font-weight:500;display:block}
+.why{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.why li{display:grid;grid-template-columns:auto 1fr;gap:8px}
+.why .ref{font-family:var(--mono);font-size:11px;color:var(--accent);padding-top:4px}
+.meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+details{border-top:1px solid var(--line);padding-top:8px;font-size:12.5px;color:var(--muted)}
+summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;letter-spacing:.06em}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"＋"} details[open] summary::after{content:"－"}
+.ev{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.ev li{display:grid;grid-template-columns:1fr;gap:1px}
+.ev .w{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.ev .t{color:var(--ink)}
+
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:auto;padding-top:6px}
+.actions button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 6px;font:500 13px var(--body);cursor:pointer;min-width:0}
+.actions button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.actions button.neg{color:var(--danger)}
+.actions button.wide{grid-column:1/-1}
+.panel{display:flex;flex-direction:column;gap:8px}
+.panel textarea{width:100%;min-height:72px;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:14px var(--body);background:var(--soft);color:var(--ink)}
+.panel .labels{display:flex;flex-wrap:wrap;gap:6px}
+.panel .labels button{font-size:12px;padding:5px 9px;border-radius:999px}
+.panel .labels button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stamp{position:absolute;top:14px;right:16px;font:700 12px var(--mono);letter-spacing:.14em;padding:4px 8px;border:2px solid currentColor;border-radius:6px;opacity:0;transform:rotate(8deg)}
+.stamp.yes{color:var(--accent)} .stamp.no{color:var(--danger)}
+
+.summary{display:flex;flex-direction:column;gap:10px;font-size:14px}
+.summary ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.summary li{display:grid;grid-template-columns:2.4em 1fr;gap:8px}
+.summary li .id{font-family:var(--mono);font-size:11px;color:var(--muted);padding-top:3px}
+.summary pre{margin:0;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px;font:11.5px/1.5 var(--mono);overflow-x:auto;color:var(--ink);user-select:text;-webkit-user-select:text}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+footer{font-size:12px;color:var(--muted);line-height:1.55}
+footer details{border:0;padding:0} footer summary{letter-spacing:.06em}
+footer ul{margin:6px 0 0;padding-left:1.2em}
+.hint{font-size:12px;color:var(--muted);text-align:center}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Niko 的 Sense<small>M0 v2 · 从会话日志来</small></h1>
+      <div class="date" id="date"></div>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="按层筛选"></div>
+    <div class="progress"><span id="count"></span><div class="dots" id="dots"></div></div>
+  </header>
+
+  <section class="stage" id="stage" aria-live="polite"></section>
+  <p class="hint">左右滑动卡片，或用下方按钮。你的反应只存在这台设备的浏览器里。</p>
+
+  <footer>
+    <details>
+      <summary>这叠卡从哪来</summary>
+      <div id="method"></div>
+      <ul id="sources"></ul>
+      <ul id="caveats"></ul>
+    </details>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const DATA = /*__CARDS__*/;
+</script>
+<script>
+(function(){
+  const LAYERS = [["all","全部"],["explicit","判断"],["generated","推荐"]];
+  const mode = c => (c.layer==="explicit" && c.status==="pending") ? "latent" : c.layer;
+  const STATUS = {candidate:"候选", pending:"待补"};
+  const LAYER_NAME = {latent:"判断卡 · 待补",explicit:"判断卡",generated:"推荐卡",summary:"汇总"};
+  const KEY = "sense-m0-reactions-v2";
+  let reactions = {};
+  try { reactions = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(e){ reactions = {}; }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(reactions)); } catch(e){} }
+
+  let filter = "all";
+  try { filter = localStorage.getItem(KEY+"-filter") || "all"; } catch(e){}
+  let idx = 0;
+  const $ = (s,el=document)=>el.querySelector(s);
+  const h = (tag,attrs={},...kids)=>{ const e=document.createElement(tag);
+    for (const [k,v] of Object.entries(attrs)) { if (k==="class") e.className=v; else if (k.startsWith("on")) e.addEventListener(k.slice(2),v); else if (v!==false && v!=null) e.setAttribute(k,v); }
+    for (const k of kids.flat()) if (k!=null) e.append(k.nodeType? k : document.createTextNode(String(k))); return e; };
+
+  $("#date").textContent = DATA.meta.generated_at;
+  $("#method").textContent = DATA.meta.method;
+  DATA.meta.sources.forEach(s=>$("#sources").append(h("li",{},s)));
+  DATA.meta.caveats.forEach(s=>$("#caveats").append(h("li",{},s)));
+
+  function deck(){
+    const cards = DATA.cards.filter(c=>filter==="all" || c.layer===filter);
+    return cards.concat([{id:"END",layer:"summary"}]);
+  }
+
+  function renderChips(){
+    const box=$("#chips"); box.innerHTML="";
+    LAYERS.forEach(([k,label])=>{
+      const n = k==="all"? DATA.cards.length : DATA.cards.filter(c=>c.layer===k).length;
+      const pend = k==="explicit"? DATA.cards.filter(c=>mode(c)==="latent").length : 0;
+      box.append(h("button",{class:"chip","aria-pressed":String(filter===k),onclick:()=>{filter=k; idx=0; try{localStorage.setItem(KEY+"-filter",k)}catch(e){} render();}}, label+" "+n+(pend? "（待补 "+pend+"）":"")));
+    });
+  }
+
+  function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),1600); }
+
+  function evidence(c){
+    if(!c.evidence||!c.evidence.length) return null;
+    return h("details",{}, h("summary",{}, "证据 "+c.evidence.length+" 条"),
+      h("ul",{class:"ev"}, c.evidence.map(e=>h("li",{}, h("span",{class:"w"}, e.when+" · "+e.where), h("span",{class:"t"}, e.what)))));
+  }
+
+  function body(c){
+    if(c.layer==="generated"){
+      return h("div",{style:"display:flex;flex-direction:column;gap:10px"},
+        h("dl",{}, h("dt",{},"条目"), h("dd",{},c.item),
+                   h("dt",{},"为什么"), h("dd",{},c.why),
+                   h("dt",{},"检验"), h("dd",{class:"contrast"}, "判断卡 "+(c.tests||[]).join("、")),
+                   h("dt",{},"若不喜欢"), h("dd",{class:"question"},c.risk)));
+    }
+    const cell=(v,cls)=> v==null ? h("dd",{class:"missing"},"（日志里没有）") : h("dd",{class:cls},v);
+    const rows=[["场",c.scene,""],["选择",c.choice,""],["对照",c.contrast,"contrast"],["理由",c.reason,"reason"]];
+    const dl=h("dl",{}, rows.map(([k,v,cls])=>[h("dt",{},k), cell(v,cls)]));
+    if(mode(c)==="latent") dl.append(h("dt",{},"问"), h("dd",{class:"question"},c.question));
+    return dl;
+  }
+
+  function react(c, value, extra){
+    reactions[c.id] = Object.assign({layer:c.layer, value, at:new Date().toISOString()}, extra||{});
+    save(); next();
+  }
+
+  function panel(c, kind, card){
+    const old = $(".panel", card); if(old){ old.remove(); return; }
+    const ta = h("textarea",{id:"ta-"+c.id, placeholder: kind==="almost" ? "差在哪，一句话" : kind==="edit" ? "把这条判断改成你会说的话" : "一句话回答"});
+    ta.value = (reactions[c.id] && reactions[c.id].text) || "";
+    const p = h("div",{class:"panel"}, ta);
+    let label = null;
+    if(kind==="almost"){
+      const labels=[["right_topic_too_shallow","方向对，太浅"],["right_genre_wrong_mood","类型对，气质不对"],["right_idea_wrong_expression","想法对，表达不对"],["right_person_wrong_direction","人对，方向不对"],["other","其他"]];
+      const box=h("div",{class:"labels"});
+      labels.forEach(([k,t])=>box.append(h("button",{"aria-pressed":"false",onclick:(e)=>{label=k; [...box.children].forEach(b=>b.setAttribute("aria-pressed","false")); e.currentTarget.setAttribute("aria-pressed","true");}},t)));
+      p.append(box);
+    }
+    p.append(h("button",{class:"primary",onclick:()=>{
+      const text=ta.value.trim(); if(!text){ ta.focus(); return; }
+      if(kind==="almost") react(c,"almost",{label:label||"other",text});
+      else if(kind==="edit") react(c,"edit",{text});
+      else react(c,"answer",{text});
+      toast("记下了");
+    }},"保存"));
+    card.append(p); ta.focus();
+  }
+
+  function actions(c, card){
+    const a=h("div",{class:"actions"});
+    const m=mode(c);
+    if(m==="explicit"){
+      a.append(h("button",{class:"neg",onclick:()=>{react(c,"reject"); toast("已拒绝")}},"不对"),
+               h("button",{onclick:()=>panel(c,"edit",card)},"改一句"),
+               h("button",{class:"primary",onclick:()=>{react(c,"confirm"); toast("已确认")}},"确认"));
+    } else if(m==="latent"){
+      a.append(h("button",{class:"neg",onclick:()=>{react(c,"dismiss"); toast("作废")}},"不是我在意的"),
+               h("button",{class:"primary",style:"grid-column:span 2",onclick:()=>panel(c,"answer",card)},"答一句"));
+    } else if(m==="generated"){
+      a.append(h("button",{class:"neg",onclick:()=>{react(c,"skip"); toast("跳过")}},"skip"),
+               h("button",{onclick:()=>panel(c,"almost",card)},"almost"),
+               h("button",{class:"primary",onclick:()=>{react(c,"like"); toast("like")}},"like"));
+    }
+    return a;
+  }
+
+  function summaryCard(){
+    const items = Object.entries(reactions);
+    const lines = items.map(([id,r])=>{
+      const c = DATA.cards.find(x=>x.id===id) || {};
+      const map={confirm:"确认",reject:"不对",edit:"改为："+(r.text||""),answer:"答："+(r.text||""),dismiss:"不是我在意的",like:"like",skip:"skip",almost:"almost · "+(r.label||"")+" · "+(r.text||"")};
+      return {id, text:(c.title? c.title+"  →  ":"")+(map[r.value]||r.value)};
+    });
+    const cmds = items.map(([id,r])=>{
+      const q=s=>JSON.stringify(s||"");
+      if(r.value==="confirm") return `sense confirm ${id}`;
+      if(r.value==="reject") return `sense profile reject ${id}`;
+      if(r.value==="edit") return `sense profile edit ${id} ${q(r.text)}`;
+      if(r.value==="answer") return `sense answer ${id} ${q(r.text)}`;
+      if(r.value==="dismiss") return `sense trace dismiss ${id}`;
+      if(r.value==="like") return `sense correct ${id} --like`;
+      if(r.value==="skip") return `sense correct ${id} --skip`;
+      if(r.value==="almost") return `sense correct ${id} --almost ${r.label} ${q(r.text)}`;
+      return `# ${id} ${r.value}`;
+    }).join("\n");
+    const pre=h("pre",{}, cmds || "# 还没有反应");
+    const card=h("article",{class:"card","data-layer":"summary"},
+      h("div",{class:"eyebrow"}, h("b",{},"汇总"), h("span",{class:"id"}, items.length+" 条反应")),
+      h("h2",{}, items.length? "这就是写回档案的东西" : "一张都没反应"),
+      h("div",{class:"summary"},
+        h("div",{class:"meta"},"你和默认做法分岔在哪（从判断卡汇总，等你确认）："),
+        h("ul",{}, (DATA.meta.summary||[]).map(t=>h("li",{}, h("span",{},t)))),
+        h("div",{class:"meta"},"你的反应："),
+        h("ul",{}, lines.map(l=>h("li",{}, h("span",{class:"id"},l.id), h("span",{},l.text)))),
+        h("div",{class:"meta"},"导出成 CLI 命令（M3 之前先手动执行）："),
+        pre),
+      h("div",{class:"actions"},
+        h("button",{onclick:()=>{ idx=0; render(); }},"从头看"),
+        h("button",{class:"neg",onclick:()=>{ reactions={}; save(); render(); toast("已清空"); }},"清空"),
+        h("button",{class:"primary",onclick:()=>{
+          const text=pre.textContent;
+          const fallback=()=>{ const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("已选中，请手动复制"); };
+          if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(()=>toast("已复制"),fallback); else fallback();
+        }},"复制")));
+    return card;
+  }
+
+  function cardEl(c){
+    if(c.layer==="summary") return summaryCard();
+    const card=h("article",{class:"card","data-layer":mode(c),id:"card-"+c.id},
+      h("div",{class:"eyebrow"}, h("b",{}, LAYER_NAME[mode(c)]+" · "+c.field), h("span",{class:"id"}, c.id+(c.status? " · "+(STATUS[c.status]||c.status):""))),
+      h("h2",{}, c.title),
+      body(c),
+      evidence(c),
+      actions(c, card),
+      h("div",{class:"stamp yes"},"YES"), h("div",{class:"stamp no"},"NO"));
+    swipe(card, c);
+    return card;
+  }
+
+  function swipe(card, c){
+    let x0=null, dx=0, active=false;
+    const yes=$(".stamp.yes",card), no=$(".stamp.no",card);
+    card.addEventListener("pointerdown",e=>{ if(e.target.closest("button,textarea,summary,details,pre")) return; x0=e.clientX; active=true; card.classList.add("dragging"); card.setPointerCapture(e.pointerId); });
+    card.addEventListener("pointermove",e=>{ if(!active) return; dx=e.clientX-x0; card.style.transform=`translateX(${dx}px) rotate(${dx/22}deg)`;
+      yes.style.opacity=Math.min(1,Math.max(0,dx/90)); no.style.opacity=Math.min(1,Math.max(0,-dx/90)); });
+    const end=()=>{ if(!active) return; active=false; card.classList.remove("dragging");
+      if(dx>90){ card.style.transform="translateX(140%) rotate(16deg)"; setTimeout(()=>{ const m=mode(c); if(m==="explicit") react(c,"confirm"); else if(m==="generated") react(c,"like"); else { panel(c,"answer",card); card.style.transform=""; yes.style.opacity=0; } },120); }
+      else if(dx<-90){ card.style.transform="translateX(-140%) rotate(-16deg)"; setTimeout(()=>{ const m=mode(c); react(c, m==="explicit"?"reject": m==="generated"?"skip":"dismiss"); },120); }
+      else { card.style.transform=""; yes.style.opacity=0; no.style.opacity=0; }
+      dx=0; };
+    card.addEventListener("pointerup",end); card.addEventListener("pointercancel",end);
+  }
+
+  function next(){ const d=deck(); if(idx<d.length-1) idx++; render(); }
+
+  function render(){
+    renderChips();
+    const d=deck(); if(idx>=d.length) idx=d.length-1;
+    $("#count").textContent = (idx+1)+" / "+d.length;
+    const dots=$("#dots"); dots.innerHTML=""; d.forEach((c,i)=>dots.append(h("i",{class:i<idx?"done":i===idx?"now":""})));
+    const stage=$("#stage"); stage.innerHTML="";
+    [idx+2, idx+1, idx].forEach(i=>{ if(i<d.length){ const el=cardEl(d[i]); if(i===idx+1) el.classList.add("behind1"); if(i===idx+2) el.classList.add("behind2"); stage.append(el); } });
+    const top=$(".card:not(.behind1):not(.behind2)",stage);
+    requestAnimationFrame(()=>{ if(top) stage.style.minHeight = Math.max(520, top.offsetHeight+28)+"px"; });
+  }
+  render();
+})();
+</script>

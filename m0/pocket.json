@@ -1,0 +1,2286 @@
+{
+ "meta": {
+  "subject": "Niko",
+  "generated_at": "2026-10-21",
+  "version": "M0.5",
+  "method": "手动跑 E 环。复用 m0/cards.json 的 8 张判断与 5 张待补作为属性来源；重跑用户轮次抽取，按作品、人名、兴趣关键词检索；另抽 agent 的 WebSearch / WebFetch 查询词（只取查询词，不读工具输出）。卡片由 LLM 手写，每条「引文」写出前用脚本核对确实出现在用户轮次里。品级按 7.5.4 用历史提及回填，门槛 3。",
+  "sources": [
+   "Claude Code 272 个 jsonl 与 Codex 30 个 jsonl：过滤后 5840 条用户轮次（含 rp-courier，检索时排除）",
+   "agent 搜索词 359 条（WebSearch 与 WebFetch 的输入）",
+   "m0/cards.json：J1–J8、P1–P5、R1–R3",
+   "卡片计数：collection 5、decision 10、follow 5、interest 6、person 5、quote 7、recommendation 3"
+  ],
+  "exclusions": [
+   "Chrome 履历与书签：本轮没有读。读取 Chrome 目录被权限分类器拦截，没有绕过",
+   "别人的 Chrome profile 从未触碰",
+   "assistant 输出、工具输出、宿主注入、teammate 消息、sidechain；rp-courier 定时模板",
+   "合作者真名、私人朋友同事不入卡；agent 搜索词里的签证、医疗、税务、注册公司类查询不出卡",
+   "卡片不写 URL，书签与推荐除外；本轮没有书签卡"
+  ],
+  "caveats": [
+   "本轮没有读浏览器履历（权限拦截），关注卡与收藏卡只来自会话里作者明说在追、在用的东西，数量偏少；《来自深渊》《海贼王》追到哪还不知道",
+   "作者提到的 idol 没有名字，没有出卡",
+   "人物卡里三位研究者只来自 agent 搜索词或一次提及，是石卡；作者没有说过要联系他们",
+   "属性 confirmed 按任务约定判定：m0 四要素齐全且跨 ≥3 会话；作者还没有在 app 里点过「对」",
+   "推荐与出一手的结果已用 WebSearch 核实存在，并检查过不在会话里出现过；浏览器里有没有看过，这轮无法检查"
+  ],
+  "threshold": {
+   "default": 3,
+   "meaning": "铜卡被碰（打开、放进卡槽或用例、抽卡选中或留下）这么多次自动升银；按作者操作在 2–8 之间调（决策 0022）"
+  },
+  "summary": [
+   "默认做法是 agent 做完就 push、部署、自动发；他要「不要发布，但是实装到底」，发布前必须过他的眼，因为「如果发布的话撤回也会留下记录」。",
+   "默认做法是用 agent loop、多个 LLM 分工、叙事里嵌 JSON 来保稳；他宁可「酒馆直出+tool call」、文字加 tag 再抽状态，因为「4个独立的LLM做4个完全不一样的内容……变向是降智了」「叙事和json同时出，叙事会变差」。",
+   "默认做法是世界顺着玩家、按要求变出敌人和地点；他要世界会拦、会掷骰、会说出到不了北门的理由，因为「有迷题和有谜底……信任度会完全不一样」。"
+  ],
+  "tier_rules": "0022：石刚进来；铜有点在意；银关注它本身；金是一种口味、往外推荐生铜卡，只能由同属性的银卡融合",
+  "domains": [
+   [
+    "anime",
+    "动画"
+   ],
+   [
+    "manga",
+    "漫画"
+   ],
+   [
+    "novel",
+    "小说与轻小说"
+   ],
+   [
+    "game",
+    "游戏与视觉小说"
+   ],
+   [
+    "music",
+    "音乐"
+   ],
+   [
+    "idol",
+    "偶像"
+   ],
+   [
+    "film",
+    "影视"
+   ],
+   [
+    "research",
+    "研究"
+   ],
+   [
+    "make",
+    "做东西用的"
+   ],
+   [
+    "work",
+    "做事的方式"
+   ],
+   [
+    "other",
+    "其他"
+   ]
+  ]
+ },
+ "attributes": [
+  {
+   "id": "A1",
+   "text": "实装可以做到底，发布要等我看过",
+   "reason": "「你为什么会想发布？因为我们还没有做完东西。」「如果发布的话撤回也会留下记录，就不要再继续乱动了」——发布是对外、不可撤回的动作，和内部实装不是一回事。",
+   "contrast": "agent 自己 push、自己部署、自动发帖：「你不应该擅自push，我们已经封稿了」「为什么你要放，直接发布啊？我们在Local放一个网页就好了」「别自动发，发之前给我看看」。",
+   "status": "confirmed",
+   "uses": 6,
+   "evidence": [
+    {
+     "when": "2026-06-14",
+     "where": "Claude Code · NeonRP",
+     "what": "「给我一个Tag，我不需要你Push。」"
+    },
+    {
+     "when": "2026-06-21",
+     "where": "Claude Code · NeonRP",
+     "what": "agent 提议发布，他反问：「你为什么会想发布？因为我们还没有做完东西。」同一天在 Ludic-Dynamics：「不要push，我们push不重要」"
+    },
+    {
+     "when": "2026-08-09",
+     "where": "Claude Code · NeonRP",
+     "what": "睡前交任务：「请通过 team 来分sub-agent来实装，我先睡了，不要发布，但是实装到底」"
+    },
+    {
+     "when": "2026-08-18",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你现在直到能执行的位置为止，都可以一直执行，就是把那个发布之前的事情都可以做，但不要发布。」"
+    },
+    {
+     "when": "2026-09-15",
+     "where": "Claude Code · hackathon",
+     "what": "agent 推了已删掉的 remote：「你不应该擅自push，我们已经封稿了」「如果发布的话撤回也会留下记录，就不要再继续乱动了」"
+    },
+    {
+     "when": "2026-10-02",
+     "where": "Claude Code · www",
+     "what": "官网改版 agent 直接部署：「不要啊！为什么你要放，直接发布啊？我们在Local放一个网页就好了，为什么要部署啊？我不明白。」2026-10-13 对社媒：「别自动发，发之前给我看看」。反例也明确：2026-10-18 「请直接执行，部署，以及其他，都不需要我认可，直接做到底，我要睡了」——授权是他说出口的，不是默认的。"
+    }
+   ]
+  },
+  {
+   "id": "A2",
+   "text": "先把逻辑和中间过程摊给我看，再动手",
+   "reason": "质量和活人感「这部分我需要我的来定性」，所以中间过程得是他能看懂的形式；逻辑没分清就往下做，「理论上这个会越错越大」。",
+   "contrast": "「不要先急着试装」「先不要修改」「不要自动生成」；只给 end-to-end 的 output；靠假设下结论——「是不是可以从AWS上的那个记录上，LOg上可以找到答案？而不是说可能我们靠假设和这个假设并且没有验证」。",
+   "status": "confirmed",
+   "uses": 10,
+   "evidence": [
+    {
+     "when": "2026-06-23",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「好玩不好玩是玩家决定的，请分清楚 玩家，内容创作，引擎逻辑和定位 的3个不同职能，因此进行现在的编排分析和归因，先不要修改」"
+    },
+    {
+     "when": "2026-08-05",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你先是根据这个系统去思考，怎么去完整的去设计这个流程之后，我们再试装，就不要先急着试装。」2026-08-18 又一次：「你先不要开始实装，你先分析我们现在的这个构架」"
+    },
+    {
+     "when": "2026-08-23",
+     "where": "Claude Code · tools",
+     "what": "纠正文档里的 flow：「如果是这里面逻辑没分开，并且可能我们这个还是按照错误逻辑继续往下做的话，理论上这个会越错越大。」"
+    },
+    {
+     "when": "2026-09-07",
+     "where": "Claude Code · worldlines-rivet",
+     "what": "「你做的时候先做 planning，再分解具体的 task；剩下的是怎么检验、验证的 test。」前一天（2026-09-06）：「你先思考清楚，别急着做，我可以和你一起想」"
+    },
+    {
+     "when": "2026-09-25",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "骰子实验：「我需要看叙事和状态分别输出的中间过程，不仅仅只有end-to-end的output result」；同日「剩下可能是质量跟活人感的评分。就是这部分我需要我的来定性」，要求把 log 整理成他能看懂的形式。"
+    },
+    {
+     "when": "2026-10-10",
+     "where": "Claude Code · NeonRP",
+     "what": "看 benchmark 对比：「现在这个对比我看不到它里面的编排逻辑……我必须要看到这个效果。你可以弄一个可折叠的」；同日 Ludic-Dynamics：「这个我觉得我们需要详细设计，你给我给我逻辑看，不要自动生成。」"
+    }
+   ]
+  },
+  {
+   "id": "A3",
+   "text": "给我编号清单，我逐条拍板，别替我加东西",
+   "reason": "「因为这部分其实我处理这部分精力是很累的。我只要处理说我同意的信息，不然它就会很乱。」",
+   "contrast": "「都别把我列成table」；「Linear，你不要轻易的去添加信息」；「你这个太细了，我定不了」；「现在table里面的内容有点太过碎片化了」。",
+   "status": "confirmed",
+   "uses": 6,
+   "evidence": [
+    {
+     "when": "2026-07-13",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你把每个问题做成一个列表，我一个一个针对1234去写这个对还是错，还是每个决定的一个判断。」"
+    },
+    {
+     "when": "2026-07-29",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「所以真的就需要你列一个清单，然后我对着这个清单开始念。」"
+    },
+    {
+     "when": "2026-08-28",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「Linear，你不要轻易的去添加信息。因为这部分其实我处理这部分精力是很累的。我只要处理说我同意的信息，不然它就会很乱。」两小时后：「我现在需要看的所有的任务，都别把我列成table。然后显示出来，我一条一条去思考」"
+    },
+    {
+     "when": "2026-09-17",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你这个太细了，我定不了。……请给我这个需要check的Markdown的一栏。」"
+    },
+    {
+     "when": "2026-09-06",
+     "where": "Claude Code · worldlines-rivet",
+     "what": "「现在table里面的内容有点太过碎片化了，我们需要再page里面整体设计之后，再用table来完整阐述」"
+    },
+    {
+     "when": "2026-10-08",
+     "where": "Claude Code · NeonRP",
+     "what": "「如果要删除，那么请给我一个清单，我来告诉你需要什么不需要什么」；他的回复形态本身就是证据，例如 2026-10-03 hackathon「1 可以 2 以后再做， 3 可以 4 4 可以 5 不需要coc技能」"
+    }
+   ]
+  },
+  {
+   "id": "A4",
+   "text": "叙事让 LLM 直出，少加控制，不要 agent loop",
+   "reason": "「这样变向是降智了」；「用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」；「如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」",
+   "contrast": "「我比较反对是4个独立的LLM做4个完全不一样的内容」；「Agent Loop 是傻」；叙事和 JSON 同时出；「现在的引擎的设计hard harness太多」。",
+   "status": "confirmed",
+   "uses": 13,
+   "evidence": [
+    {
+     "when": "2026-08-10",
+     "where": "Claude Code · NeonRP",
+     "what": "「机制层，我比较反对是4个独立的LLM做4个完全不一样的内容，这样变向是降智了，除非是world-agent用sub-agent来控制context，soft harness 只把这些process当成是skill或者tool来调用」；同日「我个人觉得现在的引擎的设计hard harness太多」"
+    },
+    {
+     "when": "2026-09-23",
+     "where": "Claude Code · NeonRP",
+     "what": "「我们的move_to engage还有其他那些判定，就不需要出了，我们用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」"
+    },
+    {
+     "when": "2026-09-26",
+     "where": "Claude Code · NeonRP",
+     "what": "「我现在有一个直觉以及经验是，如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；两天后（2026-09-28）：「再次感受到叙事的必须放弃json，全用文字+tag」"
+    },
+    {
+     "when": "2026-10-01",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」几天前（2026-09-26）在同仓：「尽量不要过度设计」"
+    },
+    {
+     "when": "2026-10-06",
+     "where": "Claude Code · posting",
+     "what": "写给类脑的进度帖：「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」"
+    },
+    {
+     "when": "2026-10-10",
+     "where": "Claude Code · NeonRP",
+     "what": "实测后仍诚实记录反例：「我意外的是jev并没有效果太好，或者速度更快」——判断是直出，不是 jev 一定赢。"
+    }
+   ]
+  },
+  {
+   "id": "A5",
+   "text": "世界不能顺着玩家：要有裁判、有骰子、有谜底",
+   "reason": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」「这样赶路的话，理论上你会感受到非常真实的阻碍」；无中生有是「非常不物理」的。",
+   "contrast": "「整个的作家也好，我们的这个world agent就顺着这个角色去说的，这个是很大的一个问题」；「平白无故我们出一个新的东西」；「不能跳过投骰子，也不能跳过 艾琳娜要拦」。",
+   "status": "confirmed",
+   "uses": 18,
+   "evidence": [
+    {
+     "when": "2026-09-26",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」"
+    },
+    {
+     "when": "2026-09-29",
+     "where": "Claude Code · NeonRP",
+     "what": "「现在基本上整个的作家也好，我们的这个world agent就顺着这个角色去说的，这个是很大的一个问题……其实是可以给一个裁判，然后裁判里面会有一个解释……就有这么一个对抗的形式在，得有这么一个形式……这样赶路的话，理论上你会感受到非常真实的阻碍」"
+    },
+    {
+     "when": "2026-10-02",
+     "where": "Claude Code · NeonRP",
+     "what": "「如果玩家他是在游玩的过程中出现过这个词，我们context里面有这个内容的话……是一个非常合理的这么一个或非常好的一个涌现的表现。但如果是什么都没有的一个reference没有的情况下，然后平白无故我们出一个新的东西……无中生有的一个非常不物理」；同日「玩家需要问，我们去一个新的方向……而不是我要指定一个100%存在的地点」"
+    },
+    {
+     "when": "2026-10-04",
+     "where": "Claude Code · NeonRP",
+     "what": "「这个可以跳过和角色商量，但不能跳过投骰子，也不能跳过 艾琳娜要拦，而是直接进入对抗清算」"
+    },
+    {
+     "when": "2026-10-13",
+     "where": "Claude Code · sessions",
+     "what": "自己玩第七夜之后：「骰子还挺硬的，用了强制骰的时候，会给我真实的反馈，挺好」"
+    },
+    {
+     "when": "2026-10-19",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我要到北门，那么重点不是我是否能到北门，而是这中间的发生的经过和结果……有原因到不了北门，那么叙事这里，和状态得对上，并且给出理由」；2026-09-21 watson：「堵住不合理的同时，应该还得有好的示范」"
+    }
+   ]
+  },
+  {
+   "id": "A6",
+   "text": "后台在算的每一秒都要让人看见在算什么",
+   "reason": "「让大家误以为是就是已经没有在转了，但其实本质上后台在转」；「看起来特别像是bug」；「这个体感非常不好」。",
+   "contrast": "「只显示一个静止的，一个正在运算的画面」；「导入界面会一瞬间变成白屏」；「没有placeholder的图像」；「现在登录和退出的时候所有平台没有加载动画，像是卡主一样」。",
+   "status": "confirmed",
+   "uses": 6,
+   "evidence": [
+    {
+     "when": "2026-06-07",
+     "where": "Claude Code · web",
+     "what": "「现在生成世界封面，估计在等待的时候，没有placeholder的图像，所以看起来特别像是bug」"
+    },
+    {
+     "when": "2026-07-13",
+     "where": "Claude Code · NeonRP",
+     "what": "「这个灵魂创作逻辑不应该是这样，原因是，我们需要进入编辑界面，然后实时看生成的进度」；同日 Ludic-Dynamics：「尽量让游玩界面，能够有完整的 知道现在ai 在实际运行到哪一步的一个提示动画」"
+    },
+    {
+     "when": "2026-07-18",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「它导入界面会一瞬间变成白屏，然后让大家误以为是就是已经没有在转了，但其实本质上后台在转。所以其实我们的导入的转圈圈……都需要有这个loading的一个感觉的画面」"
+    },
+    {
+     "when": "2026-07-24",
+     "where": "Claude Code · NeonRP",
+     "what": "「我特别希望说刚加载的时候，你需要有加载的滚动的这个Agent思考的文案……第一个处理完，第二个处理完……而不是只显示一个静止的，一个正在运算的画面。并且你还没有出字之前，它就停止了……这个体感非常不好。」"
+    },
+    {
+     "when": "2026-08-19",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我觉得也不要说太慢，也不要说太快，但是至少说我们是一个恒速的一个打印机的一个动画……我其实看不到说现在这个handoff在执行也好， writer在作家在执行也好，我都看不到……我感觉就很奇怪」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「现在登录和退出的时候所有平台没有加载动画，像是卡主一样」"
+    }
+   ]
+  },
+  {
+   "id": "A7",
+   "text": "文字要像一个具体的人写的，不把道理直接说出来",
+   "reason": "「所以我们产生不了共鸣」；「要把人立住，他需要的细节和密度和这个专注度」；「如果是他们对话之间没有化学反应，那他这个画面感也出不来」；文案「没有对站在任何人角度在思考这个问题，你只是单纯是为了这个题目去想」。",
+   "contrast": "「网文它有点像流水账」；「许老师现在太工具人了」；「你不可以在这个文本里面去直接说这句话」；「这个文字太像ai写的了」；「这个蓝图写的太想claude 文章了，我可能会重写」；「这筹码根本就直接亮在那边，就不行」。",
+   "status": "confirmed",
+   "uses": 12,
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · rp-loadingpage",
+     "what": "看官网论文卡片文案：「这个文字太像ai写的了」"
+    },
+    {
+     "when": "2026-09-19",
+     "where": "Claude Code · worldlines-movie",
+     "what": "「网文它有点像流水账，它并不是以这个沈知夏她第一人称的内心的逻辑去感受，去描写的，所以我们产生不了共鸣」；同日 summer-demo：「但我这句话是讲的非常白话，你不可你不可以在这个文本里面去直接说这句话……就得铺在那个润物细无声的描绘之中」"
+    },
+    {
+     "when": "2026-09-19",
+     "where": "Claude Code · posting",
+     "what": "否掉一句宣传语：「这个我觉得不对，原因是因为这个没有对站在任何人角度在思考这个问题，你只是单纯是为了这个题目去想」"
+    },
+    {
+     "when": "2026-09-21",
+     "where": "Claude Code · summer-demo",
+     "what": "「活人感太少了，部长也是，没有啥心理描写……许老师现在太工具人了」；同日「我个人觉得差一点的是细节，还有这个堆的密度……要把人立住，他需要的细节和密度和这个专注度」；worldlines-movie：「如果是他们对话之间没有化学反应，那他这个画面感也出不来」"
+    },
+    {
+     "when": "2026-09-22",
+     "where": "Claude Code · worldlines-movie",
+     "what": "伏笔太显：「像这个筹码，这筹码根本就直接亮在那边，就不行」；塞梗：「选一个吧，太密就没啥意思了」"
+    },
+    {
+     "when": "2026-10-02",
+     "where": "Claude Code · NeonRP",
+     "what": "引擎设计蓝图：「这个蓝图写的太想claude 文章了，我可能会重写」；2026-09-29 c2b 论文：「你这个我感觉有点不太说人话」"
+    }
+   ]
+  },
+  {
+   "id": "A8",
+   "text": "角色图只认二次元正本，不要厚涂和 3D",
+   "reason": "「图的质量不好」；「我们如果不是GPT的图话，理论上都是不行的……因为现在的图生成的这个逻辑差太多了」；在原图上做局部编辑「模型会整张重画、人物走样」。",
+   "contrast": "「这个不行，这个厚涂不好，我们的是二次元的」；「都太gpt画风了」要改成漫剧；「我们不能用comfyui」；「-c01 / -c02 / -cNN 结尾的图一律不用」；「我们不是很认同说可能是直接给一个3D风」。",
+   "status": "confirmed",
+   "uses": 7,
+   "evidence": [
+    {
+     "when": "2026-08-05",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "agent 提议「厚涂 premium + 世界在场背景」：「这个不行，这个厚涂不好，我们的是二次元的」"
+    },
+    {
+     "when": "2026-08-29",
+     "where": "Claude Code · worldlines-rivet",
+     "what": "「请给所有新生成的5个世界都生成prompt提示词，改成漫剧，都太gpt画风了」"
+    },
+    {
+     "when": "2026-10-07",
+     "where": "Claude Code · NeonRP",
+     "what": "「我们不能用comfyui，图的质量不好」"
+    },
+    {
+     "when": "2026-10-15",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「就这个所谓的Stand C01都是有问题的图。就用别的图替代……我们如果不是GPT的图话，理论上都是不行的……因为现在的图生成的这个逻辑差太多了……当然这二次元的风格是一种，但我们可能是那种写实的二次元……但我们不是很认同说可能是直接给一个3D风」；同日 NeonRP@neonrp-worlds：「我们的图片生成统一是用GPT，不能用别的」"
+    },
+    {
+     "when": "2026-10-15",
+     "where": "CLAUDE.md · worldlines-assets",
+     "what": "AGENTS.md（2026-10-15 起所有 agent 适用）：不用 Codex 内置的 image_gen；-c01 / -c02 / -cNN 结尾的图一律不用、不当参考；不在原图上做「只改光照 / 只去背景」的编辑，「模型会整张重画、人物走样」；新图先是候选，人挑过才算正本。~/.codex/AGENTS.md 同步了同一条。"
+    },
+    {
+     "when": "2026-10-14",
+     "where": "Codex · worldlines-assets",
+     "what": "出概念图时的取舍：「B2 B3 也太抽象了，重出，先给我提示词和为什么是这个提示词」「那个骰子非常突兀……没有必要一定要加个骰子了」"
+    }
+   ]
+  },
+  {
+   "id": "A9",
+   "text": "纯文字比画面更有想象力；加画面看似升维，其实是降维",
+   "reason": "「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」；「Narrative World Simulation vs AI Town, 缺乏想象力，边界，就是自由文字的重要性」",
+   "contrast": "像素小镇式的图形化模拟：「我们其实更想做的是一个纯文字的这种智斗」",
+   "status": "candidate",
+   "uses": 5,
+   "evidence": [
+    {
+     "when": "2026-08-11",
+     "where": "Claude Code · clips-nosub",
+     "what": "对比像素风地图互动：「我们其实更想做的是一个纯文字的这种智斗」"
+    },
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "文章提纲：「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」「Narrative World Simulation vs AI Town, 缺乏想象力，边界，就是自由文字的重要性」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · articles",
+     "what": "「叙事空间的维度是降低的，因此，ai 的短剧生成变得非常合理」"
+    }
+   ]
+  },
+  {
+   "id": "A10",
+   "text": "面向玩家的界面要用真素材真数据",
+   "reason": null,
+   "contrast": "mock 的素材和假用户数；但他自己也说过「暂时mock一下」",
+   "status": "candidate",
+   "uses": 5,
+   "evidence": [
+    {
+     "when": "2026-07-23",
+     "where": "Claude Code · NeonRP",
+     "what": "「我个人觉得你的现在这个observe没有加真的数据，我觉得不行啊」"
+    },
+    {
+     "when": "2026-09-01",
+     "where": "Claude Code · worldlines-rivet",
+     "what": "「你还是从mock的角度考虑，但我们其实不是mock，我们是真正游玩界面，我们是需要有个真的一个界面也好，素材也好，体制也好，我们是要真的是去考虑的」"
+    },
+    {
+     "when": "2026-09-19",
+     "where": "Claude Code · NeonRP",
+     "what": "「请用真实的素材去做，不要用这种mock的素材。要尽可能有些图画图像」"
+    },
+    {
+     "when": "2026-10-07",
+     "where": "Codex · ludenia",
+     "what": "反例：「对，暂时mock一下，然后可以先假设是出去了之后，还可以再回来」；2026-10-10 NeonRP：「这个mock已经很好了，我们接下来是要根据这个逻辑去继续做」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · worldlines-frontend",
+     "what": "「里面的Mock尽量少一点，就是我们以真实的数据去采样好一点，不要现在是全是Mock的数据，而且他那个玩过的人数也不是真的」"
+    }
+   ]
+  },
+  {
+   "id": "A11",
+   "text": "第一眼不能有 HUD，屏幕只留核心交互",
+   "reason": null,
+   "contrast": "「现在一点进去太多复杂的界面」「层级太多了」",
+   "status": "candidate",
+   "uses": 5,
+   "evidence": [
+    {
+     "when": "2026-06-13",
+     "where": "Claude Code · NeonRP",
+     "what": "「让左边只剩故事本身,读起来像小说。那张线索表挪到一个能折叠的小角落,想看再点。」"
+    },
+    {
+     "when": "2026-10-01",
+     "where": "Claude Code · hackathon",
+     "what": "「就是第一眼看过去的时候，不能有HUD」"
+    },
+    {
+     "when": "2026-10-13",
+     "where": "Claude Code · templates",
+     "what": "「画布我们屏幕的内容不堆砌在画布里面，而是放进抽屉，抽屉要好看一点，然后屏幕只留核心的交互组件和总结性的旁白」；同日 seven-days-inn-zh：「屏幕东西太多了」"
+    },
+    {
+     "when": "2026-10-14",
+     "where": "Claude Code · hackathon",
+     "what": "「层级太多了，并且说实话，头像也不一定能察觉到要点，最好头像旁边有两个，一个是状态，一个是技能」；同日 Ludic-Dynamics：「我们会把一些技能，就常用技能做在我们的第一眼能看到」"
+    },
+    {
+     "when": "2026-10-15",
+     "where": "Claude Code · worldlines-frontend",
+     "what": "「现在还是有很多Tab……都不知道要点哪个。我们就是每一个主页面，它就是一个流式scrolling的一个逻辑，你不要搞太多复杂的东西。」"
+    }
+   ]
+  },
+  {
+   "id": "A12",
+   "text": "故事要有一个真正让人绽放的舞台",
+   "reason": "「如果只是单纯是背后是热闹的大家的最后的一个暑假，会感觉会有点寂寞，因为它没有一个真正的舞台去让大家绽放。」",
+   "contrast": "「《未闻花名》讲的是一个摆烂的故事」",
+   "status": "candidate",
+   "uses": 3,
+   "evidence": [
+    {
+     "when": "2026-09-14",
+     "where": "Claude Code · hackathon",
+     "what": "设计周望舒：「具体可以参考我们的花牌情缘」"
+    },
+    {
+     "when": "2026-09-19",
+     "where": "Claude Code · worldlines-movie",
+     "what": "「可以像那个《花牌情缘》一样，是一上来就是她的一个最终决战……如果只是单纯是背后是热闹的大家的最后的一个暑假，会感觉会有点寂寞，因为它没有一个真正的舞台去让大家绽放」"
+    },
+    {
+     "when": "2026-09-20",
+     "where": "Claude Code · worldlines-rivet",
+     "what": "agent 引《未闻花名》作比：「这个不是那么准确，主要这个主要是因为这个《未闻花名》讲的是一个摆烂的故事，有没有一个更好的例子？」"
+    }
+   ]
+  },
+  {
+   "id": "A13",
+   "text": "跑团主持人做的事就是世界模拟",
+   "reason": "「其实本质是TRPG的主持人所做的事情，是一种世界预测」；「一个永续执行的TRPG主持人，可以被当成一个世界模拟」",
+   "contrast": "Generative Agents 式「和现实世界对齐」的模拟：「AIRP 是什么，和Generative Agents 这些Ai模拟的区别」",
+   "status": "candidate",
+   "uses": 14,
+   "evidence": [
+    {
+     "when": "2026-08-11",
+     "where": "Claude Code · clips-nosub",
+     "what": "「然后其实我特别喜欢玩跑团，然后跑团里面是像那个DM一个一个去递话筒去说话」"
+    },
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "「AIRP和TRPG的关系 AIRP -> TRPG -> World Simulation」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · articles",
+     "what": "「其实本质是TRPG的主持人所做的事情，是一种世界预测」"
+    },
+    {
+     "when": "2026-10-20",
+     "where": "Claude Code · task-planning",
+     "what": "「一个永续执行的TRPG主持人，可以被当成一个世界模拟」"
+    }
+   ]
+  },
+  {
+   "id": "A14",
+   "text": "串成线、会定期回来看的东西，才算我的",
+   "reason": "「只有组合成为长期我们的sense，或者我们定期catch 的才会变成金卡」",
+   "contrast": null,
+   "status": "candidate",
+   "uses": 3,
+   "evidence": [
+    {
+     "when": "2026-10-21",
+     "where": "Claude Code · Sense",
+     "what": "「每一个卡其实是一个catchup的主题」「只有组合成为长期我们的sense，或者我们定期catch 的才会变成金卡」"
+    }
+   ]
+  },
+  {
+   "id": "A15",
+   "text": "人需要故事和幻想，幻想陪人走得更久",
+   "reason": "「人类在乎现实世界，但是更多的，人类其实需要的是故事和幻想的消费者。」「幻想，某种意义上也是真正能陪伴人类走的时间更久」",
+   "contrast": "只做和现实世界对齐的模拟与预测",
+   "status": "candidate",
+   "uses": 4,
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "「日本的galgame和轻小说是无限的故事」「幻想，某种意义上也是真正能陪伴人类走的时间更久」"
+    },
+    {
+     "when": "2026-09-19",
+     "where": "Claude Code · posting",
+     "what": "EC2026 发表后的帖子：「AI Chat Bot の体験と終わりなきストリーを次の世代の体験を作るために」"
+    }
+   ]
+  },
+  {
+   "id": "A16",
+   "text": "引擎开源，编排闭源",
+   "reason": null,
+   "contrast": "全开源 / 全闭源都被他否过",
+   "status": "candidate",
+   "uses": 6,
+   "evidence": [
+    {
+     "when": "2026-08-10",
+     "where": "Claude Code · NeonRP",
+     "what": "「我们的NeonRP那部分其实是不开源的，但是我们的Worldlines其实是开源的」"
+    },
+    {
+     "when": "2026-09-25",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我需要整肃git 的repo，docs类似的资料不应该放在开源的git里面」"
+    },
+    {
+     "when": "2026-10-08",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我其实越做越觉得不知道要不要搞开源了」，一个半小时后：「不用改，我们编排这个闭源这件事情不需要这么强调」"
+    },
+    {
+     "when": "2026-10-12",
+     "where": "Claude Code · NeonRP",
+     "what": "「我就比较担心说可能有些朋友是同行，他可能去打，用我的我们的引擎去打磨他们我们的比较好的一些竞品」"
+    },
+    {
+     "when": "2026-10-13",
+     "where": "Claude Code · NeonRP@neonrp-worlds",
+     "what": "「不要介意编排被下载走，我们这个逻辑其实不是这样的。能做到这一点人其实很少，我们不需要去考虑这些。与之相对的，我们用API玩，我们的成本是很高的。」同日 Workspaces：「party （商量拍）不开源」；「引擎用Apache-2.0」"
+    }
+   ]
+  }
+ ],
+ "cards": [
+  {
+   "id": "C01",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "0022 迁移：旧规则的金卡先降为银，等融合出真正的金卡",
+   "title": "2026-08-09 睡前：实装到底，但不要发布",
+   "body": "NeonRP 收尾，睡前把任务交给 team。决定：实装、测试做到底，发布停下等他看。放弃：让 agent 直接部署。为什么：「如果发布的话撤回也会留下记录」。同一个决定 08-18、10-02 又下了两次。",
+   "attribute_ids": [
+    "A1"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-09",
+     "where": "Claude Code · NeonRP",
+     "what": "睡前交任务：「请通过 team 来分sub-agent来实装，我先睡了，不要发布，但是实装到底」"
+    },
+    {
+     "when": "2026-08-18",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你现在直到能执行的位置为止，都可以一直执行，就是把那个发布之前的事情都可以做，但不要发布。」"
+    },
+    {
+     "when": "2026-10-02",
+     "where": "Claude Code · www",
+     "what": "官网改版 agent 直接部署：「不要啊！为什么你要放，直接发布啊？我们在Local放一个网页就好了，为什么要部署啊？我不明白。」2026-10-13 对社媒：「别自动发，发之前给我看看」。反例也明确：2026-10-18 「请直接执行，部署，以及其他，都不需要我认可，直接做到底，我要睡了」——授权是他说出口的，不是默认的。"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C02",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "0022 迁移：旧规则的金卡先降为银，等融合出真正的金卡",
+   "title": "2026-09-25 骰子实验：要看中间过程，不要只看结果",
+   "body": "Ludic-Dynamics 跑骰子实验。决定：叙事和状态分开输出，log 整理成他能看懂的形式。放弃：只给 end-to-end 的分数。为什么：质量和活人感「这部分我需要我的来定性」。08-05、10-10 同样要求先摊开逻辑。",
+   "attribute_ids": [
+    "A2"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-05",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你先是根据这个系统去思考，怎么去完整的去设计这个流程之后，我们再试装，就不要先急着试装。」2026-08-18 又一次：「你先不要开始实装，你先分析我们现在的这个构架」"
+    },
+    {
+     "when": "2026-09-25",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "骰子实验：「我需要看叙事和状态分别输出的中间过程，不仅仅只有end-to-end的output result」；同日「剩下可能是质量跟活人感的评分。就是这部分我需要我的来定性」，要求把 log 整理成他能看懂的形式。"
+    },
+    {
+     "when": "2026-10-10",
+     "where": "Claude Code · NeonRP",
+     "what": "看 benchmark 对比：「现在这个对比我看不到它里面的编排逻辑……我必须要看到这个效果。你可以弄一个可折叠的」；同日 Ludic-Dynamics：「这个我觉得我们需要详细设计，你给我给我逻辑看，不要自动生成。」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C03",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "0022 迁移：旧规则的金卡先降为银，等融合出真正的金卡",
+   "title": "2026-08-28 Linear：不要替我加信息，也别列成 table",
+   "body": "管任务时 agent 往 Linear 里自己加条目、列表格。决定：只处理他同意过的事，一条一条列出来。放弃：表格和自动添加。为什么：「我处理这部分精力是很累的」。07-13、09-17 同一要求。",
+   "attribute_ids": [
+    "A3"
+   ],
+   "evidence": [
+    {
+     "when": "2026-07-13",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你把每个问题做成一个列表，我一个一个针对1234去写这个对还是错，还是每个决定的一个判断。」"
+    },
+    {
+     "when": "2026-08-28",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「Linear，你不要轻易的去添加信息。因为这部分其实我处理这部分精力是很累的。我只要处理说我同意的信息，不然它就会很乱。」两小时后：「我现在需要看的所有的任务，都别把我列成table。然后显示出来，我一条一条去思考」"
+    },
+    {
+     "when": "2026-09-17",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「你这个太细了，我定不了。……请给我这个需要check的Markdown的一栏。」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C04",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "2026-09-23 新引擎：叙事直出，再用 jev 转词条",
+   "body": "NeonRP 重做机制层。决定：不再单独出 move_to 判定，LLM 直出文字，再抽状态词条。放弃：多个独立 LLM 分工和 agent loop。为什么：「会更快，而且更稳」。10-10 实测 jev 没有更快，他照实记下了。",
+   "attribute_ids": [
+    "A4"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-23",
+     "where": "Claude Code · NeonRP",
+     "what": "「我们的move_to engage还有其他那些判定，就不需要出了，我们用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」"
+    },
+    {
+     "when": "2026-09-26",
+     "where": "Claude Code · NeonRP",
+     "what": "「我现在有一个直觉以及经验是，如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；两天后（2026-09-28）：「再次感受到叙事的必须放弃json，全用文字+tag」"
+    },
+    {
+     "when": "2026-10-10",
+     "where": "Claude Code · NeonRP",
+     "what": "实测后仍诚实记录反例：「我意外的是jev并没有效果太好，或者速度更快」——判断是直出，不是 jev 一定赢。"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C05",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "2026-10-04 跑团：可以跳过商量，不能跳过骰子",
+   "body": "NeonRP 游玩测试，玩家要硬闯。决定：「不能跳过投骰子，也不能跳过 艾琳娜要拦」，直接进入对抗清算。放弃：让作家顺着玩家写。为什么：有谜底，「而且信任度会完全不一样」。",
+   "attribute_ids": [
+    "A5"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-26",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」"
+    },
+    {
+     "when": "2026-10-04",
+     "where": "Claude Code · NeonRP",
+     "what": "「这个可以跳过和角色商量，但不能跳过投骰子，也不能跳过 艾琳娜要拦，而是直接进入对抗清算」"
+    },
+    {
+     "when": "2026-10-13",
+     "where": "Claude Code · sessions",
+     "what": "自己玩第七夜之后：「骰子还挺硬的，用了强制骰的时候，会给我真实的反馈，挺好」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C06",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "2026-07-24 进场加载：滚动显示 agent 在想什么",
+   "body": "NeonRP 进场要跑一分钟以上。决定：加载时滚动显示「第一个处理完，第二个处理完」。放弃：静止的「正在运算」。为什么：「这个体感非常不好」，看起来像 bug。",
+   "attribute_ids": [
+    "A6"
+   ],
+   "evidence": [
+    {
+     "when": "2026-06-07",
+     "where": "Claude Code · web",
+     "what": "「现在生成世界封面，估计在等待的时候，没有placeholder的图像，所以看起来特别像是bug」"
+    },
+    {
+     "when": "2026-07-24",
+     "where": "Claude Code · NeonRP",
+     "what": "「我特别希望说刚加载的时候，你需要有加载的滚动的这个Agent思考的文案……第一个处理完，第二个处理完……而不是只显示一个静止的，一个正在运算的画面。并且你还没有出字之前，它就停止了……这个体感非常不好。」"
+    },
+    {
+     "when": "2026-08-19",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我觉得也不要说太慢，也不要说太快，但是至少说我们是一个恒速的一个打印机的一个动画……我其实看不到说现在这个handoff在执行也好， writer在作家在执行也好，我都看不到……我感觉就很奇怪」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C07",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "2026-09-19 网文：改成沈知夏的第一人称内心",
+   "body": "worldlines-movie 的网文初稿像流水账。决定：以主角第一人称的内心逻辑重写，主题铺在描写里。放弃：把道理直接写出来。为什么：「所以我们产生不了共鸣」。",
+   "attribute_ids": [
+    "A7"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-19",
+     "where": "Claude Code · worldlines-movie",
+     "what": "「网文它有点像流水账，它并不是以这个沈知夏她第一人称的内心的逻辑去感受，去描写的，所以我们产生不了共鸣」；同日 summer-demo：「但我这句话是讲的非常白话，你不可你不可以在这个文本里面去直接说这句话……就得铺在那个润物细无声的描绘之中」"
+    },
+    {
+     "when": "2026-09-21",
+     "where": "Claude Code · summer-demo",
+     "what": "「活人感太少了，部长也是，没有啥心理描写……许老师现在太工具人了」；同日「我个人觉得差一点的是细节，还有这个堆的密度……要把人立住，他需要的细节和密度和这个专注度」；worldlines-movie：「如果是他们对话之间没有化学反应，那他这个画面感也出不来」"
+    },
+    {
+     "when": "2026-09-22",
+     "where": "Claude Code · worldlines-movie",
+     "what": "伏笔太显：「像这个筹码，这筹码根本就直接亮在那边，就不行」；塞梗：「选一个吧，太密就没啥意思了」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C08",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "2026-10-15 出图：统一用 GPT，不用 ComfyUI 和 -c01 变体",
+   "body": "给 Worldlines 世界出角色图。决定：正本统一 gpt-image，写实的二次元。放弃：ComfyUI、厚涂、3D 风。为什么：「我们如果不是GPT的图话，理论上都是不行的」。",
+   "attribute_ids": [
+    "A8"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-05",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "agent 提议「厚涂 premium + 世界在场背景」：「这个不行，这个厚涂不好，我们的是二次元的」"
+    },
+    {
+     "when": "2026-10-07",
+     "where": "Claude Code · NeonRP",
+     "what": "「我们不能用comfyui，图的质量不好」"
+    },
+    {
+     "when": "2026-10-15",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「就这个所谓的Stand C01都是有问题的图。就用别的图替代……我们如果不是GPT的图话，理论上都是不行的……因为现在的图生成的这个逻辑差太多了……当然这二次元的风格是一种，但我们可能是那种写实的二次元……但我们不是很认同说可能是直接给一个3D风」；同日 NeonRP@neonrp-worlds：「我们的图片生成统一是用GPT，不能用别的」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C09",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "被反复提到 2 天，但挂的属性还是候选。",
+   "title": "2026-10-13 开源边界：引擎 Apache-2.0，商量拍不开源",
+   "body": "划 NeonRP / Worldlines 的开源边界。决定：引擎用 Apache-2.0，编排（商量拍）闭源。放弃：全开源和全闭源。为什么还没定，他自己说「越做越觉得不知道要不要搞开源了」。",
+   "attribute_ids": [
+    "A16"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-08",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我其实越做越觉得不知道要不要搞开源了」，一个半小时后：「不用改，我们编排这个闭源这件事情不需要这么强调」"
+    },
+    {
+     "when": "2026-10-13",
+     "where": "Claude Code · NeonRP@neonrp-worlds",
+     "what": "「不要介意编排被下载走，我们这个逻辑其实不是这样的。能做到这一点人其实很少，我们不需要去考虑这些。与之相对的，我们用API玩，我们的成本是很高的。」同日 Workspaces：「party （商量拍）不开源」；「引擎用Apache-2.0」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C10",
+   "kind": "decision",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "2026-10-20 Sense：先从浏览器记录开始，不先定 MCP",
+   "body": "定 Sense v1 的第一个入口。决定：「先从浏览器的记录开始着手」，从一个简单 case 开始。放弃：先定工具再想体验。为什么：「mcp用什么这个不是选择，而是先从体验开始思考」。",
+   "attribute_ids": [
+    "A2",
+    "A14"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-20",
+     "where": "Claude Code · Sense",
+     "what": "「ts可以，mcp用什么这个不是选择，而是先从体验开始思考是否需要，以及是否需要mcp……我在思考，我平时是看剧，还有平时是看论文，还有平时是看别的，你觉得哪边会比较好？」"
+    },
+    {
+     "when": "2026-10-20",
+     "where": "Claude Code · Sense",
+     "what": "「我感觉可以先从浏览器的记录开始着手……我是先看论文，然后找到某个大牛，然后这个大牛的主页有excel，excel里面有一堆人」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C11",
+   "kind": "recommendation",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "新推荐，作者还没 like。",
+   "title": "Shape Up（Basecamp，Ryan Singer）——先 shape 再 build、固定周期、不维护 backlog",
+   "body": "它把 J2 的「先把逻辑摊开再动手」做成了流程：先由少数人把问题 shape 成有边界的 pitch，再交给团队在固定周期里自己拆 task；它反对 backlog，主张只在 betting table 上处理被同意的事，和 J3 的「我只要处理说我同意的信息，不然它就会很乱」几乎是同一句话。你已经在跑四天一个 batch 的节奏，这本书是对这个节奏的一个外部对照。 风险：如果你读完觉得「太慢、太重」，说明 J2 写错了：你要的不是「先想清楚」这件事本身，而是「我随时能插手」；J3 的清单也不是为了减少信息，而是为了保持控制。",
+   "attribute_ids": [
+    "A2",
+    "A3"
+   ],
+   "evidence": [],
+   "item": {
+    "name": "Shape Up: Stop Running in Circles and Ship Work that Matters（Basecamp，2019，免费在线版 basecamp.com/shapeup）",
+    "url": "https://basecamp.com/shapeup"
+   },
+   "watch": null,
+   "domain": "make"
+  },
+  {
+   "id": "C12",
+   "kind": "recommendation",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "新推荐，作者还没 like。",
+   "title": "Dungeon World 的 GM 章节（Sage LaTorra & Adam Koebel，2012）——「说后果并询问」「让世界的反应跟着虚构走」",
+   "body": "你在 J5 里要的裁判、阻碍、「到不了北门的理由」，PbtA 把它写成 GM 的硬规则：GM 不能顺着玩家，只能在玩家掷骰失败或「看向你」时做一个 move，move 必须从虚构里长出来、必须说出后果。它同时是 J4 的对照：规则极轻，没有数值模拟，全靠「直出的虚构 + 一次 2d6 判定」。你现在用的是百分骰（BRP）和 D&D SRD，这是一套哲学上相反的跑团规则。 风险：如果你觉得它「太软、没有物理」，那 J5 的理由要改：你要的不是「世界会拦」，而是「世界有可查账的状态」，裁判必须是数值而不是叙事；J4 的「轻判别」也就有了下限——轻到没有状态就不行。",
+   "attribute_ids": [
+    "A5",
+    "A4"
+   ],
+   "evidence": [],
+   "item": {
+    "name": "Dungeon World（Powered by the Apocalypse），尤其是 GM Agenda / Principles / Moves 三节（SRD 免费：dungeonworldsrd.com）",
+    "url": "https://www.dungeonworldsrd.com/"
+   },
+   "watch": null,
+   "domain": "game"
+  },
+  {
+   "id": "C13",
+   "kind": "recommendation",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "新推荐，作者还没 like。",
+   "title": "《冰菓》（米泽穗信，古典部系列第一卷，2001）——校园社团、内敛主角、第一人称内心、每一话都有一个谜底",
+   "body": "你在 9-23 问过「能不能帮我找一下几个可能类似这么一个文风的小说」。《冰菓》满足 J7 的三条：全程是折木第一人称的内心逻辑，人物靠细节和密度立住，主题（省力主义 vs 「我很好奇」）从不直说；同时每一话都有一个被解开的谜，和 J5「有谜底，信任度完全不一样」是同一种口味。它也是 P4 的检验物：这是一部没有「最终决战」式大舞台的作品。 风险：如果你觉得它「太淡、没有舞台」，那 P4 的答案就出来了：你要的「活人感」必须配一个让人绽放的高潮舞台，J7 的「润物细无声」只是手段，不是口味本身；如果你喜欢，说明 P4 里《花牌情缘》式开场只是写作技巧，不是观看口味。",
+   "attribute_ids": [
+    "A7",
+    "A5"
+   ],
+   "evidence": [],
+   "item": {
+    "name": "米泽穗信《冰菓》（『氷菓』，角川文庫；中文版由台湾角川 / 新星出版社出版）",
+    "url": null
+   },
+   "watch": null,
+   "domain": "novel"
+  },
+  {
+   "id": "C14",
+   "kind": "person",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "你在跟它（带追踪查询），所以是银：盯它自己的动向",
+   "title": "竜騎士07",
+   "body": "『なく頃に』系列的作者。关系：关注的创作者。你在意他，是因为你把《海猫》的红字蓝字对决直接拿来做了猫箱馆的推理玩法。最近动向：待 web search。",
+   "attribute_ids": [
+    "A5"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-05",
+     "where": "Claude Code · sim",
+     "what": "「能不能 《寒蝉鸣泣之时》模拟器。 《海猫鸣泣之时》模拟器。」「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+    },
+    {
+     "when": "2026-08-06",
+     "where": "Claude Code · sim",
+     "what": "「注意，红字只能说结论、真实、真相，不能用表情或提示。」"
+    }
+   ],
+   "item": {
+    "name": "竜騎士07（07th Expansion）"
+   },
+   "watch": {
+    "query": "竜騎士07 新作",
+    "cadence": "weekly",
+    "last_seen": "2026-08-06"
+   },
+   "domain": "game"
+  },
+  {
+   "id": "C15",
+   "kind": "person",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "你在跟它（带追踪查询），所以是银：盯它自己的动向",
+   "title": "米澤穂信",
+   "body": "《冰菓》的作者。关系：关注的创作者。你写《漫动部》时点名「参考冰菓的叙事」，要的是日常之谜、第一人称、谜底不说破。",
+   "attribute_ids": [
+    "A7",
+    "A5"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-23",
+     "where": "Claude Code · worldlines-movie",
+     "what": "「其实可以参考冰菓的叙事」"
+    },
+    {
+     "when": "2026-10-14",
+     "where": "Claude Code · worldlines-movie",
+     "what": "他贴回的剧本设定里写着叙事结构是日常之谜，参考冰菓"
+    }
+   ],
+   "item": {
+    "name": "米澤穂信"
+   },
+   "watch": {
+    "query": "米澤穂信 新刊",
+    "cadence": "weekly",
+    "last_seen": "2026-10-14"
+   },
+   "domain": "novel"
+  },
+  {
+   "id": "C16",
+   "kind": "person",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+   "title": "Joon Sung Park",
+   "body": "Generative Agents 的第一作者。关系：你的文章拿他当对照。你在意的是区别：他的模拟对齐现实世界的人，你的模拟是为故事服务的世界。",
+   "attribute_ids": [
+    "A13",
+    "A15"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "文章提纲：「AIRP 是什么，和Generative Agents 这些Ai模拟的区别」"
+    }
+   ],
+   "item": {
+    "name": "Joon Sung Park"
+   },
+   "watch": {
+    "query": "Joon Sung Park generative agents new paper",
+    "cadence": "weekly",
+    "last_seen": "2026-09-10"
+   },
+   "domain": "research"
+  },
+  {
+   "id": "C17",
+   "kind": "person",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+   "title": "Alexander Vezhnevets",
+   "body": "Concordia 的作者，做带 Game Master 的生成式 agent 建模。关系：agent 在写 drift-bench 时替你查过他的论文。和你说的「TRPG主持人，可以被当成一个世界模拟」是同一条路。",
+   "attribute_ids": [
+    "A13"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-29",
+     "where": "Claude Code · worldlines-drift-bench · agent 搜索词",
+     "what": "Concordia generative agent-based modeling Game Master grounded variables Vezhnevets"
+    }
+   ],
+   "item": {
+    "name": "Alexander Sasha Vezhnevets"
+   },
+   "watch": {
+    "query": "Concordia Vezhnevets game master",
+    "cadence": "weekly",
+    "last_seen": "2026-09-29"
+   },
+   "domain": "research"
+  },
+  {
+   "id": "C18",
+   "kind": "person",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "你在跟它（带追踪查询），所以是银：盯它自己的动向",
+   "title": "Michael Mateas",
+   "body": "计算叙事研究者，Façade 的作者之一。关系：agent 在写论文时替你查过他和 Wardrip-Fruin 的故事创作论文。",
+   "attribute_ids": [
+    "A13",
+    "A7"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-25",
+     "where": "Claude Code · task-paper · agent 搜索词",
+     "what": "Kelly Calderwood Wardrip-Fruin Mateas \"There and Back Again\" formal domains neurosymbolic story authoring AIIDE 2023"
+    }
+   ],
+   "item": {
+    "name": "Michael Mateas"
+   },
+   "watch": {
+    "query": "Michael Mateas narrative AI",
+    "cadence": "weekly",
+    "last_seen": "2026-09-25"
+   },
+   "domain": "research"
+  },
+  {
+   "id": "C19",
+   "kind": "follow",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "你在跟它（带追踪查询），所以是银：盯它自己的动向",
+   "title": "来自深渊",
+   "body": "你说是「我们特别喜欢的动画」，想 catch up 电影的更新。拿来当参照的是那种往洞穴下勘探、越往下越有代价的世界观。你追到哪：未知，待浏览器履历补。",
+   "attribute_ids": [
+    "A5"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-20",
+     "where": "Claude Code · worldlines",
+     "what": "写新世界的设定时：「类似 hunter x hunter 细节，或者是来自深渊那种洞穴下勘探的世界观」"
+    },
+    {
+     "when": "2026-10-21",
+     "where": "Claude Code · Sense",
+     "what": "「我们特别喜欢的动画 来自深渊，我们会catch up 这个电影更新的时候」"
+    }
+   ],
+   "item": {
+    "name": "来自深渊（メイドインアビス）"
+   },
+   "watch": {
+    "query": "メイドインアビス 新作 劇場版",
+    "cadence": "weekly",
+    "last_seen": "2026-10-21"
+   },
+   "domain": "anime"
+  },
+  {
+   "id": "C20",
+   "kind": "follow",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+   "title": "海贼王",
+   "body": "一直在更新、你一直在追的漫画。你说「我都忘记有什么特殊的剧情」，所以这张卡要做的是帮你补上前情。",
+   "attribute_ids": [
+    "A14"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-21",
+     "where": "Claude Code · Sense",
+     "what": "「我们的一直以来的更新的漫画，我都忘记有什么特殊的剧情，比如说海贼王」"
+    }
+   ],
+   "item": {
+    "name": "ONE PIECE"
+   },
+   "watch": {
+    "query": "ONE PIECE 最新話",
+    "cadence": "weekly",
+    "last_seen": "2026-10-21"
+   },
+   "domain": "manga"
+  },
+  {
+   "id": "C21",
+   "kind": "follow",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "你在跟它（带追踪查询），所以是银：盯它自己的动向",
+   "title": "海猫鸣泣之时 / 寒蝉鸣泣之时",
+   "body": "你想做这两部的模拟器，最后选了《海猫》的红字蓝字对决，做成了猫箱馆。红字只说真相，蓝字是你的假设，咬合了熔成金字。",
+   "attribute_ids": [
+    "A5"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-05",
+     "where": "Claude Code · sim",
+     "what": "「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+    },
+    {
+     "when": "2026-08-06",
+     "where": "Claude Code · sim",
+     "what": "「被融合的红字变成金字」"
+    },
+    {
+     "when": "2026-08-20",
+     "where": "Claude Code · rp-videoedit",
+     "what": "宣传片文案：「猫箱馆：红字代表绝对真实，蓝字是你的假设，和世界意志对抗的推理玩法」"
+    }
+   ],
+   "item": {
+    "name": "うみねこのなく頃に / ひぐらしのなく頃に"
+   },
+   "watch": {
+    "query": "なく頃に 新作",
+    "cadence": "weekly",
+    "last_seen": "2026-08-20"
+   },
+   "domain": "game"
+  },
+  {
+   "id": "C22",
+   "kind": "follow",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "你在跟它（带追踪查询），所以是银：盯它自己的动向",
+   "title": "苏丹的游戏",
+   "body": "你先把它的「清流交汇」副本做成了引擎里的世界，后来又拿它的仪式格子和卡牌品级来设计 Sense 的玩法。",
+   "attribute_ids": [
+    "A5",
+    "A14"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-24",
+     "where": "Claude Code · worldlines-rivet",
+     "what": "「你知道苏丹的游戏吗？清流交汇的副本，我想做成我们引擎里面的世界」"
+    },
+    {
+     "when": "2026-10-21",
+     "where": "Claude Code · Sense",
+     "what": "「或者按照 苏丹的游戏一样，去设置这个卡片的感觉」"
+    }
+   ],
+   "item": {
+    "name": "苏丹的游戏（Sultan's Game）"
+   },
+   "watch": {
+    "query": "苏丹的游戏 更新 DLC",
+    "cadence": "weekly",
+    "last_seen": "2026-10-21"
+   },
+   "domain": "game"
+  },
+  {
+   "id": "C23",
+   "kind": "follow",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "被反复提到 2 天，但挂的属性还是候选。",
+   "title": "未来日记",
+   "body": "你选它当一个世界的 IP 参照，喜欢的是「所有的人他的行为都其实写在第二天的日记里面」，行动会改写明天。这和你做的重复模拟是同一个机制。",
+   "attribute_ids": [
+    "A13"
+   ],
+   "evidence": [
+    {
+     "when": "2026-07-21",
+     "where": "Claude Code · art",
+     "what": "「我现在感觉未来日记很好」"
+    },
+    {
+     "when": "2026-08-04",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「《未来日记》这个设定，也就是说，所有的人他的行为都其实写在第二天的日记里面」"
+    }
+   ],
+   "item": {
+    "name": "未来日記"
+   },
+   "watch": null,
+   "domain": "anime"
+  },
+  {
+   "id": "C24",
+   "kind": "interest",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "0022 迁移：旧规则的金卡先降为银，等融合出真正的金卡",
+   "title": "跑团（TRPG）",
+   "body": "你说「其实我特别喜欢玩跑团」。疫情时遇到 TRPG，后来把它当成世界模拟本身来做：主持人递话筒、掷骰、给裁判。相关的卡：骰子决定、苏丹的游戏、SillyTavern。",
+   "attribute_ids": [
+    "A13",
+    "A5"
+   ],
+   "evidence": [
+    {
+     "when": "2026-07-18",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「这个TRPG Master是我另外一个项目」"
+    },
+    {
+     "when": "2026-08-11",
+     "where": "Claude Code · clips-nosub",
+     "what": "「然后其实我特别喜欢玩跑团，然后跑团里面是像那个DM一个一个去递话筒去说话」"
+    },
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "个人经历：「再到疫情时候遇到TRPG，再到AIRP」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · articles",
+     "what": "「其实本质是TRPG的主持人所做的事情，是一种世界预测」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "game"
+  },
+  {
+   "id": "C25",
+   "kind": "interest",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "galgame 与轻小说",
+   "body": "你从小沉迷游戏，做过轻小说翻译，说它们是「无限的故事」。写《漫动部》时 agent 还替你查过轻之国度的历史。",
+   "attribute_ids": [
+    "A15",
+    "A7"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "「从小的时候，沉迷游戏，然后做轻小说翻译，日本的galgame和轻小说是无限的故事」"
+    },
+    {
+     "when": "2026-09-20",
+     "where": "Claude Code · summer-demo · agent 搜索词",
+     "what": "轻之国度 lightnovel.cn 关站 关闭 哪一年"
+    },
+    {
+     "when": "2026-10-13",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "设计转生者来源：「不仅限于 童话传说故事，更有 网文 轻小说 英雄小说」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "novel"
+  },
+  {
+   "id": "C26",
+   "kind": "interest",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "纯文字的智斗与推理",
+   "body": "你更想做「纯文字的这种智斗」：死亡笔记、规则怪谈、无限流、海猫的红字蓝字。核心是真相可以被判定。",
+   "attribute_ids": [
+    "A5",
+    "A9"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-06",
+     "where": "Claude Code · sim",
+     "what": "「注意，红字只能说结论、真实、真相，不能用表情或提示。」"
+    },
+    {
+     "when": "2026-08-11",
+     "where": "Claude Code · clips-nosub",
+     "what": "「我们其实更想做的是一个纯文字的这种智斗，就包括可能死亡笔记啊」「规则怪谈，或者是可能一些无限流这么一个设定」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "novel"
+  },
+  {
+   "id": "C27",
+   "kind": "interest",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "叙事型世界模拟",
+   "body": "不是 AI Town 那种对齐现实的模拟，而是为故事服务、能一直跑下去的世界。这是你的论文方向，也是你的产品。",
+   "attribute_ids": [
+    "A13",
+    "A9",
+    "A4"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "「Narrative World Simulation vs AI Town, 缺乏想象力，边界，就是自由文字的重要性」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · articles",
+     "what": "「叙事空间的维度是降低的」"
+    },
+    {
+     "when": "2026-10-20",
+     "where": "Claude Code · task-planning",
+     "what": "「一个永续执行的TRPG主持人，可以被当成一个世界模拟」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "research"
+  },
+  {
+   "id": "C28",
+   "kind": "interest",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "AI 短剧与漫剧",
+   "body": "用 Worldlines 的世界做短剧，B 站主片《猫箱馆》已经发了。你每天花一个半小时在上面。",
+   "attribute_ids": [
+    "A7",
+    "A8"
+   ],
+   "evidence": [
+    {
+     "when": "2026-08-29",
+     "where": "Claude Code · worldlines-rivet",
+     "what": "「改成漫剧，都太gpt画风了」"
+    },
+    {
+     "when": "2026-09-21",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「短剧现在已经做出第一个短片，每天花我1:30 小时」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · articles",
+     "what": "「因此，ai 的短剧生成变得非常合理」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "make"
+  },
+  {
+   "id": "C29",
+   "kind": "interest",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+   "title": "卡牌构筑与像素风",
+   "body": "你要 Sense 的卡像 Paxel 一样是像素风，玩法照小丑牌和苏丹的游戏：卡槽、融合、品级。",
+   "attribute_ids": [
+    "A14"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-21",
+     "where": "Claude Code · Sense",
+     "what": "「就像是Paxel里面的一样，像素风的卡片」；「请按照 Joker Card Games」"
+    },
+    {
+     "when": "2026-10-21",
+     "where": "Claude Code · Sense · agent 搜索词",
+     "what": "Balatro joker slots mechanics order matters synergy editions"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "game"
+  },
+  {
+   "id": "C30",
+   "kind": "quote",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」",
+   "body": "Niko，2026-09-26，Ludic-Dynamics。说的是跑团引擎为什么不能顺着玩家。",
+   "attribute_ids": [
+    "A5"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-26",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C31",
+   "kind": "quote",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」",
+   "body": "Niko，2026-10-06，写给类脑的进度帖。",
+   "attribute_ids": [
+    "A4"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-06",
+     "where": "Claude Code · posting",
+     "what": "「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C32",
+   "kind": "quote",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」",
+   "body": "Niko，2026-10-01，Ludic-Dynamics。",
+   "attribute_ids": [
+    "A4"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-01",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C33",
+   "kind": "quote",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "「如果发布的话撤回也会留下记录，就不要再继续乱动了」",
+   "body": "Niko，2026-09-15，hackathon。agent 推了已删掉的 remote 之后。",
+   "attribute_ids": [
+    "A1"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-15",
+     "where": "Claude Code · hackathon",
+     "what": "「如果发布的话撤回也会留下记录，就不要再继续乱动了」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C34",
+   "kind": "quote",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+   "title": "「日本的galgame和轻小说是无限的故事」",
+   "body": "Niko，2026-09-10，写《Orchestrated Reality》时回顾自己的经历。",
+   "attribute_ids": [
+    "A15"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "「日本的galgame和轻小说是无限的故事」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C35",
+   "kind": "quote",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+   "title": "「人类在乎现实世界，但是更多的，人类其实需要的是故事和幻想的消费者。」",
+   "body": "Niko，2026-09-10，同一篇文章的提纲。",
+   "attribute_ids": [
+    "A15"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "「人类在乎现实世界，但是更多的，人类其实需要的是故事和幻想的消费者。」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C36",
+   "kind": "quote",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "被反复提到 2 天，但挂的属性还是候选。",
+   "title": "「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」",
+   "body": "Niko，2026-09-10，同一篇文章的提纲。10-16 又写了一遍：「叙事空间的维度是降低的」。",
+   "attribute_ids": [
+    "A9"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-10",
+     "where": "Claude Code · task-go-to-market",
+     "what": "「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · articles",
+     "what": "「叙事空间的维度是降低的」"
+    }
+   ],
+   "item": null,
+   "watch": null,
+   "domain": "work"
+  },
+  {
+   "id": "C37",
+   "kind": "collection",
+   "subkind": null,
+   "tier": "silver",
+   "tier_reason": "0022 迁移：旧规则的金卡先降为银，等融合出真正的金卡",
+   "title": "SillyTavern（酒馆）",
+   "body": "你反复拿来当参照的开源 AIRP 前端：provider 设置、角色卡、世界卡、状态栏。你的「直出」判断就是从酒馆来的。",
+   "attribute_ids": [
+    "A4"
+   ],
+   "evidence": [
+    {
+     "when": "2026-06-22",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「把酒馆的世界卡能简单转换成这个框架的世界且调试。」"
+    },
+    {
+     "when": "2026-07-17",
+     "where": "Claude Code · ui",
+     "what": "「可以参考一下酒馆的provider的接口设置」"
+    },
+    {
+     "when": "2026-08-30",
+     "where": "Claude Code · NeonRP",
+     "what": "「/load-character-card 然后从酒馆卡开始建 soul agent」"
+    },
+    {
+     "when": "2026-10-06",
+     "where": "Claude Code · posting",
+     "what": "「酒馆直出+tool call 才是未来」"
+    },
+    {
+     "when": "2026-10-16",
+     "where": "Claude Code · consoles",
+     "what": "「文字更贴近ai酒馆女性向的角度」"
+    }
+   ],
+   "item": {
+    "name": "SillyTavern"
+   },
+   "watch": null,
+   "domain": "make"
+  },
+  {
+   "id": "C38",
+   "kind": "collection",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "TRPG Master",
+   "body": "你的另一个项目，主打创作。做 launcher 和角色工坊时你说它的操作界面「可以完全照搬」。",
+   "attribute_ids": [
+    "A13",
+    "A2"
+   ],
+   "evidence": [
+    {
+     "when": "2026-07-11",
+     "where": "Claude Code · rp-visionrp",
+     "what": "「参考rp-visionrp（主打一览和世界的呈现） 以及 trpgmaster （主打创作）」"
+    },
+    {
+     "when": "2026-07-13",
+     "where": "Claude Code · NeonRP",
+     "what": "「这个其实是TRPG Master里面的一个操作界面，我觉得可以完全照搬」"
+    },
+    {
+     "when": "2026-07-18",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「这个TRPG Master是我另外一个项目」"
+    }
+   ],
+   "item": {
+    "name": "TRPG Master"
+   },
+   "watch": null,
+   "domain": "make"
+  },
+  {
+   "id": "C39",
+   "kind": "collection",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "0022 迁移：银卡改为\"关注它本身\"，这张没有在追，退回铜。点「跟」或多碰几次会升银",
+   "title": "Jev（TypeSafe System One）",
+   "body": "你拿来把直出文字转成状态词条的轻判别模型。实测后你记下「jev并没有效果太好，或者速度更快」。",
+   "attribute_ids": [
+    "A4"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-17",
+     "where": "Claude Code · hackathon · agent 搜索词",
+     "what": "jev typesafe ai library structured output classifier"
+    },
+    {
+     "when": "2026-09-23",
+     "where": "Claude Code · NeonRP",
+     "what": "「用jev 转 词条会更快，而且更稳」"
+    },
+    {
+     "when": "2026-10-10",
+     "where": "Claude Code · NeonRP",
+     "what": "「我意外的是jev并没有效果太好，或者速度更快」"
+    }
+   ],
+   "item": {
+    "name": "Jev · TypeSafe"
+   },
+   "watch": null,
+   "domain": "make"
+  },
+  {
+   "id": "C40",
+   "kind": "collection",
+   "subkind": null,
+   "tier": "bronze",
+   "tier_reason": "被反复提到 3 天，但挂的属性还是候选。",
+   "title": "Zeta 与 OOC",
+   "body": "你的 UGC 平台参照和竞品：作者权利、分成、偏跑团玩法的账号。",
+   "attribute_ids": [
+    "A13",
+    "A16"
+   ],
+   "evidence": [
+    {
+     "when": "2026-09-19",
+     "where": "Claude Code · posting",
+     "what": "「TRPGとZetaわからない方々だとあんまりわかってもらえなかった」"
+    },
+    {
+     "when": "2026-10-12",
+     "where": "Claude Code · NeonRP",
+     "what": "「参考别的ugc平台，主要参考ooc和zeta」"
+    },
+    {
+     "when": "2026-10-13",
+     "where": "Claude Code · Ludic-Dynamics",
+     "what": "「日文圈里面，zeta这批，还有ooc ai 这批，偏跑团玩法的账号」"
+    }
+   ],
+   "item": {
+    "name": "Zeta（Scatter Lab）/ OOC"
+   },
+   "watch": null,
+   "domain": "make"
+  },
+  {
+   "id": "C41",
+   "kind": "collection",
+   "subkind": null,
+   "tier": "stone",
+   "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+   "title": "Paxel",
+   "body": "你给 Sense 卡面找的参照：像素风的卡片。",
+   "attribute_ids": [
+    "A14"
+   ],
+   "evidence": [
+    {
+     "when": "2026-10-21",
+     "where": "Claude Code · Sense",
+     "what": "「就像是Paxel里面的一样，像素风的卡片」"
+    }
+   ],
+   "item": {
+    "name": "Paxel"
+   },
+   "watch": null,
+   "domain": "make"
+  }
+ ],
+ "agents": [
+  {
+   "id": "G1",
+   "name": "追番",
+   "slots": [
+    "C26",
+    "C19",
+    "C21",
+    "C30"
+   ],
+   "unlocked_slots": 4
+  },
+  {
+   "id": "G2",
+   "name": "读论文",
+   "slots": [
+    "C24",
+    "C37",
+    "C39",
+    "C04"
+   ],
+   "unlocked_slots": 4
+  },
+  {
+   "id": "G3",
+   "name": "找参照写故事",
+   "slots": [
+    "C07",
+    "C15",
+    "C14",
+    "C05"
+   ],
+   "unlocked_slots": 4
+  }
+ ],
+ "plays": [
+  {
+   "agent_id": "G1",
+   "prompt": "周末想补一部有谜底、世界不顺着主角的番",
+   "results": [
+    {
+     "title": "Scavengers Reign（2023，Joe Bennett 与 Charles Huettner）",
+     "body": "一群人困在外星球 Vesta，生态有自己的规则，从不顺着人。＋「世界不能顺着玩家」（来自深渊那张关注卡）：同样是越深入代价越大的世界。",
+     "kind": "work",
+     "url": "https://en.wikipedia.org/wiki/Scavengers_Reign",
+     "contributed_by": [
+      {
+       "slot": 1,
+       "attribute_id": "A5"
+      },
+      {
+       "slot": 0,
+       "attribute_id": "A5"
+      }
+     ]
+    },
+    {
+     "title": "ODDTAXI（2021，P.I.C.S. / OLM）",
+     "body": "一个出租车司机的日常闲聊，最后每条线都收进同一个案子。＋「有谜底，信任度完全不一样」（金句卡）：伏笔不亮在明面上。",
+     "kind": "work",
+     "url": "https://oddtaxi.jp",
+     "contributed_by": [
+      {
+       "slot": 3,
+       "attribute_id": "A5"
+      },
+      {
+       "slot": 0,
+       "attribute_id": "A9"
+      }
+     ]
+    },
+    {
+     "title": "ID:INVADED（2020，舞城王太郎脚本）",
+     "body": "名侦探进入凶手的潜意识世界破案，规则先立好再推理。＋两张关注卡叠加：海猫式的推理对决 ＋ 来自深渊式的分层世界。",
+     "kind": "work",
+     "url": "https://myanimelist.net/news/58360880",
+     "contributed_by": [
+      {
+       "slot": 2,
+       "attribute_id": "A5"
+      },
+      {
+       "slot": 1,
+       "attribute_id": "A5"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "agent_id": "G2",
+   "prompt": "找几篇把跑团主持人当成系统来做的论文，别是 agent loop 那种",
+   "results": [
+    {
+     "title": "FIREBALL: A Dataset of Dungeons and Dragons Actual-Play with Structured Game State Information（Zhu et al., ACL 2023）",
+     "body": "约 2.5 万场真实 D&D 对局，叙事和游戏状态成对记录。＋「叙事直出，再抽状态」（判断卡 9-23）：正好是你要的文字与状态对齐的数据。",
+     "kind": "paper",
+     "url": "https://arxiv.org/abs/2305.01528",
+     "contributed_by": [
+      {
+       "slot": 3,
+       "attribute_id": "A4"
+      },
+      {
+       "slot": 0,
+       "attribute_id": "A13"
+      }
+     ]
+    },
+    {
+     "title": "CALYPSO: LLMs as Dungeon Masters' Assistants（Zhu et al., AIIDE 2023）",
+     "body": "LLM 给 DM 递材料，但不替 DM 做决定。＋属性 A13（跑团兴趣卡）＋ SillyTavern 收藏卡：轻工具，不是多 agent 编排。",
+     "kind": "paper",
+     "url": "https://arxiv.org/abs/2308.07540",
+     "contributed_by": [
+      {
+       "slot": 0,
+       "attribute_id": "A13"
+      },
+      {
+       "slot": 1,
+       "attribute_id": "A4"
+      }
+     ]
+    },
+    {
+     "title": "I Cast Detect Thoughts: Learning to Converse and Guide with Intents and Theory-of-Mind in Dungeons and Dragons（Zhou et al., ACL 2023）",
+     "body": "DM 带着意图引导玩家，预测玩家下一步怎么反应。＋「世界不能顺着玩家」（跑团兴趣卡）：DM 有自己的目标。",
+     "kind": "paper",
+     "url": "https://arxiv.org/abs/2212.10060",
+     "contributed_by": [
+      {
+       "slot": 0,
+       "attribute_id": "A5"
+      },
+      {
+       "slot": 2,
+       "attribute_id": "A4"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "agent_id": "G3",
+   "prompt": "想找几本第一人称、每章有一个谜底、道理不说出口的小说",
+   "results": [
+    {
+     "title": "米澤穂信《春期限定いちごタルト事件》（小市民シリーズ第一作，創元推理文庫，2004）",
+     "body": "小鳩的第一人称，校园日常之谜。＋人物卡米澤穂信 ＋ 判断卡 9-19「改成第一人称内心」：冰菓之外他的另一条线。",
+     "kind": "book",
+     "url": "https://ndlsearch.ndl.go.jp/books/R100000002-I000007599244",
+     "contributed_by": [
+      {
+       "slot": 1,
+       "attribute_id": "A7"
+      },
+      {
+       "slot": 0,
+       "attribute_id": "A7"
+      }
+     ]
+    },
+    {
+     "title": "竜騎士07《キコニアのなく頃に》（07th Expansion，2019）",
+     "body": "『なく頃に』系列第三作。＋人物卡竜騎士07 ＋ 判断卡「不能跳过骰子」：同一位作者，世界照样不顺着角色。Phase 2 已无限期延期。",
+     "kind": "game",
+     "url": "https://whentheycry.miraheze.org/wiki/Ciconia_no_Naku_Koro_ni",
+     "contributed_by": [
+      {
+       "slot": 2,
+       "attribute_id": "A5"
+      },
+      {
+       "slot": 3,
+       "attribute_id": "A5"
+      }
+     ]
+    },
+    {
+     "title": "辻村深月《かがみの孤城》（ポプラ社，2018 本屋大賞）",
+     "body": "七个不去上学的孩子在镜中城堡里找钥匙，谜底落在每个人的处境上，从不说教。＋判断卡 9-19「主题铺在描写里」。",
+     "kind": "book",
+     "url": "https://www.kinokuniya.co.jp/f/dsg-01-9784591169711",
+     "contributed_by": [
+      {
+       "slot": 0,
+       "attribute_id": "A7"
+      },
+      {
+       "slot": 3,
+       "attribute_id": "A5"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "fusions": [
+  {
+   "inputs": [
+    "C19",
+    "C21",
+    "C22"
+   ],
+   "shared_attribute_ids": [
+    "A5"
+   ],
+   "output": {
+    "id": "X1",
+    "kind": "interest",
+    "subkind": null,
+    "tier": "gold",
+    "tier_reason": "融合产物（7.5.7）。",
+    "title": "谜底型世界",
+    "body": "三部你追的作品都有一个不顺着人的世界：分层的深渊、红字定下的真相、要付代价的仪式。",
+    "attribute_ids": [
+     "A5"
+    ],
+    "evidence": [
+     {
+      "when": "2026-10-20",
+      "where": "Claude Code · worldlines",
+      "what": "写新世界的设定时：「类似 hunter x hunter 细节，或者是来自深渊那种洞穴下勘探的世界观」"
+     },
+     {
+      "when": "2026-10-21",
+      "where": "Claude Code · Sense",
+      "what": "「我们特别喜欢的动画 来自深渊，我们会catch up 这个电影更新的时候」"
+     },
+     {
+      "when": "2026-08-05",
+      "where": "Claude Code · sim",
+      "what": "「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+     },
+     {
+      "when": "2026-08-06",
+      "where": "Claude Code · sim",
+      "what": "「被融合的红字变成金字」"
+     }
+    ],
+    "item": null,
+    "watch": null,
+    "fused_from": [
+     "C19",
+     "C21",
+     "C22"
+    ]
+   }
+  },
+  {
+   "inputs": [
+    "C01",
+    "C33"
+   ],
+   "shared_attribute_ids": [
+    "A1"
+   ],
+   "output": {
+    "id": "X2",
+    "kind": "decision",
+    "subkind": null,
+    "tier": "gold",
+    "tier_reason": "融合产物（7.5.7）。",
+    "title": "发布前停下，因为撤回也会留下记录",
+    "body": "08-09 的决定加上 09-15 的那句话：发布是对外、不可撤回的，和实装不是一回事。",
+    "attribute_ids": [
+     "A1"
+    ],
+    "evidence": [
+     {
+      "when": "2026-08-09",
+      "where": "Claude Code · NeonRP",
+      "what": "睡前交任务：「请通过 team 来分sub-agent来实装，我先睡了，不要发布，但是实装到底」"
+     },
+     {
+      "when": "2026-08-18",
+      "where": "Claude Code · Ludic-Dynamics",
+      "what": "「你现在直到能执行的位置为止，都可以一直执行，就是把那个发布之前的事情都可以做，但不要发布。」"
+     },
+     {
+      "when": "2026-10-02",
+      "where": "Claude Code · www",
+      "what": "官网改版 agent 直接部署：「不要啊！为什么你要放，直接发布啊？我们在Local放一个网页就好了，为什么要部署啊？我不明白。」2026-10-13 对社媒：「别自动发，发之前给我看看」。反例也明确：2026-10-18 「请直接执行，部署，以及其他，都不需要我认可，直接做到底，我要睡了」——授权是他说出口的，不是默认的。"
+     },
+     {
+      "when": "2026-09-15",
+      "where": "Claude Code · hackathon",
+      "what": "「如果发布的话撤回也会留下记录，就不要再继续乱动了」"
+     }
+    ],
+    "item": null,
+    "watch": null,
+    "fused_from": [
+     "C01",
+     "C33"
+    ]
+   }
+  },
+  {
+   "inputs": [
+    "C04",
+    "C31",
+    "C32"
+   ],
+   "shared_attribute_ids": [
+    "A4"
+   ],
+   "output": {
+    "id": "X3",
+    "kind": "decision",
+    "subkind": null,
+    "tier": "gold",
+    "tier_reason": "融合产物（7.5.7）。",
+    "title": "叙事直出，少加控制",
+    "body": "9-23 的决定加上两句原话：不要 agent loop，简单提示词能做到就是最好。",
+    "attribute_ids": [
+     "A4"
+    ],
+    "evidence": [
+     {
+      "when": "2026-09-23",
+      "where": "Claude Code · NeonRP",
+      "what": "「我们的move_to engage还有其他那些判定，就不需要出了，我们用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」"
+     },
+     {
+      "when": "2026-09-26",
+      "where": "Claude Code · NeonRP",
+      "what": "「我现在有一个直觉以及经验是，如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；两天后（2026-09-28）：「再次感受到叙事的必须放弃json，全用文字+tag」"
+     },
+     {
+      "when": "2026-10-10",
+      "where": "Claude Code · NeonRP",
+      "what": "实测后仍诚实记录反例：「我意外的是jev并没有效果太好，或者速度更快」——判断是直出，不是 jev 一定赢。"
+     },
+     {
+      "when": "2026-10-06",
+      "where": "Claude Code · posting",
+      "what": "「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」"
+     }
+    ],
+    "item": null,
+    "watch": null,
+    "fused_from": [
+     "C04",
+     "C31",
+     "C32"
+    ]
+   }
+  },
+  {
+   "inputs": [
+    "C14",
+    "C21"
+   ],
+   "shared_attribute_ids": [
+    "A5"
+   ],
+   "output": {
+    "id": "X4",
+    "kind": "person",
+    "subkind": null,
+    "tier": "gold",
+    "tier_reason": "融合产物（7.5.7）。",
+    "title": "竜騎士07 · 为什么在意",
+    "body": "你把他的红字蓝字做成了猫箱馆。在意他，是因为他的世界里真相可以被判定。",
+    "attribute_ids": [
+     "A5"
+    ],
+    "evidence": [
+     {
+      "when": "2026-08-05",
+      "where": "Claude Code · sim",
+      "what": "「能不能 《寒蝉鸣泣之时》模拟器。 《海猫鸣泣之时》模拟器。」「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+     },
+     {
+      "when": "2026-08-06",
+      "where": "Claude Code · sim",
+      "what": "「注意，红字只能说结论、真实、真相，不能用表情或提示。」"
+     },
+     {
+      "when": "2026-08-05",
+      "where": "Claude Code · sim",
+      "what": "「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+     },
+     {
+      "when": "2026-08-06",
+      "where": "Claude Code · sim",
+      "what": "「被融合的红字变成金字」"
+     }
+    ],
+    "item": null,
+    "watch": null,
+    "fused_from": [
+     "C14",
+     "C21"
+    ]
+   }
+  }
+ ],
+ "quests": [
+  {
+   "id": "Q-1",
+   "title": "本周补番",
+   "slots": [
+    {
+     "requires_kind": "follow"
+    },
+    {
+     "requires_kind": "follow"
+    },
+    {
+     "requires_kind": "follow"
+    }
+   ],
+   "due_days": 7,
+   "reward": "每部出一张「上次看到哪、新的是什么」的更新。"
+  },
+  {
+   "id": "Q-2",
+   "title": "想联系一个人",
+   "slots": [
+    {
+     "requires_kind": "person"
+    },
+    {
+     "requires_kind": "decision"
+    }
+   ],
+   "due_days": 7,
+   "reward": "一封 cold mail 草稿，理由用这张判断卡，发不发你定。"
+  },
+  {
+   "id": "Q-3",
+   "title": "这条属性还对吗：mock 的边界",
+   "slots": [
+    {
+     "requires_kind": "decision"
+    },
+    {
+     "requires_kind": "quote"
+    }
+   ],
+   "due_days": 3,
+   "reward": "A10 被确认、改写或降级，补上缺的理由。"
+  }
+ ]
+}

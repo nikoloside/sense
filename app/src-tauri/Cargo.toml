@@ -1,0 +1,29 @@
+[package]
+name = "sense-pocket"
+version = "0.1.0"
+edition = "2021"
+description = "Sense 口袋：卡与收藏"
+
+[lib]
+name = "sense_pocket_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+base64 = "0.22"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = "0.3"
+objc2-app-kit = "0.3"
+
+# macOS 27 的 strip 会把过程宏 dylib 里的 Rust 元数据也剥掉，release 下 rustc 就找不到宏。
+[profile.release.build-override]
+strip = false

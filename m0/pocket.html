@@ -1,0 +1,2968 @@
+<title>Niko 的口袋</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: a card table. Pocket = hand of cards in a grid; Table = agent slots in a row; Quests and Draw are side games.
+   One committed look: dark felt table, paper cards, pixel type for anything that is "game". */
+:root{
+  color-scheme: dark;
+  --felt:#16302d; --felt-2:#1d3c38; --felt-line:#2b524c;
+  --paper:#f1eadb; --paper-2:#e4dac6; --ink:#1f1d1a; --ink-2:#5b554c;
+  --chalk:#e9efe9; --chalk-2:#a9bcb6;
+  --stone:#8f8b84; --bronze:#b9763f; --silver:#cdd5dc; --gold:#e8c25a;
+  --danger:#d9644f; --ok:#7fc79a;
+  --k-decision:#d9643a; --k-recommendation:#8a6fd1; --k-person:#d06a8a; --k-follow:#3fa7a0;
+  --k-interest:#9bb24a; --k-quote:#4f7bd1; --k-collection:#c99a3a;
+  --f-pixel:"DotGothic16", ui-monospace, "Hiragino Sans", "PingFang SC", monospace;
+  --f-body:"Noto Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --r:4px;
+}
+html,body{height:100%}
+body{background:var(--felt);color:var(--chalk);font-family:var(--f-body);font-size:14px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--felt)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--felt) 92%,transparent);backdrop-filter:blur(6px);
+  padding-block:12px 10px;border-bottom:2px solid var(--felt-line);display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand h1{font-family:var(--f-pixel);font-size:22px;font-weight:400;margin:0;letter-spacing:.04em}
+.brand h1 small{font-size:12px;color:var(--chalk-2);margin-left:8px;letter-spacing:.08em}
+.purse{display:flex;gap:10px;font-family:var(--f-pixel);font-size:13px;font-variant-numeric:tabular-nums}
+.purse span{display:inline-flex;align-items:center;gap:4px}
+.gem{width:10px;height:10px;display:inline-block;image-rendering:pixelated;box-shadow:inset -2px -2px 0 rgba(0,0,0,.35)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tabs button{font-family:var(--f-pixel);font-size:14px;background:transparent;color:var(--chalk-2);border:2px solid transparent;border-radius:var(--r);padding:6px 12px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);background:var(--paper);border-color:var(--paper)}
+.tabs button:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.status{font-size:12px;color:var(--chalk-2)}
+main{padding-top:16px;display:flex;flex-direction:column;gap:22px}
+h2.sec{font-family:var(--f-pixel);font-weight:400;font-size:15px;letter-spacing:.08em;margin:0;color:var(--chalk);display:flex;align-items:center;gap:8px}
+h2.sec em{font-style:normal;color:var(--chalk-2);font-size:12px;letter-spacing:0}
+.note{font-size:13px;color:var(--chalk-2);max-width:64ch;margin:0}
+
+/* search */
+.search{display:flex;flex-direction:column;gap:10px}
+.search input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:10px 12px;border-radius:var(--r);border:2px solid var(--felt-line);background:var(--felt-2);color:var(--chalk)}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--f-pixel);font-size:12px;display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:var(--r);border:2px solid var(--felt-line);background:transparent;color:var(--chalk-2);cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--chalk);color:var(--chalk);background:var(--felt-2)}
+.chip canvas{width:14px;height:14px;image-rendering:pixelated}
+select.attr{font:inherit;font-size:12px;background:var(--felt-2);color:var(--chalk);border:2px solid var(--felt-line);border-radius:var(--r);padding:4px 6px;max-width:100%}
+
+/* card grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.card{position:relative;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);border-radius:6px;cursor:pointer;
+  border:3px solid var(--tier,var(--stone));box-shadow:0 3px 0 rgba(0,0,0,.35);min-width:0;text-align:left;font:inherit;padding:0;overflow:hidden;
+  transition:transform .15s ease, box-shadow .15s ease}
+.card:hover{transform:translateY(-3px) rotate(-.6deg);box-shadow:0 7px 0 rgba(0,0,0,.35)}
+.card .art{display:block;width:100%;aspect-ratio:8/5;image-rendering:pixelated;background:var(--paper-2)}
+.card .face{padding:8px 9px 10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.card .eb{font-family:var(--f-pixel);font-size:11px;display:flex;align-items:center;gap:5px;color:var(--kc)}
+.card .eb canvas{width:12px;height:12px;image-rendering:pixelated}
+.card .eb .tier{margin-left:auto;color:var(--ink-2)}
+.card .t{font-weight:700;font-size:13.5px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-wrap:balance}
+.card .attrs{font-size:11px;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card.stone{--tier:var(--stone);filter:saturate(.75)}
+.card.stone .art{opacity:.8}
+.card.bronze{--tier:var(--bronze)}
+.card.silver{--tier:var(--silver)}
+.card.gold{--tier:var(--gold);box-shadow:0 3px 0 rgba(0,0,0,.35),0 0 0 2px color-mix(in srgb,var(--gold) 40%,transparent)}
+.card.gold::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,236,170,.45) 50%,transparent 65%);background-size:250% 100%;animation:shine 3.2s linear infinite;mix-blend-mode:soft-light}
+@keyframes shine{from{background-position:120% 0}to{background-position:-130% 0}}
+.card .badge{position:absolute;top:6px;left:6px;font-family:var(--f-pixel);font-size:10px;background:var(--ink);color:var(--paper);padding:1px 5px;border-radius:2px}
+.card .stack{position:absolute;top:6px;right:6px;font-family:var(--f-pixel);font-size:10px;background:var(--silver);color:var(--ink);padding:1px 5px;border-radius:2px}
+.empty{font-size:13px;color:var(--chalk-2);padding:18px;border:2px dashed var(--felt-line);border-radius:6px;text-align:center}
+
+/* fusion strip */
+.strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.fuse{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:var(--felt-2);border:2px solid var(--felt-line);border-radius:6px;padding:8px 10px;cursor:pointer;color:var(--chalk);font:inherit;max-width:320px;text-align:left}
+.fuse .mini{width:22px;height:30px;border-radius:3px;border:2px solid var(--tier);background:var(--paper);display:inline-block;flex:0 0 auto}
+.fuse b{font-family:var(--f-pixel);font-weight:400;font-size:13px}
+.fuse small{display:block;color:var(--chalk-2);font-size:11px}
+
+/* table */
+.agents{display:flex;gap:6px;flex-wrap:wrap}
+.slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.slot{display:flex;flex-direction:column;gap:6px;min-width:0}
+.slot .lab{font-family:var(--f-pixel);font-size:11px;color:var(--chalk-2);display:flex;justify-content:space-between;gap:4px}
+.slot .well{min-height:150px;border:2px dashed var(--felt-line);border-radius:6px;display:flex;align-items:stretch;justify-content:center;background:rgba(0,0,0,.12)}
+.slot .well button.add{all:unset;cursor:pointer;flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--f-pixel);color:var(--chalk-2);font-size:13px}
+.slot .well .card{flex:1}
+.slot.locked .well{opacity:.5}
+.slot .rm{font-size:11px;background:none;border:none;color:var(--chalk-2);cursor:pointer;text-decoration:underline;padding:0;align-self:flex-start}
+.ask{display:flex;gap:8px;flex-wrap:wrap}
+.ask input{flex:1 1 240px;min-width:0;font:inherit;font-size:15px;padding:10px 12px;border-radius:var(--r);border:2px solid var(--felt-line);background:var(--felt-2);color:var(--chalk)}
+.btn{font-family:var(--f-pixel);font-size:14px;padding:9px 16px;border-radius:var(--r);border:2px solid var(--paper);background:var(--paper);color:var(--ink);cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.btn.ghost{background:transparent;color:var(--chalk);border-color:var(--felt-line)}
+.btn.gold{background:var(--gold);border-color:var(--gold)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.res{background:var(--paper);color:var(--ink);border:3px solid var(--stone);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0;animation:deal .45s cubic-bezier(.2,.9,.3,1.2) both}
+.res h3{margin:0;font-size:15px;line-height:1.35;text-wrap:balance}
+.res .k{font-family:var(--f-pixel);font-size:11px;color:var(--ink-2)}
+.res p{margin:0;font-size:13px}
+.res a{color:var(--k-quote);word-break:break-all;font-size:12px}
+.pops{display:flex;flex-wrap:wrap;gap:6px}
+.pop{font-family:var(--f-pixel);font-size:11px;background:var(--ink);color:var(--gold);padding:2px 6px;border-radius:2px;animation:pop .5s ease both}
+.res .row{display:flex;gap:6px;margin-top:auto}
+.res .row button{flex:1}
+.res.kept{border-color:var(--bronze)}
+.res.gone{opacity:.35}
+@keyframes deal{from{transform:translateY(-30px) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+.tag-unverified{font-family:var(--f-pixel);font-size:10px;color:var(--danger)}
+
+/* quests */
+.quests{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.quest{background:linear-gradient(180deg,#3b2a1a,#2a1e14);border:3px solid var(--bronze);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px;color:#f3e3c7}
+.quest h3{margin:0;font-family:var(--f-pixel);font-weight:400;font-size:16px}
+.quest .due{font-family:var(--f-pixel);font-size:12px;color:var(--gold)}
+.quest .qs{display:flex;gap:8px;flex-wrap:wrap}
+.quest .qslot{flex:1 1 80px;min-height:56px;border:2px dashed #7a5a3a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;background:none;color:#e5cfa8;font-family:inherit;padding:6px;text-align:center}
+.quest .qslot.filled{border-style:solid;border-color:var(--gold);color:#fff3d6}
+.quest .reward{font-size:13px;color:#e5cfa8}
+.quest.done{border-color:var(--gold)}
+
+/* draw */
+.hand{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.hand .card{width:150px;flex:0 0 auto}
+.hand .card.picked{outline:3px solid var(--gold);outline-offset:3px}
+.hand .card .ord{position:absolute;bottom:6px;right:6px;font-family:var(--f-pixel);background:var(--gold);color:var(--ink);padding:0 6px;border-radius:2px}
+.qbox{background:var(--felt-2);border:2px solid var(--felt-line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.qbox .qq{font-family:var(--f-pixel);font-size:17px;text-wrap:balance}
+.qbox textarea,.sheet textarea{font:inherit;font-size:14px;width:100%;box-sizing:border-box;min-height:64px;border-radius:var(--r);border:2px solid var(--felt-line);background:var(--felt);color:var(--chalk);padding:8px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+
+/* attributes */
+.attrlist{display:flex;flex-direction:column;gap:10px}
+.attr-row{background:var(--felt-2);border:2px solid var(--felt-line);border-radius:6px;padding:12px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;cursor:pointer;color:var(--chalk);font:inherit;text-align:left}
+.attr-row b{font-size:15px;font-weight:700}
+.attr-row .why{grid-column:1/-1;font-size:13px;color:var(--chalk-2)}
+.attr-row .meter{font-family:var(--f-pixel);font-size:12px;white-space:nowrap;align-self:start}
+.attr-row .st{font-family:var(--f-pixel);font-size:11px;color:var(--ok)}
+.attr-row .st.cand{color:var(--chalk-2)}
+.pips{display:inline-flex;gap:2px;vertical-align:middle}
+.pips i{width:7px;height:7px;background:var(--felt-line);display:inline-block}
+.pips i.on{background:var(--gold)}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(5,12,11,.6);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--felt-2);color:var(--chalk);width:min(720px,100%);max-height:88vh;overflow:auto;border-radius:10px 10px 0 0;border-top:3px solid var(--tier,var(--stone));
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;box-sizing:border-box}
+@media (min-width:760px){.scrim{align-items:center}.sheet{border-radius:10px;border:3px solid var(--tier,var(--stone))}}
+.sheet .top{display:flex;gap:14px;align-items:flex-start}
+.sheet .top .card{width:132px;flex:0 0 auto;cursor:default}
+.sheet .top .card:hover{transform:none}
+.sheet h3{margin:0;font-size:18px;line-height:1.35;text-wrap:balance}
+.sheet .meta{font-family:var(--f-pixel);font-size:12px;color:var(--chalk-2)}
+.sheet p{margin:0}
+.sheet .ev{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.sheet .ev li{font-size:13px;border-left:3px solid var(--felt-line);padding-left:8px}
+.sheet .ev .w{display:block;font-family:var(--f-pixel);font-size:11px;color:var(--chalk-2)}
+.sheet .achip{display:flex;flex-direction:column;gap:2px;background:var(--felt);border:2px solid var(--felt-line);border-radius:4px;padding:8px}
+.sheet .achip b{font-size:14px}
+.sheet .achip span{font-size:12px;color:var(--chalk-2)}
+.sheet .acts{display:flex;gap:8px;flex-wrap:wrap}
+.sheet a{color:var(--gold)}
+.sheet .close{margin-left:auto;background:none;border:none;color:var(--chalk-2);font-family:var(--f-pixel);cursor:pointer;font-size:14px}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+
+/* fx */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(40px);opacity:0;transition:.25s;background:var(--paper);color:var(--ink);font-family:var(--f-pixel);padding:8px 14px;border-radius:4px;z-index:60;box-shadow:0 3px 0 rgba(0,0,0,.4);max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.flash{position:fixed;inset:0;pointer-events:none;z-index:55;background:radial-gradient(circle,rgba(232,194,90,.55),transparent 60%);animation:flash .7s ease both}
+@keyframes flash{from{opacity:1}to{opacity:0}}
+.fusing{animation:fusing .6s ease both}
+@keyframes fusing{0%{transform:none}50%{transform:scale(.85) rotate(4deg)}100%{transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* pouch + reward */
+.pouch{width:30px;height:30px;image-rendering:pixelated;display:block}
+.pouchwrap{position:relative;display:inline-flex;align-items:center;gap:6px}
+.pouchwrap.bump .pouch{animation:bump .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(-8deg)}100%{transform:scale(1)}}
+.flyer{position:fixed;z-index:70;pointer-events:none;border-radius:6px;border:3px solid var(--gold);background:var(--paper);box-shadow:0 0 18px rgba(232,194,90,.7);overflow:hidden}
+.flyer img,.flyer canvas{width:100%;height:100%;object-fit:cover;image-rendering:pixelated;display:block}
+.spark{position:fixed;z-index:71;width:5px;height:5px;pointer-events:none;background:var(--gold)}
+.plusone{position:fixed;z-index:72;pointer-events:none;font-family:var(--f-pixel);color:var(--gold);font-size:14px;text-shadow:0 2px 0 rgba(0,0,0,.5)}
+/* clip zone */
+.clipzone{border:2px dashed var(--gold);border-radius:6px;padding:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:rgba(232,194,90,.06)}
+.clipzone.over{background:rgba(232,194,90,.18)}
+.clipzone p{margin:0;flex:1 1 220px;font-size:13px;color:var(--chalk)}
+.clipzone kbd{font-family:var(--f-pixel);background:var(--felt);border:1px solid var(--felt-line);border-radius:3px;padding:0 5px;font-size:12px}
+.clipzone label.btn{display:inline-block}
+.clipzone input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
+.clipping{font-size:12px;color:var(--gold);font-family:var(--f-pixel)}
+/* background */
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:-2;image-rendering:pixelated;display:block}
+.vignette{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 35%,transparent 45%,rgba(4,10,9,.55) 100%)}
+/* sense page */
+.hero{display:flex;flex-direction:column;gap:6px}
+.hero h2{font-family:var(--f-pixel);font-weight:400;font-size:30px;margin:0;letter-spacing:.04em;text-wrap:balance}
+.hero p{margin:0;color:var(--chalk-2);max-width:64ch}
+.mapbox{position:relative;border:2px solid var(--felt-line);border-radius:8px;background:rgba(0,0,0,.22);overflow:hidden}
+.mapbox canvas{display:block;width:100%;height:300px;cursor:pointer}
+.mapbox .legend{position:absolute;left:10px;bottom:8px;font-family:var(--f-pixel);font-size:11px;color:var(--chalk-2);display:flex;gap:10px;flex-wrap:wrap}
+.forks{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.forks li{border-left:3px solid var(--gold);padding:2px 0 2px 10px;font-size:14px;max-width:72ch}
+.stiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.stile{background:linear-gradient(180deg,var(--felt-2),rgba(0,0,0,.25));border:2px solid var(--felt-line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.stile.conf{border-color:color-mix(in srgb,var(--gold) 55%,var(--felt-line))}
+.stile h3{margin:0;font-size:16px;line-height:1.4;text-wrap:balance}
+.stile .r{font-size:13px;color:var(--chalk-2)}
+.stile .c{font-size:12px;color:var(--danger)}
+.stile .learn{font-size:12px;color:var(--ok);display:flex;flex-direction:column;gap:2px}
+.minis{display:flex;gap:6px;flex-wrap:wrap}
+.minis canvas,.minis img{width:44px;height:28px;image-rendering:pixelated;border-radius:2px;border:2px solid var(--tier,var(--stone));object-fit:cover;cursor:pointer}
+.changes{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--chalk-2);margin:0;padding-left:18px}
+/* table steps */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:0;padding:0;list-style:none;counter-reset:st}
+.steps li{counter-increment:st;background:var(--felt-2);border:2px solid var(--felt-line);border-radius:6px;padding:10px 12px;font-size:13px}
+.steps li::before{content:counter(st);font-family:var(--f-pixel);color:var(--gold);font-size:18px;display:block}
+/* survey effects */
+.effects{background:rgba(127,199,154,.08);border:2px solid color-mix(in srgb,var(--ok) 50%,var(--felt-line));border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.effects b{font-family:var(--f-pixel);font-weight:400;color:var(--ok)}
+.effects li{font-size:13px}
+.how{font-size:12px;color:var(--chalk-2)}
+footer{font-size:12px;color:var(--chalk-2);display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:2px solid var(--felt-line)}
+footer details summary{cursor:pointer;font-family:var(--f-pixel)}
+footer ul{margin:4px 0;padding-left:18px}
+</style>
+
+<canvas id="bg" aria-hidden="true"></canvas><div class="vignette" aria-hidden="true"></div>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Niko 的口袋<small>SENSE · M0.5</small></h1>
+      <div style="display:flex;align-items:center;gap:12px"><div class="purse" id="purse" aria-label="各品级卡数"></div><span class="pouchwrap" id="pouchwrap" aria-hidden="true"><canvas class="pouch" id="pouch" width="15" height="15"></canvas></span></div>
+    </div>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+    <div class="status" id="status">数据只在这台设备上，接上存储后同步给 Claude。</div>
+  </header>
+  <main id="main"></main>
+  <footer>
+    <details><summary>这口袋从哪来</summary>
+      <div id="method"></div><ul id="sources"></ul><ul id="caveats"></ul>
+    </details>
+    <div class="btnrow"><button class="btn ghost" id="exportBtn" type="button">复制操作记录</button><button class="btn ghost" id="soundBtn" type="button">音效：关</button></div>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = {
+  "meta": {
+    "subject": "Niko",
+    "generated_at": "2026-10-21",
+    "version": "M0.5",
+    "method": "手动跑 E 环。复用 m0/cards.json 的 8 张判断与 5 张待补作为属性来源；重跑用户轮次抽取，按作品、人名、兴趣关键词检索；另抽 agent 的 WebSearch / WebFetch 查询词（只取查询词，不读工具输出）。卡片由 LLM 手写，每条「引文」写出前用脚本核对确实出现在用户轮次里。品级按 7.5.4 用历史提及回填，门槛 3。",
+    "sources": [
+      "Claude Code 272 个 jsonl 与 Codex 30 个 jsonl：过滤后 5840 条用户轮次（含 rp-courier，检索时排除）",
+      "agent 搜索词 359 条（WebSearch 与 WebFetch 的输入）",
+      "m0/cards.json：J1–J8、P1–P5、R1–R3",
+      "卡片计数：collection 5、decision 10、follow 5、interest 6、person 5、quote 7、recommendation 3"
+    ],
+    "exclusions": [
+      "Chrome 履历与书签：本轮没有读。读取 Chrome 目录被权限分类器拦截，没有绕过",
+      "别人的 Chrome profile 从未触碰",
+      "assistant 输出、工具输出、宿主注入、teammate 消息、sidechain；rp-courier 定时模板",
+      "合作者真名、私人朋友同事不入卡；agent 搜索词里的签证、医疗、税务、注册公司类查询不出卡",
+      "卡片不写 URL，书签与推荐除外；本轮没有书签卡"
+    ],
+    "caveats": [
+      "本轮没有读浏览器履历（权限拦截），关注卡与收藏卡只来自会话里作者明说在追、在用的东西，数量偏少；《来自深渊》《海贼王》追到哪还不知道",
+      "作者提到的 idol 没有名字，没有出卡",
+      "人物卡里三位研究者只来自 agent 搜索词或一次提及，是石卡；作者没有说过要联系他们",
+      "属性 confirmed 按任务约定判定：m0 四要素齐全且跨 ≥3 会话；作者还没有在 app 里点过「对」",
+      "推荐与出一手的结果已用 WebSearch 核实存在，并检查过不在会话里出现过；浏览器里有没有看过，这轮无法检查"
+    ],
+    "threshold": {
+      "default": 3
+    },
+    "summary": [
+      "默认做法是 agent 做完就 push、部署、自动发；他要「不要发布，但是实装到底」，发布前必须过他的眼，因为「如果发布的话撤回也会留下记录」。",
+      "默认做法是用 agent loop、多个 LLM 分工、叙事里嵌 JSON 来保稳；他宁可「酒馆直出+tool call」、文字加 tag 再抽状态，因为「4个独立的LLM做4个完全不一样的内容……变向是降智了」「叙事和json同时出，叙事会变差」。",
+      "默认做法是世界顺着玩家、按要求变出敌人和地点；他要世界会拦、会掷骰、会说出到不了北门的理由，因为「有迷题和有谜底……信任度会完全不一样」。"
+    ]
+  },
+  "attributes": [
+    {
+      "id": "A1",
+      "text": "实装可以做到底，发布要等我看过",
+      "reason": "「你为什么会想发布？因为我们还没有做完东西。」「如果发布的话撤回也会留下记录，就不要再继续乱动了」——发布是对外、不可撤回的动作，和内部实装不是一回事。",
+      "contrast": "agent 自己 push、自己部署、自动发帖：「你不应该擅自push，我们已经封稿了」「为什么你要放，直接发布啊？我们在Local放一个网页就好了」「别自动发，发之前给我看看」。",
+      "status": "confirmed",
+      "uses": 6,
+      "evidence": [
+        {
+          "when": "2026-06-14",
+          "where": "Claude Code · NeonRP",
+          "what": "「给我一个Tag，我不需要你Push。」"
+        },
+        {
+          "when": "2026-06-21",
+          "where": "Claude Code · NeonRP",
+          "what": "agent 提议发布，他反问：「你为什么会想发布？因为我们还没有做完东西。」同一天在 Ludic-Dynamics：「不要push，我们push不重要」"
+        },
+        {
+          "when": "2026-08-09",
+          "where": "Claude Code · NeonRP",
+          "what": "睡前交任务：「请通过 team 来分sub-agent来实装，我先睡了，不要发布，但是实装到底」"
+        },
+        {
+          "when": "2026-08-18",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你现在直到能执行的位置为止，都可以一直执行，就是把那个发布之前的事情都可以做，但不要发布。」"
+        },
+        {
+          "when": "2026-09-15",
+          "where": "Claude Code · hackathon",
+          "what": "agent 推了已删掉的 remote：「你不应该擅自push，我们已经封稿了」「如果发布的话撤回也会留下记录，就不要再继续乱动了」"
+        },
+        {
+          "when": "2026-10-02",
+          "where": "Claude Code · www",
+          "what": "官网改版 agent 直接部署：「不要啊！为什么你要放，直接发布啊？我们在Local放一个网页就好了，为什么要部署啊？我不明白。」2026-10-13 对社媒：「别自动发，发之前给我看看」。反例也明确：2026-10-18 「请直接执行，部署，以及其他，都不需要我认可，直接做到底，我要睡了」——授权是他说出口的，不是默认的。"
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "text": "先把逻辑和中间过程摊给我看，再动手",
+      "reason": "质量和活人感「这部分我需要我的来定性」，所以中间过程得是他能看懂的形式；逻辑没分清就往下做，「理论上这个会越错越大」。",
+      "contrast": "「不要先急着试装」「先不要修改」「不要自动生成」；只给 end-to-end 的 output；靠假设下结论——「是不是可以从AWS上的那个记录上，LOg上可以找到答案？而不是说可能我们靠假设和这个假设并且没有验证」。",
+      "status": "confirmed",
+      "uses": 10,
+      "evidence": [
+        {
+          "when": "2026-06-23",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「好玩不好玩是玩家决定的，请分清楚 玩家，内容创作，引擎逻辑和定位 的3个不同职能，因此进行现在的编排分析和归因，先不要修改」"
+        },
+        {
+          "when": "2026-08-05",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你先是根据这个系统去思考，怎么去完整的去设计这个流程之后，我们再试装，就不要先急着试装。」2026-08-18 又一次：「你先不要开始实装，你先分析我们现在的这个构架」"
+        },
+        {
+          "when": "2026-08-23",
+          "where": "Claude Code · tools",
+          "what": "纠正文档里的 flow：「如果是这里面逻辑没分开，并且可能我们这个还是按照错误逻辑继续往下做的话，理论上这个会越错越大。」"
+        },
+        {
+          "when": "2026-09-07",
+          "where": "Claude Code · worldlines-rivet",
+          "what": "「你做的时候先做 planning，再分解具体的 task；剩下的是怎么检验、验证的 test。」前一天（2026-09-06）：「你先思考清楚，别急着做，我可以和你一起想」"
+        },
+        {
+          "when": "2026-09-25",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "骰子实验：「我需要看叙事和状态分别输出的中间过程，不仅仅只有end-to-end的output result」；同日「剩下可能是质量跟活人感的评分。就是这部分我需要我的来定性」，要求把 log 整理成他能看懂的形式。"
+        },
+        {
+          "when": "2026-10-10",
+          "where": "Claude Code · NeonRP",
+          "what": "看 benchmark 对比：「现在这个对比我看不到它里面的编排逻辑……我必须要看到这个效果。你可以弄一个可折叠的」；同日 Ludic-Dynamics：「这个我觉得我们需要详细设计，你给我给我逻辑看，不要自动生成。」"
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "text": "给我编号清单，我逐条拍板，别替我加东西",
+      "reason": "「因为这部分其实我处理这部分精力是很累的。我只要处理说我同意的信息，不然它就会很乱。」",
+      "contrast": "「都别把我列成table」；「Linear，你不要轻易的去添加信息」；「你这个太细了，我定不了」；「现在table里面的内容有点太过碎片化了」。",
+      "status": "confirmed",
+      "uses": 6,
+      "evidence": [
+        {
+          "when": "2026-07-13",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你把每个问题做成一个列表，我一个一个针对1234去写这个对还是错，还是每个决定的一个判断。」"
+        },
+        {
+          "when": "2026-07-29",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「所以真的就需要你列一个清单，然后我对着这个清单开始念。」"
+        },
+        {
+          "when": "2026-08-28",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「Linear，你不要轻易的去添加信息。因为这部分其实我处理这部分精力是很累的。我只要处理说我同意的信息，不然它就会很乱。」两小时后：「我现在需要看的所有的任务，都别把我列成table。然后显示出来，我一条一条去思考」"
+        },
+        {
+          "when": "2026-09-17",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你这个太细了，我定不了。……请给我这个需要check的Markdown的一栏。」"
+        },
+        {
+          "when": "2026-09-06",
+          "where": "Claude Code · worldlines-rivet",
+          "what": "「现在table里面的内容有点太过碎片化了，我们需要再page里面整体设计之后，再用table来完整阐述」"
+        },
+        {
+          "when": "2026-10-08",
+          "where": "Claude Code · NeonRP",
+          "what": "「如果要删除，那么请给我一个清单，我来告诉你需要什么不需要什么」；他的回复形态本身就是证据，例如 2026-10-03 hackathon「1 可以 2 以后再做， 3 可以 4 4 可以 5 不需要coc技能」"
+        }
+      ]
+    },
+    {
+      "id": "A4",
+      "text": "叙事让 LLM 直出，少加控制，不要 agent loop",
+      "reason": "「这样变向是降智了」；「用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」；「如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」",
+      "contrast": "「我比较反对是4个独立的LLM做4个完全不一样的内容」；「Agent Loop 是傻」；叙事和 JSON 同时出；「现在的引擎的设计hard harness太多」。",
+      "status": "confirmed",
+      "uses": 13,
+      "evidence": [
+        {
+          "when": "2026-08-10",
+          "where": "Claude Code · NeonRP",
+          "what": "「机制层，我比较反对是4个独立的LLM做4个完全不一样的内容，这样变向是降智了，除非是world-agent用sub-agent来控制context，soft harness 只把这些process当成是skill或者tool来调用」；同日「我个人觉得现在的引擎的设计hard harness太多」"
+        },
+        {
+          "when": "2026-09-23",
+          "where": "Claude Code · NeonRP",
+          "what": "「我们的move_to engage还有其他那些判定，就不需要出了，我们用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」"
+        },
+        {
+          "when": "2026-09-26",
+          "where": "Claude Code · NeonRP",
+          "what": "「我现在有一个直觉以及经验是，如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；两天后（2026-09-28）：「再次感受到叙事的必须放弃json，全用文字+tag」"
+        },
+        {
+          "when": "2026-10-01",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」几天前（2026-09-26）在同仓：「尽量不要过度设计」"
+        },
+        {
+          "when": "2026-10-06",
+          "where": "Claude Code · posting",
+          "what": "写给类脑的进度帖：「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」"
+        },
+        {
+          "when": "2026-10-10",
+          "where": "Claude Code · NeonRP",
+          "what": "实测后仍诚实记录反例：「我意外的是jev并没有效果太好，或者速度更快」——判断是直出，不是 jev 一定赢。"
+        }
+      ]
+    },
+    {
+      "id": "A5",
+      "text": "世界不能顺着玩家：要有裁判、有骰子、有谜底",
+      "reason": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」「这样赶路的话，理论上你会感受到非常真实的阻碍」；无中生有是「非常不物理」的。",
+      "contrast": "「整个的作家也好，我们的这个world agent就顺着这个角色去说的，这个是很大的一个问题」；「平白无故我们出一个新的东西」；「不能跳过投骰子，也不能跳过 艾琳娜要拦」。",
+      "status": "confirmed",
+      "uses": 18,
+      "evidence": [
+        {
+          "when": "2026-09-26",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」"
+        },
+        {
+          "when": "2026-09-29",
+          "where": "Claude Code · NeonRP",
+          "what": "「现在基本上整个的作家也好，我们的这个world agent就顺着这个角色去说的，这个是很大的一个问题……其实是可以给一个裁判，然后裁判里面会有一个解释……就有这么一个对抗的形式在，得有这么一个形式……这样赶路的话，理论上你会感受到非常真实的阻碍」"
+        },
+        {
+          "when": "2026-10-02",
+          "where": "Claude Code · NeonRP",
+          "what": "「如果玩家他是在游玩的过程中出现过这个词，我们context里面有这个内容的话……是一个非常合理的这么一个或非常好的一个涌现的表现。但如果是什么都没有的一个reference没有的情况下，然后平白无故我们出一个新的东西……无中生有的一个非常不物理」；同日「玩家需要问，我们去一个新的方向……而不是我要指定一个100%存在的地点」"
+        },
+        {
+          "when": "2026-10-04",
+          "where": "Claude Code · NeonRP",
+          "what": "「这个可以跳过和角色商量，但不能跳过投骰子，也不能跳过 艾琳娜要拦，而是直接进入对抗清算」"
+        },
+        {
+          "when": "2026-10-13",
+          "where": "Claude Code · sessions",
+          "what": "自己玩第七夜之后：「骰子还挺硬的，用了强制骰的时候，会给我真实的反馈，挺好」"
+        },
+        {
+          "when": "2026-10-19",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我要到北门，那么重点不是我是否能到北门，而是这中间的发生的经过和结果……有原因到不了北门，那么叙事这里，和状态得对上，并且给出理由」；2026-09-21 watson：「堵住不合理的同时，应该还得有好的示范」"
+        }
+      ]
+    },
+    {
+      "id": "A6",
+      "text": "后台在算的每一秒都要让人看见在算什么",
+      "reason": "「让大家误以为是就是已经没有在转了，但其实本质上后台在转」；「看起来特别像是bug」；「这个体感非常不好」。",
+      "contrast": "「只显示一个静止的，一个正在运算的画面」；「导入界面会一瞬间变成白屏」；「没有placeholder的图像」；「现在登录和退出的时候所有平台没有加载动画，像是卡主一样」。",
+      "status": "confirmed",
+      "uses": 6,
+      "evidence": [
+        {
+          "when": "2026-06-07",
+          "where": "Claude Code · web",
+          "what": "「现在生成世界封面，估计在等待的时候，没有placeholder的图像，所以看起来特别像是bug」"
+        },
+        {
+          "when": "2026-07-13",
+          "where": "Claude Code · NeonRP",
+          "what": "「这个灵魂创作逻辑不应该是这样，原因是，我们需要进入编辑界面，然后实时看生成的进度」；同日 Ludic-Dynamics：「尽量让游玩界面，能够有完整的 知道现在ai 在实际运行到哪一步的一个提示动画」"
+        },
+        {
+          "when": "2026-07-18",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「它导入界面会一瞬间变成白屏，然后让大家误以为是就是已经没有在转了，但其实本质上后台在转。所以其实我们的导入的转圈圈……都需要有这个loading的一个感觉的画面」"
+        },
+        {
+          "when": "2026-07-24",
+          "where": "Claude Code · NeonRP",
+          "what": "「我特别希望说刚加载的时候，你需要有加载的滚动的这个Agent思考的文案……第一个处理完，第二个处理完……而不是只显示一个静止的，一个正在运算的画面。并且你还没有出字之前，它就停止了……这个体感非常不好。」"
+        },
+        {
+          "when": "2026-08-19",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我觉得也不要说太慢，也不要说太快，但是至少说我们是一个恒速的一个打印机的一个动画……我其实看不到说现在这个handoff在执行也好， writer在作家在执行也好，我都看不到……我感觉就很奇怪」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「现在登录和退出的时候所有平台没有加载动画，像是卡主一样」"
+        }
+      ]
+    },
+    {
+      "id": "A7",
+      "text": "文字要像一个具体的人写的，不把道理直接说出来",
+      "reason": "「所以我们产生不了共鸣」；「要把人立住，他需要的细节和密度和这个专注度」；「如果是他们对话之间没有化学反应，那他这个画面感也出不来」；文案「没有对站在任何人角度在思考这个问题，你只是单纯是为了这个题目去想」。",
+      "contrast": "「网文它有点像流水账」；「许老师现在太工具人了」；「你不可以在这个文本里面去直接说这句话」；「这个文字太像ai写的了」；「这个蓝图写的太想claude 文章了，我可能会重写」；「这筹码根本就直接亮在那边，就不行」。",
+      "status": "confirmed",
+      "uses": 12,
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · rp-loadingpage",
+          "what": "看官网论文卡片文案：「这个文字太像ai写的了」"
+        },
+        {
+          "when": "2026-09-19",
+          "where": "Claude Code · worldlines-movie",
+          "what": "「网文它有点像流水账，它并不是以这个沈知夏她第一人称的内心的逻辑去感受，去描写的，所以我们产生不了共鸣」；同日 summer-demo：「但我这句话是讲的非常白话，你不可你不可以在这个文本里面去直接说这句话……就得铺在那个润物细无声的描绘之中」"
+        },
+        {
+          "when": "2026-09-19",
+          "where": "Claude Code · posting",
+          "what": "否掉一句宣传语：「这个我觉得不对，原因是因为这个没有对站在任何人角度在思考这个问题，你只是单纯是为了这个题目去想」"
+        },
+        {
+          "when": "2026-09-21",
+          "where": "Claude Code · summer-demo",
+          "what": "「活人感太少了，部长也是，没有啥心理描写……许老师现在太工具人了」；同日「我个人觉得差一点的是细节，还有这个堆的密度……要把人立住，他需要的细节和密度和这个专注度」；worldlines-movie：「如果是他们对话之间没有化学反应，那他这个画面感也出不来」"
+        },
+        {
+          "when": "2026-09-22",
+          "where": "Claude Code · worldlines-movie",
+          "what": "伏笔太显：「像这个筹码，这筹码根本就直接亮在那边，就不行」；塞梗：「选一个吧，太密就没啥意思了」"
+        },
+        {
+          "when": "2026-10-02",
+          "where": "Claude Code · NeonRP",
+          "what": "引擎设计蓝图：「这个蓝图写的太想claude 文章了，我可能会重写」；2026-09-29 c2b 论文：「你这个我感觉有点不太说人话」"
+        }
+      ]
+    },
+    {
+      "id": "A8",
+      "text": "角色图只认二次元正本，不要厚涂和 3D",
+      "reason": "「图的质量不好」；「我们如果不是GPT的图话，理论上都是不行的……因为现在的图生成的这个逻辑差太多了」；在原图上做局部编辑「模型会整张重画、人物走样」。",
+      "contrast": "「这个不行，这个厚涂不好，我们的是二次元的」；「都太gpt画风了」要改成漫剧；「我们不能用comfyui」；「-c01 / -c02 / -cNN 结尾的图一律不用」；「我们不是很认同说可能是直接给一个3D风」。",
+      "status": "confirmed",
+      "uses": 7,
+      "evidence": [
+        {
+          "when": "2026-08-05",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "agent 提议「厚涂 premium + 世界在场背景」：「这个不行，这个厚涂不好，我们的是二次元的」"
+        },
+        {
+          "when": "2026-08-29",
+          "where": "Claude Code · worldlines-rivet",
+          "what": "「请给所有新生成的5个世界都生成prompt提示词，改成漫剧，都太gpt画风了」"
+        },
+        {
+          "when": "2026-10-07",
+          "where": "Claude Code · NeonRP",
+          "what": "「我们不能用comfyui，图的质量不好」"
+        },
+        {
+          "when": "2026-10-15",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「就这个所谓的Stand C01都是有问题的图。就用别的图替代……我们如果不是GPT的图话，理论上都是不行的……因为现在的图生成的这个逻辑差太多了……当然这二次元的风格是一种，但我们可能是那种写实的二次元……但我们不是很认同说可能是直接给一个3D风」；同日 NeonRP@neonrp-worlds：「我们的图片生成统一是用GPT，不能用别的」"
+        },
+        {
+          "when": "2026-10-15",
+          "where": "CLAUDE.md · worldlines-assets",
+          "what": "AGENTS.md（2026-10-15 起所有 agent 适用）：不用 Codex 内置的 image_gen；-c01 / -c02 / -cNN 结尾的图一律不用、不当参考；不在原图上做「只改光照 / 只去背景」的编辑，「模型会整张重画、人物走样」；新图先是候选，人挑过才算正本。~/.codex/AGENTS.md 同步了同一条。"
+        },
+        {
+          "when": "2026-10-14",
+          "where": "Codex · worldlines-assets",
+          "what": "出概念图时的取舍：「B2 B3 也太抽象了，重出，先给我提示词和为什么是这个提示词」「那个骰子非常突兀……没有必要一定要加个骰子了」"
+        }
+      ]
+    },
+    {
+      "id": "A9",
+      "text": "纯文字比画面更有想象力；加画面看似升维，其实是降维",
+      "reason": "「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」；「Narrative World Simulation vs AI Town, 缺乏想象力，边界，就是自由文字的重要性」",
+      "contrast": "像素小镇式的图形化模拟：「我们其实更想做的是一个纯文字的这种智斗」",
+      "status": "candidate",
+      "uses": 5,
+      "evidence": [
+        {
+          "when": "2026-08-11",
+          "where": "Claude Code · clips-nosub",
+          "what": "对比像素风地图互动：「我们其实更想做的是一个纯文字的这种智斗」"
+        },
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "文章提纲：「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」「Narrative World Simulation vs AI Town, 缺乏想象力，边界，就是自由文字的重要性」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · articles",
+          "what": "「叙事空间的维度是降低的，因此，ai 的短剧生成变得非常合理」"
+        }
+      ]
+    },
+    {
+      "id": "A10",
+      "text": "面向玩家的界面要用真素材真数据",
+      "reason": null,
+      "contrast": "mock 的素材和假用户数；但他自己也说过「暂时mock一下」",
+      "status": "candidate",
+      "uses": 5,
+      "evidence": [
+        {
+          "when": "2026-07-23",
+          "where": "Claude Code · NeonRP",
+          "what": "「我个人觉得你的现在这个observe没有加真的数据，我觉得不行啊」"
+        },
+        {
+          "when": "2026-09-01",
+          "where": "Claude Code · worldlines-rivet",
+          "what": "「你还是从mock的角度考虑，但我们其实不是mock，我们是真正游玩界面，我们是需要有个真的一个界面也好，素材也好，体制也好，我们是要真的是去考虑的」"
+        },
+        {
+          "when": "2026-09-19",
+          "where": "Claude Code · NeonRP",
+          "what": "「请用真实的素材去做，不要用这种mock的素材。要尽可能有些图画图像」"
+        },
+        {
+          "when": "2026-10-07",
+          "where": "Codex · ludenia",
+          "what": "反例：「对，暂时mock一下，然后可以先假设是出去了之后，还可以再回来」；2026-10-10 NeonRP：「这个mock已经很好了，我们接下来是要根据这个逻辑去继续做」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · worldlines-frontend",
+          "what": "「里面的Mock尽量少一点，就是我们以真实的数据去采样好一点，不要现在是全是Mock的数据，而且他那个玩过的人数也不是真的」"
+        }
+      ]
+    },
+    {
+      "id": "A11",
+      "text": "第一眼不能有 HUD，屏幕只留核心交互",
+      "reason": null,
+      "contrast": "「现在一点进去太多复杂的界面」「层级太多了」",
+      "status": "candidate",
+      "uses": 5,
+      "evidence": [
+        {
+          "when": "2026-06-13",
+          "where": "Claude Code · NeonRP",
+          "what": "「让左边只剩故事本身,读起来像小说。那张线索表挪到一个能折叠的小角落,想看再点。」"
+        },
+        {
+          "when": "2026-10-01",
+          "where": "Claude Code · hackathon",
+          "what": "「就是第一眼看过去的时候，不能有HUD」"
+        },
+        {
+          "when": "2026-10-13",
+          "where": "Claude Code · templates",
+          "what": "「画布我们屏幕的内容不堆砌在画布里面，而是放进抽屉，抽屉要好看一点，然后屏幕只留核心的交互组件和总结性的旁白」；同日 seven-days-inn-zh：「屏幕东西太多了」"
+        },
+        {
+          "when": "2026-10-14",
+          "where": "Claude Code · hackathon",
+          "what": "「层级太多了，并且说实话，头像也不一定能察觉到要点，最好头像旁边有两个，一个是状态，一个是技能」；同日 Ludic-Dynamics：「我们会把一些技能，就常用技能做在我们的第一眼能看到」"
+        },
+        {
+          "when": "2026-10-15",
+          "where": "Claude Code · worldlines-frontend",
+          "what": "「现在还是有很多Tab……都不知道要点哪个。我们就是每一个主页面，它就是一个流式scrolling的一个逻辑，你不要搞太多复杂的东西。」"
+        }
+      ]
+    },
+    {
+      "id": "A12",
+      "text": "故事要有一个真正让人绽放的舞台",
+      "reason": "「如果只是单纯是背后是热闹的大家的最后的一个暑假，会感觉会有点寂寞，因为它没有一个真正的舞台去让大家绽放。」",
+      "contrast": "「《未闻花名》讲的是一个摆烂的故事」",
+      "status": "candidate",
+      "uses": 3,
+      "evidence": [
+        {
+          "when": "2026-09-14",
+          "where": "Claude Code · hackathon",
+          "what": "设计周望舒：「具体可以参考我们的花牌情缘」"
+        },
+        {
+          "when": "2026-09-19",
+          "where": "Claude Code · worldlines-movie",
+          "what": "「可以像那个《花牌情缘》一样，是一上来就是她的一个最终决战……如果只是单纯是背后是热闹的大家的最后的一个暑假，会感觉会有点寂寞，因为它没有一个真正的舞台去让大家绽放」"
+        },
+        {
+          "when": "2026-09-20",
+          "where": "Claude Code · worldlines-rivet",
+          "what": "agent 引《未闻花名》作比：「这个不是那么准确，主要这个主要是因为这个《未闻花名》讲的是一个摆烂的故事，有没有一个更好的例子？」"
+        }
+      ]
+    },
+    {
+      "id": "A13",
+      "text": "跑团主持人做的事就是世界模拟",
+      "reason": "「其实本质是TRPG的主持人所做的事情，是一种世界预测」；「一个永续执行的TRPG主持人，可以被当成一个世界模拟」",
+      "contrast": "Generative Agents 式「和现实世界对齐」的模拟：「AIRP 是什么，和Generative Agents 这些Ai模拟的区别」",
+      "status": "candidate",
+      "uses": 14,
+      "evidence": [
+        {
+          "when": "2026-08-11",
+          "where": "Claude Code · clips-nosub",
+          "what": "「然后其实我特别喜欢玩跑团，然后跑团里面是像那个DM一个一个去递话筒去说话」"
+        },
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "「AIRP和TRPG的关系 AIRP -> TRPG -> World Simulation」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · articles",
+          "what": "「其实本质是TRPG的主持人所做的事情，是一种世界预测」"
+        },
+        {
+          "when": "2026-10-20",
+          "where": "Claude Code · task-planning",
+          "what": "「一个永续执行的TRPG主持人，可以被当成一个世界模拟」"
+        }
+      ]
+    },
+    {
+      "id": "A14",
+      "text": "串成线、会定期回来看的东西，才算我的",
+      "reason": "「只有组合成为长期我们的sense，或者我们定期catch 的才会变成金卡」",
+      "contrast": null,
+      "status": "candidate",
+      "uses": 3,
+      "evidence": [
+        {
+          "when": "2026-10-21",
+          "where": "Claude Code · Sense",
+          "what": "「每一个卡其实是一个catchup的主题」「只有组合成为长期我们的sense，或者我们定期catch 的才会变成金卡」"
+        }
+      ]
+    },
+    {
+      "id": "A15",
+      "text": "人需要故事和幻想，幻想陪人走得更久",
+      "reason": "「人类在乎现实世界，但是更多的，人类其实需要的是故事和幻想的消费者。」「幻想，某种意义上也是真正能陪伴人类走的时间更久」",
+      "contrast": "只做和现实世界对齐的模拟与预测",
+      "status": "candidate",
+      "uses": 4,
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "「日本的galgame和轻小说是无限的故事」「幻想，某种意义上也是真正能陪伴人类走的时间更久」"
+        },
+        {
+          "when": "2026-09-19",
+          "where": "Claude Code · posting",
+          "what": "EC2026 发表后的帖子：「AI Chat Bot の体験と終わりなきストリーを次の世代の体験を作るために」"
+        }
+      ]
+    },
+    {
+      "id": "A16",
+      "text": "引擎开源，编排闭源",
+      "reason": null,
+      "contrast": "全开源 / 全闭源都被他否过",
+      "status": "candidate",
+      "uses": 6,
+      "evidence": [
+        {
+          "when": "2026-08-10",
+          "where": "Claude Code · NeonRP",
+          "what": "「我们的NeonRP那部分其实是不开源的，但是我们的Worldlines其实是开源的」"
+        },
+        {
+          "when": "2026-09-25",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我需要整肃git 的repo，docs类似的资料不应该放在开源的git里面」"
+        },
+        {
+          "when": "2026-10-08",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我其实越做越觉得不知道要不要搞开源了」，一个半小时后：「不用改，我们编排这个闭源这件事情不需要这么强调」"
+        },
+        {
+          "when": "2026-10-12",
+          "where": "Claude Code · NeonRP",
+          "what": "「我就比较担心说可能有些朋友是同行，他可能去打，用我的我们的引擎去打磨他们我们的比较好的一些竞品」"
+        },
+        {
+          "when": "2026-10-13",
+          "where": "Claude Code · NeonRP@neonrp-worlds",
+          "what": "「不要介意编排被下载走，我们这个逻辑其实不是这样的。能做到这一点人其实很少，我们不需要去考虑这些。与之相对的，我们用API玩，我们的成本是很高的。」同日 Workspaces：「party （商量拍）不开源」；「引擎用Apache-2.0」"
+        }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "C01",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "gold",
+      "tier_reason": "挂着已确认属性 A1（用次 6），这张卡自己在 2026-08-09 到 2026-10-02 之间被提到 3 天。",
+      "title": "2026-08-09 睡前：实装到底，但不要发布",
+      "body": "NeonRP 收尾，睡前把任务交给 team。决定：实装、测试做到底，发布停下等他看。放弃：让 agent 直接部署。为什么：「如果发布的话撤回也会留下记录」。同一个决定 08-18、10-02 又下了两次。",
+      "attribute_ids": [
+        "A1"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-09",
+          "where": "Claude Code · NeonRP",
+          "what": "睡前交任务：「请通过 team 来分sub-agent来实装，我先睡了，不要发布，但是实装到底」"
+        },
+        {
+          "when": "2026-08-18",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你现在直到能执行的位置为止，都可以一直执行，就是把那个发布之前的事情都可以做，但不要发布。」"
+        },
+        {
+          "when": "2026-10-02",
+          "where": "Claude Code · www",
+          "what": "官网改版 agent 直接部署：「不要啊！为什么你要放，直接发布啊？我们在Local放一个网页就好了，为什么要部署啊？我不明白。」2026-10-13 对社媒：「别自动发，发之前给我看看」。反例也明确：2026-10-18 「请直接执行，部署，以及其他，都不需要我认可，直接做到底，我要睡了」——授权是他说出口的，不是默认的。"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C02",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "gold",
+      "tier_reason": "挂着已确认属性 A2（用次 10），这张卡自己在 2026-08-05 到 2026-10-10 之间被提到 3 天。",
+      "title": "2026-09-25 骰子实验：要看中间过程，不要只看结果",
+      "body": "Ludic-Dynamics 跑骰子实验。决定：叙事和状态分开输出，log 整理成他能看懂的形式。放弃：只给 end-to-end 的分数。为什么：质量和活人感「这部分我需要我的来定性」。08-05、10-10 同样要求先摊开逻辑。",
+      "attribute_ids": [
+        "A2"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-05",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你先是根据这个系统去思考，怎么去完整的去设计这个流程之后，我们再试装，就不要先急着试装。」2026-08-18 又一次：「你先不要开始实装，你先分析我们现在的这个构架」"
+        },
+        {
+          "when": "2026-09-25",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "骰子实验：「我需要看叙事和状态分别输出的中间过程，不仅仅只有end-to-end的output result」；同日「剩下可能是质量跟活人感的评分。就是这部分我需要我的来定性」，要求把 log 整理成他能看懂的形式。"
+        },
+        {
+          "when": "2026-10-10",
+          "where": "Claude Code · NeonRP",
+          "what": "看 benchmark 对比：「现在这个对比我看不到它里面的编排逻辑……我必须要看到这个效果。你可以弄一个可折叠的」；同日 Ludic-Dynamics：「这个我觉得我们需要详细设计，你给我给我逻辑看，不要自动生成。」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C03",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "gold",
+      "tier_reason": "挂着已确认属性 A3（用次 6），这张卡自己在 2026-07-13 到 2026-09-17 之间被提到 3 天。",
+      "title": "2026-08-28 Linear：不要替我加信息，也别列成 table",
+      "body": "管任务时 agent 往 Linear 里自己加条目、列表格。决定：只处理他同意过的事，一条一条列出来。放弃：表格和自动添加。为什么：「我处理这部分精力是很累的」。07-13、09-17 同一要求。",
+      "attribute_ids": [
+        "A3"
+      ],
+      "evidence": [
+        {
+          "when": "2026-07-13",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你把每个问题做成一个列表，我一个一个针对1234去写这个对还是错，还是每个决定的一个判断。」"
+        },
+        {
+          "when": "2026-08-28",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「Linear，你不要轻易的去添加信息。因为这部分其实我处理这部分精力是很累的。我只要处理说我同意的信息，不然它就会很乱。」两小时后：「我现在需要看的所有的任务，都别把我列成table。然后显示出来，我一条一条去思考」"
+        },
+        {
+          "when": "2026-09-17",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「你这个太细了，我定不了。……请给我这个需要check的Markdown的一栏。」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C04",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A4；自己只出现过一次，所以不到金。",
+      "title": "2026-09-23 新引擎：叙事直出，再用 jev 转词条",
+      "body": "NeonRP 重做机制层。决定：不再单独出 move_to 判定，LLM 直出文字，再抽状态词条。放弃：多个独立 LLM 分工和 agent loop。为什么：「会更快，而且更稳」。10-10 实测 jev 没有更快，他照实记下了。",
+      "attribute_ids": [
+        "A4"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-23",
+          "where": "Claude Code · NeonRP",
+          "what": "「我们的move_to engage还有其他那些判定，就不需要出了，我们用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」"
+        },
+        {
+          "when": "2026-09-26",
+          "where": "Claude Code · NeonRP",
+          "what": "「我现在有一个直觉以及经验是，如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；两天后（2026-09-28）：「再次感受到叙事的必须放弃json，全用文字+tag」"
+        },
+        {
+          "when": "2026-10-10",
+          "where": "Claude Code · NeonRP",
+          "what": "实测后仍诚实记录反例：「我意外的是jev并没有效果太好，或者速度更快」——判断是直出，不是 jev 一定赢。"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C05",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A5；自己只出现过一次，所以不到金。",
+      "title": "2026-10-04 跑团：可以跳过商量，不能跳过骰子",
+      "body": "NeonRP 游玩测试，玩家要硬闯。决定：「不能跳过投骰子，也不能跳过 艾琳娜要拦」，直接进入对抗清算。放弃：让作家顺着玩家写。为什么：有谜底，「而且信任度会完全不一样」。",
+      "attribute_ids": [
+        "A5"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-26",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」"
+        },
+        {
+          "when": "2026-10-04",
+          "where": "Claude Code · NeonRP",
+          "what": "「这个可以跳过和角色商量，但不能跳过投骰子，也不能跳过 艾琳娜要拦，而是直接进入对抗清算」"
+        },
+        {
+          "when": "2026-10-13",
+          "where": "Claude Code · sessions",
+          "what": "自己玩第七夜之后：「骰子还挺硬的，用了强制骰的时候，会给我真实的反馈，挺好」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C06",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A6；未进金卡名额，金卡上限 6 张。",
+      "title": "2026-07-24 进场加载：滚动显示 agent 在想什么",
+      "body": "NeonRP 进场要跑一分钟以上。决定：加载时滚动显示「第一个处理完，第二个处理完」。放弃：静止的「正在运算」。为什么：「这个体感非常不好」，看起来像 bug。",
+      "attribute_ids": [
+        "A6"
+      ],
+      "evidence": [
+        {
+          "when": "2026-06-07",
+          "where": "Claude Code · web",
+          "what": "「现在生成世界封面，估计在等待的时候，没有placeholder的图像，所以看起来特别像是bug」"
+        },
+        {
+          "when": "2026-07-24",
+          "where": "Claude Code · NeonRP",
+          "what": "「我特别希望说刚加载的时候，你需要有加载的滚动的这个Agent思考的文案……第一个处理完，第二个处理完……而不是只显示一个静止的，一个正在运算的画面。并且你还没有出字之前，它就停止了……这个体感非常不好。」"
+        },
+        {
+          "when": "2026-08-19",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我觉得也不要说太慢，也不要说太快，但是至少说我们是一个恒速的一个打印机的一个动画……我其实看不到说现在这个handoff在执行也好， writer在作家在执行也好，我都看不到……我感觉就很奇怪」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C07",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A7；自己只出现过一次，所以不到金。",
+      "title": "2026-09-19 网文：改成沈知夏的第一人称内心",
+      "body": "worldlines-movie 的网文初稿像流水账。决定：以主角第一人称的内心逻辑重写，主题铺在描写里。放弃：把道理直接写出来。为什么：「所以我们产生不了共鸣」。",
+      "attribute_ids": [
+        "A7"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-19",
+          "where": "Claude Code · worldlines-movie",
+          "what": "「网文它有点像流水账，它并不是以这个沈知夏她第一人称的内心的逻辑去感受，去描写的，所以我们产生不了共鸣」；同日 summer-demo：「但我这句话是讲的非常白话，你不可你不可以在这个文本里面去直接说这句话……就得铺在那个润物细无声的描绘之中」"
+        },
+        {
+          "when": "2026-09-21",
+          "where": "Claude Code · summer-demo",
+          "what": "「活人感太少了，部长也是，没有啥心理描写……许老师现在太工具人了」；同日「我个人觉得差一点的是细节，还有这个堆的密度……要把人立住，他需要的细节和密度和这个专注度」；worldlines-movie：「如果是他们对话之间没有化学反应，那他这个画面感也出不来」"
+        },
+        {
+          "when": "2026-09-22",
+          "where": "Claude Code · worldlines-movie",
+          "what": "伏笔太显：「像这个筹码，这筹码根本就直接亮在那边，就不行」；塞梗：「选一个吧，太密就没啥意思了」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C08",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A8；未进金卡名额，金卡上限 6 张。",
+      "title": "2026-10-15 出图：统一用 GPT，不用 ComfyUI 和 -c01 变体",
+      "body": "给 Worldlines 世界出角色图。决定：正本统一 gpt-image，写实的二次元。放弃：ComfyUI、厚涂、3D 风。为什么：「我们如果不是GPT的图话，理论上都是不行的」。",
+      "attribute_ids": [
+        "A8"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-05",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "agent 提议「厚涂 premium + 世界在场背景」：「这个不行，这个厚涂不好，我们的是二次元的」"
+        },
+        {
+          "when": "2026-10-07",
+          "where": "Claude Code · NeonRP",
+          "what": "「我们不能用comfyui，图的质量不好」"
+        },
+        {
+          "when": "2026-10-15",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「就这个所谓的Stand C01都是有问题的图。就用别的图替代……我们如果不是GPT的图话，理论上都是不行的……因为现在的图生成的这个逻辑差太多了……当然这二次元的风格是一种，但我们可能是那种写实的二次元……但我们不是很认同说可能是直接给一个3D风」；同日 NeonRP@neonrp-worlds：「我们的图片生成统一是用GPT，不能用别的」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C09",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "bronze",
+      "tier_reason": "被反复提到 2 天，但挂的属性还是候选。",
+      "title": "2026-10-13 开源边界：引擎 Apache-2.0，商量拍不开源",
+      "body": "划 NeonRP / Worldlines 的开源边界。决定：引擎用 Apache-2.0，编排（商量拍）闭源。放弃：全开源和全闭源。为什么还没定，他自己说「越做越觉得不知道要不要搞开源了」。",
+      "attribute_ids": [
+        "A16"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-08",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我其实越做越觉得不知道要不要搞开源了」，一个半小时后：「不用改，我们编排这个闭源这件事情不需要这么强调」"
+        },
+        {
+          "when": "2026-10-13",
+          "where": "Claude Code · NeonRP@neonrp-worlds",
+          "what": "「不要介意编排被下载走，我们这个逻辑其实不是这样的。能做到这一点人其实很少，我们不需要去考虑这些。与之相对的，我们用API玩，我们的成本是很高的。」同日 Workspaces：「party （商量拍）不开源」；「引擎用Apache-2.0」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C10",
+      "kind": "decision",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A2；自己只出现过一次，所以不到金。",
+      "title": "2026-10-20 Sense：先从浏览器记录开始，不先定 MCP",
+      "body": "定 Sense v1 的第一个入口。决定：「先从浏览器的记录开始着手」，从一个简单 case 开始。放弃：先定工具再想体验。为什么：「mcp用什么这个不是选择，而是先从体验开始思考」。",
+      "attribute_ids": [
+        "A2",
+        "A14"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-20",
+          "where": "Claude Code · Sense",
+          "what": "「ts可以，mcp用什么这个不是选择，而是先从体验开始思考是否需要，以及是否需要mcp……我在思考，我平时是看剧，还有平时是看论文，还有平时是看别的，你觉得哪边会比较好？」"
+        },
+        {
+          "when": "2026-10-20",
+          "where": "Claude Code · Sense",
+          "what": "「我感觉可以先从浏览器的记录开始着手……我是先看论文，然后找到某个大牛，然后这个大牛的主页有excel，excel里面有一堆人」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C11",
+      "kind": "recommendation",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "新推荐，作者还没 like。",
+      "title": "Shape Up（Basecamp，Ryan Singer）——先 shape 再 build、固定周期、不维护 backlog",
+      "body": "它把 J2 的「先把逻辑摊开再动手」做成了流程：先由少数人把问题 shape 成有边界的 pitch，再交给团队在固定周期里自己拆 task；它反对 backlog，主张只在 betting table 上处理被同意的事，和 J3 的「我只要处理说我同意的信息，不然它就会很乱」几乎是同一句话。你已经在跑四天一个 batch 的节奏，这本书是对这个节奏的一个外部对照。 风险：如果你读完觉得「太慢、太重」，说明 J2 写错了：你要的不是「先想清楚」这件事本身，而是「我随时能插手」；J3 的清单也不是为了减少信息，而是为了保持控制。",
+      "attribute_ids": [
+        "A2",
+        "A3"
+      ],
+      "evidence": [],
+      "item": {
+        "name": "Shape Up: Stop Running in Circles and Ship Work that Matters（Basecamp，2019，免费在线版 basecamp.com/shapeup）",
+        "url": "https://basecamp.com/shapeup"
+      },
+      "watch": null
+    },
+    {
+      "id": "C12",
+      "kind": "recommendation",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "新推荐，作者还没 like。",
+      "title": "Dungeon World 的 GM 章节（Sage LaTorra & Adam Koebel，2012）——「说后果并询问」「让世界的反应跟着虚构走」",
+      "body": "你在 J5 里要的裁判、阻碍、「到不了北门的理由」，PbtA 把它写成 GM 的硬规则：GM 不能顺着玩家，只能在玩家掷骰失败或「看向你」时做一个 move，move 必须从虚构里长出来、必须说出后果。它同时是 J4 的对照：规则极轻，没有数值模拟，全靠「直出的虚构 + 一次 2d6 判定」。你现在用的是百分骰（BRP）和 D&D SRD，这是一套哲学上相反的跑团规则。 风险：如果你觉得它「太软、没有物理」，那 J5 的理由要改：你要的不是「世界会拦」，而是「世界有可查账的状态」，裁判必须是数值而不是叙事；J4 的「轻判别」也就有了下限——轻到没有状态就不行。",
+      "attribute_ids": [
+        "A5",
+        "A4"
+      ],
+      "evidence": [],
+      "item": {
+        "name": "Dungeon World（Powered by the Apocalypse），尤其是 GM Agenda / Principles / Moves 三节（SRD 免费：dungeonworldsrd.com）",
+        "url": "https://www.dungeonworldsrd.com/"
+      },
+      "watch": null
+    },
+    {
+      "id": "C13",
+      "kind": "recommendation",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "新推荐，作者还没 like。",
+      "title": "《冰菓》（米泽穗信，古典部系列第一卷，2001）——校园社团、内敛主角、第一人称内心、每一话都有一个谜底",
+      "body": "你在 9-23 问过「能不能帮我找一下几个可能类似这么一个文风的小说」。《冰菓》满足 J7 的三条：全程是折木第一人称的内心逻辑，人物靠细节和密度立住，主题（省力主义 vs 「我很好奇」）从不直说；同时每一话都有一个被解开的谜，和 J5「有谜底，信任度完全不一样」是同一种口味。它也是 P4 的检验物：这是一部没有「最终决战」式大舞台的作品。 风险：如果你觉得它「太淡、没有舞台」，那 P4 的答案就出来了：你要的「活人感」必须配一个让人绽放的高潮舞台，J7 的「润物细无声」只是手段，不是口味本身；如果你喜欢，说明 P4 里《花牌情缘》式开场只是写作技巧，不是观看口味。",
+      "attribute_ids": [
+        "A7",
+        "A5"
+      ],
+      "evidence": [],
+      "item": {
+        "name": "米泽穗信《冰菓》（『氷菓』，角川文庫；中文版由台湾角川 / 新星出版社出版）",
+        "url": null
+      },
+      "watch": null
+    },
+    {
+      "id": "C14",
+      "kind": "person",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A5；自己只出现过一次，所以不到金。",
+      "title": "竜騎士07",
+      "body": "『なく頃に』系列的作者。关系：关注的创作者。你在意他，是因为你把《海猫》的红字蓝字对决直接拿来做了猫箱馆的推理玩法。最近动向：待 web search。",
+      "attribute_ids": [
+        "A5"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-05",
+          "where": "Claude Code · sim",
+          "what": "「能不能 《寒蝉鸣泣之时》模拟器。 《海猫鸣泣之时》模拟器。」「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+        },
+        {
+          "when": "2026-08-06",
+          "where": "Claude Code · sim",
+          "what": "「注意，红字只能说结论、真实、真相，不能用表情或提示。」"
+        }
+      ],
+      "item": {
+        "name": "竜騎士07（07th Expansion）"
+      },
+      "watch": {
+        "query": "竜騎士07 新作",
+        "cadence": "weekly",
+        "last_seen": "2026-08-06"
+      }
+    },
+    {
+      "id": "C15",
+      "kind": "person",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A7；自己只出现过一次，所以不到金。",
+      "title": "米澤穂信",
+      "body": "《冰菓》的作者。关系：关注的创作者。你写《漫动部》时点名「参考冰菓的叙事」，要的是日常之谜、第一人称、谜底不说破。",
+      "attribute_ids": [
+        "A7",
+        "A5"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-23",
+          "where": "Claude Code · worldlines-movie",
+          "what": "「其实可以参考冰菓的叙事」"
+        },
+        {
+          "when": "2026-10-14",
+          "where": "Claude Code · worldlines-movie",
+          "what": "他贴回的剧本设定里写着叙事结构是日常之谜，参考冰菓"
+        }
+      ],
+      "item": {
+        "name": "米澤穂信"
+      },
+      "watch": {
+        "query": "米澤穂信 新刊",
+        "cadence": "weekly",
+        "last_seen": "2026-10-14"
+      }
+    },
+    {
+      "id": "C16",
+      "kind": "person",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+      "title": "Joon Sung Park",
+      "body": "Generative Agents 的第一作者。关系：你的文章拿他当对照。你在意的是区别：他的模拟对齐现实世界的人，你的模拟是为故事服务的世界。",
+      "attribute_ids": [
+        "A13",
+        "A15"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "文章提纲：「AIRP 是什么，和Generative Agents 这些Ai模拟的区别」"
+        }
+      ],
+      "item": {
+        "name": "Joon Sung Park"
+      },
+      "watch": {
+        "query": "Joon Sung Park generative agents new paper",
+        "cadence": "weekly",
+        "last_seen": "2026-09-10"
+      }
+    },
+    {
+      "id": "C17",
+      "kind": "person",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+      "title": "Alexander Vezhnevets",
+      "body": "Concordia 的作者，做带 Game Master 的生成式 agent 建模。关系：agent 在写 drift-bench 时替你查过他的论文。和你说的「TRPG主持人，可以被当成一个世界模拟」是同一条路。",
+      "attribute_ids": [
+        "A13"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-29",
+          "where": "Claude Code · worldlines-drift-bench · agent 搜索词",
+          "what": "Concordia generative agent-based modeling Game Master grounded variables Vezhnevets"
+        }
+      ],
+      "item": {
+        "name": "Alexander Sasha Vezhnevets"
+      },
+      "watch": {
+        "query": "Concordia Vezhnevets game master",
+        "cadence": "weekly",
+        "last_seen": "2026-09-29"
+      }
+    },
+    {
+      "id": "C18",
+      "kind": "person",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A7；自己只出现过一次，所以不到金。",
+      "title": "Michael Mateas",
+      "body": "计算叙事研究者，Façade 的作者之一。关系：agent 在写论文时替你查过他和 Wardrip-Fruin 的故事创作论文。",
+      "attribute_ids": [
+        "A13",
+        "A7"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-25",
+          "where": "Claude Code · task-paper · agent 搜索词",
+          "what": "Kelly Calderwood Wardrip-Fruin Mateas \"There and Back Again\" formal domains neurosymbolic story authoring AIIDE 2023"
+        }
+      ],
+      "item": {
+        "name": "Michael Mateas"
+      },
+      "watch": {
+        "query": "Michael Mateas narrative AI",
+        "cadence": "weekly",
+        "last_seen": "2026-09-25"
+      }
+    },
+    {
+      "id": "C19",
+      "kind": "follow",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A5；自己只出现过一次，所以不到金。",
+      "title": "来自深渊",
+      "body": "你说是「我们特别喜欢的动画」，想 catch up 电影的更新。拿来当参照的是那种往洞穴下勘探、越往下越有代价的世界观。你追到哪：未知，待浏览器履历补。",
+      "attribute_ids": [
+        "A5"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-20",
+          "where": "Claude Code · worldlines",
+          "what": "写新世界的设定时：「类似 hunter x hunter 细节，或者是来自深渊那种洞穴下勘探的世界观」"
+        },
+        {
+          "when": "2026-10-21",
+          "where": "Claude Code · Sense",
+          "what": "「我们特别喜欢的动画 来自深渊，我们会catch up 这个电影更新的时候」"
+        }
+      ],
+      "item": {
+        "name": "来自深渊（メイドインアビス）"
+      },
+      "watch": {
+        "query": "メイドインアビス 新作 劇場版",
+        "cadence": "weekly",
+        "last_seen": "2026-10-21"
+      }
+    },
+    {
+      "id": "C20",
+      "kind": "follow",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+      "title": "海贼王",
+      "body": "一直在更新、你一直在追的漫画。你说「我都忘记有什么特殊的剧情」，所以这张卡要做的是帮你补上前情。",
+      "attribute_ids": [
+        "A14"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-21",
+          "where": "Claude Code · Sense",
+          "what": "「我们的一直以来的更新的漫画，我都忘记有什么特殊的剧情，比如说海贼王」"
+        }
+      ],
+      "item": {
+        "name": "ONE PIECE"
+      },
+      "watch": {
+        "query": "ONE PIECE 最新話",
+        "cadence": "weekly",
+        "last_seen": "2026-10-21"
+      }
+    },
+    {
+      "id": "C21",
+      "kind": "follow",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A5；自己只出现过一次，所以不到金。",
+      "title": "海猫鸣泣之时 / 寒蝉鸣泣之时",
+      "body": "你想做这两部的模拟器，最后选了《海猫》的红字蓝字对决，做成了猫箱馆。红字只说真相，蓝字是你的假设，咬合了熔成金字。",
+      "attribute_ids": [
+        "A5"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-05",
+          "where": "Claude Code · sim",
+          "what": "「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+        },
+        {
+          "when": "2026-08-06",
+          "where": "Claude Code · sim",
+          "what": "「被融合的红字变成金字」"
+        },
+        {
+          "when": "2026-08-20",
+          "where": "Claude Code · rp-videoedit",
+          "what": "宣传片文案：「猫箱馆：红字代表绝对真实，蓝字是你的假设，和世界意志对抗的推理玩法」"
+        }
+      ],
+      "item": {
+        "name": "うみねこのなく頃に / ひぐらしのなく頃に"
+      },
+      "watch": {
+        "query": "なく頃に 新作",
+        "cadence": "weekly",
+        "last_seen": "2026-08-20"
+      }
+    },
+    {
+      "id": "C22",
+      "kind": "follow",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A5；自己只出现过一次，所以不到金。",
+      "title": "苏丹的游戏",
+      "body": "你先把它的「清流交汇」副本做成了引擎里的世界，后来又拿它的仪式格子和卡牌品级来设计 Sense 的玩法。",
+      "attribute_ids": [
+        "A5",
+        "A14"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-24",
+          "where": "Claude Code · worldlines-rivet",
+          "what": "「你知道苏丹的游戏吗？清流交汇的副本，我想做成我们引擎里面的世界」"
+        },
+        {
+          "when": "2026-10-21",
+          "where": "Claude Code · Sense",
+          "what": "「或者按照 苏丹的游戏一样，去设置这个卡片的感觉」"
+        }
+      ],
+      "item": {
+        "name": "苏丹的游戏（Sultan's Game）"
+      },
+      "watch": {
+        "query": "苏丹的游戏 更新 DLC",
+        "cadence": "weekly",
+        "last_seen": "2026-10-21"
+      }
+    },
+    {
+      "id": "C23",
+      "kind": "follow",
+      "subkind": null,
+      "tier": "bronze",
+      "tier_reason": "被反复提到 2 天，但挂的属性还是候选。",
+      "title": "未来日记",
+      "body": "你选它当一个世界的 IP 参照，喜欢的是「所有的人他的行为都其实写在第二天的日记里面」，行动会改写明天。这和你做的重复模拟是同一个机制。",
+      "attribute_ids": [
+        "A13"
+      ],
+      "evidence": [
+        {
+          "when": "2026-07-21",
+          "where": "Claude Code · art",
+          "what": "「我现在感觉未来日记很好」"
+        },
+        {
+          "when": "2026-08-04",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「《未来日记》这个设定，也就是说，所有的人他的行为都其实写在第二天的日记里面」"
+        }
+      ],
+      "item": {
+        "name": "未来日記"
+      },
+      "watch": null
+    },
+    {
+      "id": "C24",
+      "kind": "interest",
+      "subkind": null,
+      "tier": "gold",
+      "tier_reason": "挂着已确认属性 A5（用次 18），这张卡自己在 2026-07-18 到 2026-10-16 之间被提到 4 天。",
+      "title": "跑团（TRPG）",
+      "body": "你说「其实我特别喜欢玩跑团」。疫情时遇到 TRPG，后来把它当成世界模拟本身来做：主持人递话筒、掷骰、给裁判。相关的卡：骰子决定、苏丹的游戏、SillyTavern。",
+      "attribute_ids": [
+        "A13",
+        "A5"
+      ],
+      "evidence": [
+        {
+          "when": "2026-07-18",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「这个TRPG Master是我另外一个项目」"
+        },
+        {
+          "when": "2026-08-11",
+          "where": "Claude Code · clips-nosub",
+          "what": "「然后其实我特别喜欢玩跑团，然后跑团里面是像那个DM一个一个去递话筒去说话」"
+        },
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "个人经历：「再到疫情时候遇到TRPG，再到AIRP」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · articles",
+          "what": "「其实本质是TRPG的主持人所做的事情，是一种世界预测」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C25",
+      "kind": "interest",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A7；未进金卡名额，金卡上限 6 张。",
+      "title": "galgame 与轻小说",
+      "body": "你从小沉迷游戏，做过轻小说翻译，说它们是「无限的故事」。写《漫动部》时 agent 还替你查过轻之国度的历史。",
+      "attribute_ids": [
+        "A15",
+        "A7"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "「从小的时候，沉迷游戏，然后做轻小说翻译，日本的galgame和轻小说是无限的故事」"
+        },
+        {
+          "when": "2026-09-20",
+          "where": "Claude Code · summer-demo · agent 搜索词",
+          "what": "轻之国度 lightnovel.cn 关站 关闭 哪一年"
+        },
+        {
+          "when": "2026-10-13",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "设计转生者来源：「不仅限于 童话传说故事，更有 网文 轻小说 英雄小说」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C26",
+      "kind": "interest",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A5；自己只出现过一次，所以不到金。",
+      "title": "纯文字的智斗与推理",
+      "body": "你更想做「纯文字的这种智斗」：死亡笔记、规则怪谈、无限流、海猫的红字蓝字。核心是真相可以被判定。",
+      "attribute_ids": [
+        "A5",
+        "A9"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-06",
+          "where": "Claude Code · sim",
+          "what": "「注意，红字只能说结论、真实、真相，不能用表情或提示。」"
+        },
+        {
+          "when": "2026-08-11",
+          "where": "Claude Code · clips-nosub",
+          "what": "「我们其实更想做的是一个纯文字的这种智斗，就包括可能死亡笔记啊」「规则怪谈，或者是可能一些无限流这么一个设定」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C27",
+      "kind": "interest",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A4；未进金卡名额，金卡上限 6 张。",
+      "title": "叙事型世界模拟",
+      "body": "不是 AI Town 那种对齐现实的模拟，而是为故事服务、能一直跑下去的世界。这是你的论文方向，也是你的产品。",
+      "attribute_ids": [
+        "A13",
+        "A9",
+        "A4"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "「Narrative World Simulation vs AI Town, 缺乏想象力，边界，就是自由文字的重要性」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · articles",
+          "what": "「叙事空间的维度是降低的」"
+        },
+        {
+          "when": "2026-10-20",
+          "where": "Claude Code · task-planning",
+          "what": "「一个永续执行的TRPG主持人，可以被当成一个世界模拟」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C28",
+      "kind": "interest",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A7；未进金卡名额，金卡上限 6 张。",
+      "title": "AI 短剧与漫剧",
+      "body": "用 Worldlines 的世界做短剧，B 站主片《猫箱馆》已经发了。你每天花一个半小时在上面。",
+      "attribute_ids": [
+        "A7",
+        "A8"
+      ],
+      "evidence": [
+        {
+          "when": "2026-08-29",
+          "where": "Claude Code · worldlines-rivet",
+          "what": "「改成漫剧，都太gpt画风了」"
+        },
+        {
+          "when": "2026-09-21",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「短剧现在已经做出第一个短片，每天花我1:30 小时」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · articles",
+          "what": "「因此，ai 的短剧生成变得非常合理」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C29",
+      "kind": "interest",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+      "title": "卡牌构筑与像素风",
+      "body": "你要 Sense 的卡像 Paxel 一样是像素风，玩法照小丑牌和苏丹的游戏：卡槽、融合、品级。",
+      "attribute_ids": [
+        "A14"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-21",
+          "where": "Claude Code · Sense",
+          "what": "「就像是Paxel里面的一样，像素风的卡片」；「请按照 Joker Card Games」"
+        },
+        {
+          "when": "2026-10-21",
+          "where": "Claude Code · Sense · agent 搜索词",
+          "what": "Balatro joker slots mechanics order matters synergy editions"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C30",
+      "kind": "quote",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A5；自己只出现过一次，所以不到金。",
+      "title": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」",
+      "body": "Niko，2026-09-26，Ludic-Dynamics。说的是跑团引擎为什么不能顺着玩家。",
+      "attribute_ids": [
+        "A5"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-26",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「当这个世界有迷题和有谜底，整个的体验会完全不一样。而且信任度会完全不一样。」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C31",
+      "kind": "quote",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A4；自己只出现过一次，所以不到金。",
+      "title": "「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」",
+      "body": "Niko，2026-10-06，写给类脑的进度帖。",
+      "attribute_ids": [
+        "A4"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-06",
+          "where": "Claude Code · posting",
+          "what": "「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C32",
+      "kind": "quote",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A4；自己只出现过一次，所以不到金。",
+      "title": "「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」",
+      "body": "Niko，2026-10-01，Ludic-Dynamics。",
+      "attribute_ids": [
+        "A4"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-01",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「我们不加控制，简单提示词也能达到同样的效果，这是最好的。」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C33",
+      "kind": "quote",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A1；自己只出现过一次，所以不到金。",
+      "title": "「如果发布的话撤回也会留下记录，就不要再继续乱动了」",
+      "body": "Niko，2026-09-15，hackathon。agent 推了已删掉的 remote 之后。",
+      "attribute_ids": [
+        "A1"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-15",
+          "where": "Claude Code · hackathon",
+          "what": "「如果发布的话撤回也会留下记录，就不要再继续乱动了」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C34",
+      "kind": "quote",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+      "title": "「日本的galgame和轻小说是无限的故事」",
+      "body": "Niko，2026-09-10，写《Orchestrated Reality》时回顾自己的经历。",
+      "attribute_ids": [
+        "A15"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "「日本的galgame和轻小说是无限的故事」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C35",
+      "kind": "quote",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+      "title": "「人类在乎现实世界，但是更多的，人类其实需要的是故事和幻想的消费者。」",
+      "body": "Niko，2026-09-10，同一篇文章的提纲。",
+      "attribute_ids": [
+        "A15"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "「人类在乎现实世界，但是更多的，人类其实需要的是故事和幻想的消费者。」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C36",
+      "kind": "quote",
+      "subkind": null,
+      "tier": "bronze",
+      "tier_reason": "被反复提到 2 天，但挂的属性还是候选。",
+      "title": "「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」",
+      "body": "Niko，2026-09-10，同一篇文章的提纲。10-16 又写了一遍：「叙事空间的维度是降低的」。",
+      "attribute_ids": [
+        "A9"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-10",
+          "where": "Claude Code · task-go-to-market",
+          "what": "「连续性的文字 和 图形的映射，看似是升维度，但实际是降维度」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · articles",
+          "what": "「叙事空间的维度是降低的」"
+        }
+      ],
+      "item": null,
+      "watch": null
+    },
+    {
+      "id": "C37",
+      "kind": "collection",
+      "subkind": null,
+      "tier": "gold",
+      "tier_reason": "挂着已确认属性 A4（用次 13），这张卡自己在 2026-06-22 到 2026-10-16 之间被提到 5 天。",
+      "title": "SillyTavern（酒馆）",
+      "body": "你反复拿来当参照的开源 AIRP 前端：provider 设置、角色卡、世界卡、状态栏。你的「直出」判断就是从酒馆来的。",
+      "attribute_ids": [
+        "A4"
+      ],
+      "evidence": [
+        {
+          "when": "2026-06-22",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「把酒馆的世界卡能简单转换成这个框架的世界且调试。」"
+        },
+        {
+          "when": "2026-07-17",
+          "where": "Claude Code · ui",
+          "what": "「可以参考一下酒馆的provider的接口设置」"
+        },
+        {
+          "when": "2026-08-30",
+          "where": "Claude Code · NeonRP",
+          "what": "「/load-character-card 然后从酒馆卡开始建 soul agent」"
+        },
+        {
+          "when": "2026-10-06",
+          "where": "Claude Code · posting",
+          "what": "「酒馆直出+tool call 才是未来」"
+        },
+        {
+          "when": "2026-10-16",
+          "where": "Claude Code · consoles",
+          "what": "「文字更贴近ai酒馆女性向的角度」"
+        }
+      ],
+      "item": {
+        "name": "SillyTavern"
+      },
+      "watch": null
+    },
+    {
+      "id": "C38",
+      "kind": "collection",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A2；自己只出现过一次，所以不到金。",
+      "title": "TRPG Master",
+      "body": "你的另一个项目，主打创作。做 launcher 和角色工坊时你说它的操作界面「可以完全照搬」。",
+      "attribute_ids": [
+        "A13",
+        "A2"
+      ],
+      "evidence": [
+        {
+          "when": "2026-07-11",
+          "where": "Claude Code · rp-visionrp",
+          "what": "「参考rp-visionrp（主打一览和世界的呈现） 以及 trpgmaster （主打创作）」"
+        },
+        {
+          "when": "2026-07-13",
+          "where": "Claude Code · NeonRP",
+          "what": "「这个其实是TRPG Master里面的一个操作界面，我觉得可以完全照搬」"
+        },
+        {
+          "when": "2026-07-18",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「这个TRPG Master是我另外一个项目」"
+        }
+      ],
+      "item": {
+        "name": "TRPG Master"
+      },
+      "watch": null
+    },
+    {
+      "id": "C39",
+      "kind": "collection",
+      "subkind": null,
+      "tier": "silver",
+      "tier_reason": "挂着已确认属性 A4；未进金卡名额，金卡上限 6 张。",
+      "title": "Jev（TypeSafe System One）",
+      "body": "你拿来把直出文字转成状态词条的轻判别模型。实测后你记下「jev并没有效果太好，或者速度更快」。",
+      "attribute_ids": [
+        "A4"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-17",
+          "where": "Claude Code · hackathon · agent 搜索词",
+          "what": "jev typesafe ai library structured output classifier"
+        },
+        {
+          "when": "2026-09-23",
+          "where": "Claude Code · NeonRP",
+          "what": "「用jev 转 词条会更快，而且更稳」"
+        },
+        {
+          "when": "2026-10-10",
+          "where": "Claude Code · NeonRP",
+          "what": "「我意外的是jev并没有效果太好，或者速度更快」"
+        }
+      ],
+      "item": {
+        "name": "Jev · TypeSafe"
+      },
+      "watch": null
+    },
+    {
+      "id": "C40",
+      "kind": "collection",
+      "subkind": null,
+      "tier": "bronze",
+      "tier_reason": "被反复提到 3 天，但挂的属性还是候选。",
+      "title": "Zeta 与 OOC",
+      "body": "你的 UGC 平台参照和竞品：作者权利、分成、偏跑团玩法的账号。",
+      "attribute_ids": [
+        "A13",
+        "A16"
+      ],
+      "evidence": [
+        {
+          "when": "2026-09-19",
+          "where": "Claude Code · posting",
+          "what": "「TRPGとZetaわからない方々だとあんまりわかってもらえなかった」"
+        },
+        {
+          "when": "2026-10-12",
+          "where": "Claude Code · NeonRP",
+          "what": "「参考别的ugc平台，主要参考ooc和zeta」"
+        },
+        {
+          "when": "2026-10-13",
+          "where": "Claude Code · Ludic-Dynamics",
+          "what": "「日文圈里面，zeta这批，还有ooc ai 这批，偏跑团玩法的账号」"
+        }
+      ],
+      "item": {
+        "name": "Zeta（Scatter Lab）/ OOC"
+      },
+      "watch": null
+    },
+    {
+      "id": "C41",
+      "kind": "collection",
+      "subkind": null,
+      "tier": "stone",
+      "tier_reason": "只出现过一次，或者只来自 agent 搜索词，证据弱。",
+      "title": "Paxel",
+      "body": "你给 Sense 卡面找的参照：像素风的卡片。",
+      "attribute_ids": [
+        "A14"
+      ],
+      "evidence": [
+        {
+          "when": "2026-10-21",
+          "where": "Claude Code · Sense",
+          "what": "「就像是Paxel里面的一样，像素风的卡片」"
+        }
+      ],
+      "item": {
+        "name": "Paxel"
+      },
+      "watch": null
+    }
+  ],
+  "agents": [
+    {
+      "id": "G1",
+      "name": "追番",
+      "slots": [
+        "C26",
+        "C19",
+        "C21",
+        "C30"
+      ],
+      "unlocked_slots": 4
+    },
+    {
+      "id": "G2",
+      "name": "读论文",
+      "slots": [
+        "C24",
+        "C37",
+        "C39",
+        "C04"
+      ],
+      "unlocked_slots": 4
+    },
+    {
+      "id": "G3",
+      "name": "找参照写故事",
+      "slots": [
+        "C07",
+        "C15",
+        "C14",
+        "C05"
+      ],
+      "unlocked_slots": 4
+    }
+  ],
+  "plays": [
+    {
+      "agent_id": "G1",
+      "prompt": "周末想补一部有谜底、世界不顺着主角的番",
+      "results": [
+        {
+          "title": "Scavengers Reign（2023，Joe Bennett 与 Charles Huettner）",
+          "body": "一群人困在外星球 Vesta，生态有自己的规则，从不顺着人。＋「世界不能顺着玩家」（来自深渊那张关注卡）：同样是越深入代价越大的世界。",
+          "kind": "work",
+          "url": "https://en.wikipedia.org/wiki/Scavengers_Reign",
+          "contributed_by": [
+            {
+              "slot": 1,
+              "attribute_id": "A5"
+            },
+            {
+              "slot": 0,
+              "attribute_id": "A5"
+            }
+          ]
+        },
+        {
+          "title": "ODDTAXI（2021，P.I.C.S. / OLM）",
+          "body": "一个出租车司机的日常闲聊，最后每条线都收进同一个案子。＋「有谜底，信任度完全不一样」（金句卡）：伏笔不亮在明面上。",
+          "kind": "work",
+          "url": "https://oddtaxi.jp",
+          "contributed_by": [
+            {
+              "slot": 3,
+              "attribute_id": "A5"
+            },
+            {
+              "slot": 0,
+              "attribute_id": "A9"
+            }
+          ]
+        },
+        {
+          "title": "ID:INVADED（2020，舞城王太郎脚本）",
+          "body": "名侦探进入凶手的潜意识世界破案，规则先立好再推理。＋两张关注卡叠加：海猫式的推理对决 ＋ 来自深渊式的分层世界。",
+          "kind": "work",
+          "url": "https://myanimelist.net/news/58360880",
+          "contributed_by": [
+            {
+              "slot": 2,
+              "attribute_id": "A5"
+            },
+            {
+              "slot": 1,
+              "attribute_id": "A5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "agent_id": "G2",
+      "prompt": "找几篇把跑团主持人当成系统来做的论文，别是 agent loop 那种",
+      "results": [
+        {
+          "title": "FIREBALL: A Dataset of Dungeons and Dragons Actual-Play with Structured Game State Information（Zhu et al., ACL 2023）",
+          "body": "约 2.5 万场真实 D&D 对局，叙事和游戏状态成对记录。＋「叙事直出，再抽状态」（判断卡 9-23）：正好是你要的文字与状态对齐的数据。",
+          "kind": "paper",
+          "url": "https://arxiv.org/abs/2305.01528",
+          "contributed_by": [
+            {
+              "slot": 3,
+              "attribute_id": "A4"
+            },
+            {
+              "slot": 0,
+              "attribute_id": "A13"
+            }
+          ]
+        },
+        {
+          "title": "CALYPSO: LLMs as Dungeon Masters' Assistants（Zhu et al., AIIDE 2023）",
+          "body": "LLM 给 DM 递材料，但不替 DM 做决定。＋属性 A13（跑团兴趣卡）＋ SillyTavern 收藏卡：轻工具，不是多 agent 编排。",
+          "kind": "paper",
+          "url": "https://arxiv.org/abs/2308.07540",
+          "contributed_by": [
+            {
+              "slot": 0,
+              "attribute_id": "A13"
+            },
+            {
+              "slot": 1,
+              "attribute_id": "A4"
+            }
+          ]
+        },
+        {
+          "title": "I Cast Detect Thoughts: Learning to Converse and Guide with Intents and Theory-of-Mind in Dungeons and Dragons（Zhou et al., ACL 2023）",
+          "body": "DM 带着意图引导玩家，预测玩家下一步怎么反应。＋「世界不能顺着玩家」（跑团兴趣卡）：DM 有自己的目标。",
+          "kind": "paper",
+          "url": "https://arxiv.org/abs/2212.10060",
+          "contributed_by": [
+            {
+              "slot": 0,
+              "attribute_id": "A5"
+            },
+            {
+              "slot": 2,
+              "attribute_id": "A4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "agent_id": "G3",
+      "prompt": "想找几本第一人称、每章有一个谜底、道理不说出口的小说",
+      "results": [
+        {
+          "title": "米澤穂信《春期限定いちごタルト事件》（小市民シリーズ第一作，創元推理文庫，2004）",
+          "body": "小鳩的第一人称，校园日常之谜。＋人物卡米澤穂信 ＋ 判断卡 9-19「改成第一人称内心」：冰菓之外他的另一条线。",
+          "kind": "book",
+          "url": "https://ndlsearch.ndl.go.jp/books/R100000002-I000007599244",
+          "contributed_by": [
+            {
+              "slot": 1,
+              "attribute_id": "A7"
+            },
+            {
+              "slot": 0,
+              "attribute_id": "A7"
+            }
+          ]
+        },
+        {
+          "title": "竜騎士07《キコニアのなく頃に》（07th Expansion，2019）",
+          "body": "『なく頃に』系列第三作。＋人物卡竜騎士07 ＋ 判断卡「不能跳过骰子」：同一位作者，世界照样不顺着角色。Phase 2 已无限期延期。",
+          "kind": "game",
+          "url": "https://whentheycry.miraheze.org/wiki/Ciconia_no_Naku_Koro_ni",
+          "contributed_by": [
+            {
+              "slot": 2,
+              "attribute_id": "A5"
+            },
+            {
+              "slot": 3,
+              "attribute_id": "A5"
+            }
+          ]
+        },
+        {
+          "title": "辻村深月《かがみの孤城》（ポプラ社，2018 本屋大賞）",
+          "body": "七个不去上学的孩子在镜中城堡里找钥匙，谜底落在每个人的处境上，从不说教。＋判断卡 9-19「主题铺在描写里」。",
+          "kind": "book",
+          "url": "https://www.kinokuniya.co.jp/f/dsg-01-9784591169711",
+          "contributed_by": [
+            {
+              "slot": 0,
+              "attribute_id": "A7"
+            },
+            {
+              "slot": 3,
+              "attribute_id": "A5"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fusions": [
+    {
+      "inputs": [
+        "C19",
+        "C21",
+        "C22"
+      ],
+      "shared_attribute_ids": [
+        "A5"
+      ],
+      "output": {
+        "id": "X1",
+        "kind": "interest",
+        "subkind": null,
+        "tier": "silver",
+        "tier_reason": "融合产物（7.5.7）。",
+        "title": "谜底型世界",
+        "body": "三部你追的作品都有一个不顺着人的世界：分层的深渊、红字定下的真相、要付代价的仪式。",
+        "attribute_ids": [
+          "A5"
+        ],
+        "evidence": [
+          {
+            "when": "2026-10-20",
+            "where": "Claude Code · worldlines",
+            "what": "写新世界的设定时：「类似 hunter x hunter 细节，或者是来自深渊那种洞穴下勘探的世界观」"
+          },
+          {
+            "when": "2026-10-21",
+            "where": "Claude Code · Sense",
+            "what": "「我们特别喜欢的动画 来自深渊，我们会catch up 这个电影更新的时候」"
+          },
+          {
+            "when": "2026-08-05",
+            "where": "Claude Code · sim",
+            "what": "「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+          },
+          {
+            "when": "2026-08-06",
+            "where": "Claude Code · sim",
+            "what": "「被融合的红字变成金字」"
+          }
+        ],
+        "item": null,
+        "watch": null,
+        "fused_from": [
+          "C19",
+          "C21",
+          "C22"
+        ]
+      }
+    },
+    {
+      "inputs": [
+        "C01",
+        "C33"
+      ],
+      "shared_attribute_ids": [
+        "A1"
+      ],
+      "output": {
+        "id": "X2",
+        "kind": "decision",
+        "subkind": null,
+        "tier": "silver",
+        "tier_reason": "融合产物（7.5.7）。",
+        "title": "发布前停下，因为撤回也会留下记录",
+        "body": "08-09 的决定加上 09-15 的那句话：发布是对外、不可撤回的，和实装不是一回事。",
+        "attribute_ids": [
+          "A1"
+        ],
+        "evidence": [
+          {
+            "when": "2026-08-09",
+            "where": "Claude Code · NeonRP",
+            "what": "睡前交任务：「请通过 team 来分sub-agent来实装，我先睡了，不要发布，但是实装到底」"
+          },
+          {
+            "when": "2026-08-18",
+            "where": "Claude Code · Ludic-Dynamics",
+            "what": "「你现在直到能执行的位置为止，都可以一直执行，就是把那个发布之前的事情都可以做，但不要发布。」"
+          },
+          {
+            "when": "2026-10-02",
+            "where": "Claude Code · www",
+            "what": "官网改版 agent 直接部署：「不要啊！为什么你要放，直接发布啊？我们在Local放一个网页就好了，为什么要部署啊？我不明白。」2026-10-13 对社媒：「别自动发，发之前给我看看」。反例也明确：2026-10-18 「请直接执行，部署，以及其他，都不需要我认可，直接做到底，我要睡了」——授权是他说出口的，不是默认的。"
+          },
+          {
+            "when": "2026-09-15",
+            "where": "Claude Code · hackathon",
+            "what": "「如果发布的话撤回也会留下记录，就不要再继续乱动了」"
+          }
+        ],
+        "item": null,
+        "watch": null,
+        "fused_from": [
+          "C01",
+          "C33"
+        ]
+      }
+    },
+    {
+      "inputs": [
+        "C04",
+        "C31",
+        "C32"
+      ],
+      "shared_attribute_ids": [
+        "A4"
+      ],
+      "output": {
+        "id": "X3",
+        "kind": "decision",
+        "subkind": null,
+        "tier": "silver",
+        "tier_reason": "融合产物（7.5.7）。",
+        "title": "叙事直出，少加控制",
+        "body": "9-23 的决定加上两句原话：不要 agent loop，简单提示词能做到就是最好。",
+        "attribute_ids": [
+          "A4"
+        ],
+        "evidence": [
+          {
+            "when": "2026-09-23",
+            "where": "Claude Code · NeonRP",
+            "what": "「我们的move_to engage还有其他那些判定，就不需要出了，我们用llm直出文字，然后文字再用jev 转 词条会更快，而且更稳」"
+          },
+          {
+            "when": "2026-09-26",
+            "where": "Claude Code · NeonRP",
+            "what": "「我现在有一个直觉以及经验是，如果叙事和narration和json同时出，叙事会变差，因为narration不是结构性语言」；两天后（2026-09-28）：「再次感受到叙事的必须放弃json，全用文字+tag」"
+          },
+          {
+            "when": "2026-10-10",
+            "where": "Claude Code · NeonRP",
+            "what": "实测后仍诚实记录反例：「我意外的是jev并没有效果太好，或者速度更快」——判断是直出，不是 jev 一定赢。"
+          },
+          {
+            "when": "2026-10-06",
+            "where": "Claude Code · posting",
+            "what": "「Agent Loop 是傻🤬：酒馆直出+tool call 才是未来」"
+          }
+        ],
+        "item": null,
+        "watch": null,
+        "fused_from": [
+          "C04",
+          "C31",
+          "C32"
+        ]
+      }
+    },
+    {
+      "inputs": [
+        "C14",
+        "C21"
+      ],
+      "shared_attribute_ids": [
+        "A5"
+      ],
+      "output": {
+        "id": "X4",
+        "kind": "person",
+        "subkind": null,
+        "tier": "silver",
+        "tier_reason": "融合产物（7.5.7）。",
+        "title": "竜騎士07 · 为什么在意",
+        "body": "你把他的红字蓝字做成了猫箱馆。在意他，是因为他的世界里真相可以被判定。",
+        "attribute_ids": [
+          "A5"
+        ],
+        "evidence": [
+          {
+            "when": "2026-08-05",
+            "where": "Claude Code · sim",
+            "what": "「能不能 《寒蝉鸣泣之时》模拟器。 《海猫鸣泣之时》模拟器。」「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+          },
+          {
+            "when": "2026-08-06",
+            "where": "Claude Code · sim",
+            "what": "「注意，红字只能说结论、真实、真相，不能用表情或提示。」"
+          },
+          {
+            "when": "2026-08-05",
+            "where": "Claude Code · sim",
+            "what": "「重要的是海猫鸣泣之时是红字跟蓝字，它之间的一个对决」"
+          },
+          {
+            "when": "2026-08-06",
+            "where": "Claude Code · sim",
+            "what": "「被融合的红字变成金字」"
+          }
+        ],
+        "item": null,
+        "watch": null,
+        "fused_from": [
+          "C14",
+          "C21"
+        ]
+      }
+    }
+  ],
+  "quests": [
+    {
+      "id": "Q-1",
+      "title": "本周补番",
+      "slots": [
+        {
+          "requires_kind": "follow"
+        },
+        {
+          "requires_kind": "follow"
+        },
+        {
+          "requires_kind": "follow"
+        }
+      ],
+      "due_days": 7,
+      "reward": "每部出一张「上次看到哪、新的是什么」的更新。"
+    },
+    {
+      "id": "Q-2",
+      "title": "想联系一个人",
+      "slots": [
+        {
+          "requires_kind": "person"
+        },
+        {
+          "requires_kind": "decision"
+        }
+      ],
+      "due_days": 7,
+      "reward": "一封 cold mail 草稿，理由用这张判断卡，发不发你定。"
+    },
+    {
+      "id": "Q-3",
+      "title": "这条属性还对吗：mock 的边界",
+      "slots": [
+        {
+          "requires_kind": "decision"
+        },
+        {
+          "requires_kind": "quote"
+        }
+      ],
+      "due_days": 3,
+      "reward": "A10 被确认、改写或降级，补上缺的理由。"
+    }
+  ]
+};
+</script>
+<script>
+(function(){
+"use strict";
+const $=(s,el=document)=>el.querySelector(s);
+const h=(tag,attrs={},...kids)=>{const e=document.createElement(tag);
+  for(const[k,v]of Object.entries(attrs||{})){if(v==null||v===false)continue;if(k==="class")e.className=v;else if(k==="style")e.setAttribute("style",v);else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v===true?"":v);}
+  for(const k of kids.flat()){if(k==null||k===false)continue;e.append(k.nodeType?k:document.createTextNode(String(k)));}return e;};
+
+/* ---------- vocab ---------- */
+const KIND={decision:"判断",recommendation:"推荐",person:"人物",follow:"关注",interest:"兴趣",quote:"金句",collection:"收藏"};
+const KIND_ORDER=["decision","person","follow","interest","quote","collection","recommendation"];
+const TIER={stone:"石",bronze:"铜",silver:"银",gold:"金"};
+const TIER_RANK={stone:0,bronze:1,silver:2,gold:3};
+const ICON={
+  decision:["...#...","#######","#..#..#","#..#..#","##.#.##","...#...","..###.."],
+  recommendation:["...#...","..###..",".#.#.#.","...#...","...#...","...#...","...#..."],
+  person:["..###..","..###..","..###..","...#...",".#####.","#######","#######"],
+  follow:[".......","..###..",".#...#.","#..#..#",".#...#.","..###..","......."],
+  interest:["...#...","...#...","#######",".#####.","..###..",".##.##.","#.....#"],
+  quote:["##..##.","##..##.",".#...#.","#...#..",".......",".......","......."],
+  collection:[".#####.",".#####.",".#####.",".#####.",".##.##.",".#...#.","......."]
+};
+const css=getComputedStyle(document.documentElement);
+const kc=k=>css.getPropertyValue("--k-"+k).trim()||"#888";
+const tc=t=>css.getPropertyValue("--"+t).trim()||"#888";
+
+/* ---------- rng / art ---------- */
+function hash(s){let x=2166136261;for(const c of String(s)){x^=c.charCodeAt(0);x=Math.imul(x,16777619);}return x>>>0;}
+function rng(seed){let a=seed||1;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hex2rgb(x){x=x.replace("#","");if(x.length===3)x=x.split("").map(c=>c+c).join("");const n=parseInt(x,16);return[n>>16&255,n>>8&255,n&255];}
+const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+function drawArt(cv,seed,kind,tier){
+  const W=48,H=30;cv.width=W;cv.height=H;const g=cv.getContext("2d");const img=g.createImageData(W,H);
+  const r=rng(seed);const gw=7,gh=5;const grid=[];for(let i=0;i<gw*gh;i++)grid.push(r());
+  const base=hex2rgb(kc(kind)),paper=hex2rgb("#f1eadb"),dark=base.map(v=>v*.45|0);
+  const sx=r()*6.28,shape=hash(kind)%3;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const gx=x/(W-1)*(gw-1),gy=y/(H-1)*(gh-1),ix=Math.min(gw-2,gx|0),iy=Math.min(gh-2,gy|0),fx=gx-ix,fy=gy-iy;
+    const a=grid[iy*gw+ix],b=grid[iy*gw+ix+1],c=grid[(iy+1)*gw+ix],d=grid[(iy+1)*gw+ix+1];
+    let v=(a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy;
+    if(shape===0)v=v*.7+.3*(.5+.5*Math.sin(x*.22+sx+y*.08));
+    else if(shape===1)v=v*.7+.3*(1-Math.hypot(x-W/2,y-H/2)/30);
+    else v=v*.75+.25*(y/H);
+    const t=BAYER[(y&3)*4+(x&3)]/16;
+    const col=v>t*0.6+0.55?paper:(v>t*0.6+0.25?base:dark);
+    const o=(y*W+x)*4;img.data[o]=col[0];img.data[o+1]=col[1];img.data[o+2]=col[2];img.data[o+3]=255;}
+  g.putImageData(img,0,0);
+  if(tier==="gold"){g.fillStyle="rgba(232,194,90,.9)";for(let i=0;i<14;i++){g.fillRect((r()*W)|0,(r()*H)|0,1,1);}}
+}
+function iconCanvas(kind,color){const cv=h("canvas",{width:7,height:7,"aria-hidden":"true"});const g=cv.getContext("2d");g.fillStyle=color||kc(kind);
+  (ICON[kind]||ICON.collection).forEach((row,y)=>[...row].forEach((c,x)=>{if(c==="#")g.fillRect(x,y,1,1);}));return cv;}
+
+/* ---------- state ---------- */
+const KEY="sense-pocket-m05-v1";
+const base={cards:{},attrs:{},added:[],slots:{},fusionsDone:[],quests:{},survey:[],log:[],threshold:(DATA.meta.threshold&&DATA.meta.threshold.default)||3};
+let S=JSON.parse(JSON.stringify(base));
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(S,JSON.parse(raw));}catch(e){}
+let dbDoc=null,dirty=false,saveT=null;
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+  dirty=true;clearTimeout(saveT);saveT=setTimeout(async()=>{if(!dbDoc)return;try{await dbDoc.set(JSON.parse(JSON.stringify(S)));dirty=false;setStatus("已同步给 Claude · "+new Date().toLocaleTimeString());}catch(e){setStatus("同步没成功，操作还留在这台设备上。");}},900);}
+function setStatus(t){$("#status").textContent=t;}
+
+const ATTR=new Map(DATA.attributes.map(a=>[a.id,a]));
+function attr(id){const a=ATTR.get(id);if(!a)return null;const s=S.attrs[id]||{};return Object.assign({},a,{uses:(a.uses||0)+(s.d||0),status:s.status||a.status,edit:s.edit,learned:s.learned||[],rank:s.rank||0});}
+function learn(id,type,text){if(!ATTR.has(id))return;const s=S.attrs[id]||(S.attrs[id]={});(s.learned||(s.learned=[])).push({type,text,at:new Date().toISOString()});}
+function allCards(){return DATA.cards.concat(S.added);}
+function card(id){const c=allCards().find(x=>x.id===id);if(!c)return null;const s=S.cards[id]||{};const det=s.detach||[];return Object.assign({},c,{tier:s.tier||c.tier,kind:s.kind||c.kind,archived:!!s.archived,used:!!s.used||c.tier==="gold",note:s.note,stackedUnder:s.stackedUnder,attribute_ids:(c.attribute_ids||[]).filter(a=>!det.includes(a))});}
+function cs(id){return S.cards[id]||(S.cards[id]={});}
+function log(action,cardId,detail){S.log.push({at:new Date().toISOString(),action,card:cardId||null,detail:detail||null});}
+function bumpAttrs(ids,d){(ids||[]).forEach(id=>{if(!ATTR.has(id))return;const s=S.attrs[id]||(S.attrs[id]={});s.d=(s.d||0)+d;if((ATTR.get(id).uses||0)+s.d<0)s.d=-(ATTR.get(id).uses||0);});}
+function confirmAttrs(ids){(ids||[]).forEach(id=>{if(!ATTR.has(id))return;(S.attrs[id]||(S.attrs[id]={})).status="confirmed";});}
+function promote(){const ups=[];
+  allCards().forEach(c0=>{const c=card(c0.id);if(!c||c.archived||c.stackedUnder||c.tier==="gold"||c.tier==="stone")return;
+    const ok=(c.attribute_ids||[]).some(id=>{const a=attr(id);return a&&a.status==="confirmed"&&a.uses>=S.threshold;});
+    if(ok&&c.used){cs(c.id).tier="gold";ups.push(c);}
+    else if(c.tier==="bronze"&&(c.attribute_ids||[]).some(id=>{const a=attr(id);return a&&a.status==="confirmed";})){cs(c.id).tier="silver";}});
+  if(ups.length){fx("gold");toast("升金："+ups.map(c=>c.title).slice(0,2).join("、")+(ups.length>2?" 等":""));ups.forEach(c=>log("tier_up_gold",c.id));}}
+
+/* ---------- sound ---------- */
+let sound=false,ac=null;
+try{sound=localStorage.getItem(KEY+"-sound")==="1";}catch(e){}
+function blip(kind){if(!sound)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const notes={keep:[523,659],drop:[330,247],gold:[523,659,784,1047],fuse:[392,523,784],deal:[880]}[kind]||[660];
+  notes.forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type="square";o.frequency.value=f;g.gain.setValueAtTime(.06,ac.currentTime+i*.07);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+i*.07+.12);o.connect(g).connect(ac.destination);o.start(ac.currentTime+i*.07);o.stop(ac.currentTime+i*.07+.13);});}catch(e){}}
+function fx(kind){blip(kind);if(kind==="gold"||kind==="fuse"){const f=h("div",{class:"flash"});document.body.append(f);setTimeout(()=>f.remove(),800);}}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),2000);}
+
+/* ---------- pouch & reward ---------- */
+const POUCH=["....#####......","...#.....#.....","....#####......","...#######.....","..#########....",".###########...","#############..","######.######..","#####...#####..","######.######..","#############..",".###########...","..#########....","...........#...","..........###.."];
+(function(){const cv=$("#pouch");const g=cv.getContext("2d");POUCH.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch==="#"){g.fillStyle=y<3?"#e8c25a":(y===7||y===9)&&x>=5&&x<=7?"#e8c25a":(x+y)%5===0?"#7a4f2a":"#9a6436";g.fillRect(x,y,1,1);}}));})();
+const RM=matchMedia("(prefers-reduced-motion: reduce)");
+function reward(fromRect,c,label){
+  const pw=$("#pouchwrap");const to=$("#pouch").getBoundingClientRect();
+  const bump=()=>{pw.classList.remove("bump");void pw.offsetWidth;pw.classList.add("bump");blip("gold");sparks(to);plus(to,label||"+1 张进口袋");renderPurse();};
+  if(RM.matches||!fromRect||!document.body.animate){bump();return;}
+  const f=h("div",{class:"flyer",style:`left:${fromRect.left}px;top:${fromRect.top}px;width:${Math.max(60,fromRect.width)}px;height:${Math.max(84,fromRect.height)}px`});
+  if(c&&c.thumb)f.append(h("img",{src:c.thumb,alt:""}));else{const cv=h("canvas");drawArt(cv,hash((c&&c.id)||"x"),(c&&c.kind)||"collection","gold");f.append(cv);}
+  document.body.append(f);
+  const dx=to.left+to.width/2-(fromRect.left+fromRect.width/2),dy=to.top+to.height/2-(fromRect.top+fromRect.height/2);
+  const a=f.animate([{transform:"translate(0,0) scale(1) rotate(0)",opacity:1},{transform:`translate(${dx*.45}px,${dy*.45-90}px) scale(.8) rotate(-14deg)`,opacity:1,offset:.45},{transform:`translate(${dx}px,${dy}px) scale(.08) rotate(30deg)`,opacity:.6}],{duration:900,easing:"cubic-bezier(.45,.05,.4,1)"});
+  a.onfinish=()=>{f.remove();bump();};}
+function sparks(r){if(RM.matches||!document.body.animate)return;const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  for(let i=0;i<14;i++){const sp=h("i",{class:"spark",style:`left:${cx}px;top:${cy}px;background:${i%3?"var(--gold)":"var(--paper)"}`});document.body.append(sp);
+    const ang=i/14*6.283+Math.random()*.4,d=26+Math.random()*30;sp.animate([{transform:"translate(0,0)",opacity:1},{transform:`translate(${Math.cos(ang)*d}px,${Math.sin(ang)*d+14}px)`,opacity:0}],{duration:600+Math.random()*300,easing:"cubic-bezier(.2,.8,.4,1)"}).onfinish=()=>sp.remove();}}
+function plus(r,t){const el=h("div",{class:"plusone",style:`left:${r.left-40}px;top:${r.bottom+4}px`},t);document.body.append(el);
+  if(RM.matches||!el.animate){setTimeout(()=>el.remove(),1200);return;}el.animate([{transform:"translateY(0)",opacity:1},{transform:"translateY(18px)",opacity:0}],{duration:1300,easing:"ease-out"}).onfinish=()=>el.remove();}
+
+/* ---------- screenshot / clip intake ---------- */
+let sampleImages=null,clipBusy=false;
+async function thumbOf(blob){const url=URL.createObjectURL(blob);try{const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+  const W=240,sc=Math.min(1,W/img.width);const cv=document.createElement("canvas");cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+  const small=await new Promise(r=>{const cv2=document.createElement("canvas");const s2=Math.min(1,1280/img.width);cv2.width=Math.round(img.width*s2);cv2.height=Math.round(img.height*s2);cv2.getContext("2d").drawImage(img,0,0,cv2.width,cv2.height);cv2.toBlob(r,"image/jpeg",.82);});
+  return{thumb:cv.toDataURL("image/jpeg",.6),send:small};}finally{URL.revokeObjectURL(url);}}
+async function intakeImage(blob,fromRect){
+  if(clipBusy)return;clipBusy=true;render();
+  try{const{thumb,send}=await thumbOf(blob);
+    const id="S"+Date.now().toString(36);const now=new Date();
+    let c={id,kind:"collection",subkind:"screenshot",tier:"stone",title:"截图 · "+now.toLocaleString(),body:"",attribute_ids:[],thumb,evidence:[{when:now.toISOString().slice(0,10),where:"截图 · 粘贴进口袋",what:"你截下来的一块屏幕"}],tier_reason:"刚进来，还没被你留下"};
+    if(sampleFn&&sampleImages&&send){
+      const attrs=DATA.attributes.map(a=>`${a.id}=「${a.text}」`).join("；");
+      const cards=allCards().map(x=>card(x.id)).filter(x=>x&&!x.archived&&(x.kind==="follow"||x.kind==="person"||x.kind==="interest")).map(x=>`${x.id}=${KIND[x.kind]}「${x.title}」`).join("；");
+      const input=`这是用户刚截下来、放进 Sense 口袋的一张屏幕截图。请认出它是什么，并把它整理成一张卡。\n可选类别：quote（一句话）、collection（随手存的东西：仓库、论文、图、商品、工具）、person（一个公众人物或创作者）、follow（一部在追的作品、频道、系列的某一话）、interest（一个兴趣方向）。\n他的属性：${attrs}\n他已有的卡（关注 / 人物 / 兴趣）：${cards}\n规则：如果截图里有密码框、支付或银行信息、聊天或邮件窗口里别人写的话、证件，只回 {"sensitive":true,"why":"一句话"}。否则只输出 JSON：{"sensitive":false,"kind":"","title":"一句话，像卡片标题","body":"它是什么、你为什么可能存它，一到两句中文","ocr":"图中关键文字，最多 200 字，可空","attribute_ids":["最多两个真的相关的属性 id，没有就空数组"],"attach_to":"如果它明显属于某张已有卡（比如同一部作品的新一话），写那张卡的 id，否则空字符串"}`;
+      try{const r=await sampleFn.json(input,{images:[send],modelTier:"default"});
+        if(r&&r.sensitive){clipBusy=false;render();sheet("stone",h("div",{class:"meta"},"这张截图不建议留"),h("p",{},r.why||"里面可能有敏感信息。"),h("div",{class:"acts"},h("button",{class:"btn",type:"button",onclick:()=>{closeSheet();toast("丢了，原图没有保存");}},"丢掉"),h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();addClip(c,fromRect);}},"还是留下")));log("clip_sensitive",null,{why:r.why||""});persist();return;}
+        if(r){const okKind=["quote","collection","person","follow","interest"];c.kind=okKind.includes(r.kind)?r.kind:"collection";if(c.kind!=="collection")delete c.subkind;
+          c.title=(r.title||c.title).slice(0,80);c.body=(r.body||"").slice(0,240);if(r.ocr)c.evidence[0].what="图中文字："+String(r.ocr).slice(0,200);
+          c.attribute_ids=(r.attribute_ids||[]).filter(x=>ATTR.has(x)).slice(0,2);
+          if(r.attach_to&&card(r.attach_to)){c.attached_to=r.attach_to;c.body=(c.body?c.body+" ":"")+"挂在「"+card(r.attach_to).title+"」上。";}}
+      }catch(e){c.body="Claude 这次没认出来（"+(e&&e.code||"error")+"），先按收藏卡放着。";}
+    }else{c.body="截图已经进口袋。接上 Claude 后会自动认出它是什么、挂哪条属性。";}
+    addClip(c,fromRect);
+  }catch(e){toast("这张图读不出来，换一张试试");}
+  finally{clipBusy=false;render();}}
+function addClip(c,fromRect){S.added.push(c);if(c.attached_to)cs(c.attached_to).used=true;log("clip_in",c.id,{kind:c.kind,attached_to:c.attached_to||null});persist();if(tab!=="pocket"){tab="pocket";}render();
+  requestAnimationFrame(()=>reward(fromRect||{left:innerWidth/2-50,top:innerHeight/2-70,width:100,height:140},c,"+1 截图卡"));}
+document.addEventListener("paste",e=>{const items=[...(e.clipboardData&&e.clipboardData.items||[])];const it=items.find(i=>i.type&&i.type.startsWith("image/"));
+  if(it){e.preventDefault();const z=$("#clipzone");intakeImage(it.getAsFile(),z?z.getBoundingClientRect():null);}});
+
+/* ---------- card face ---------- */
+function face(c,opts={}){
+  const el=h(opts.static?"div":"button",{class:"card "+c.tier,type:opts.static?null:"button","aria-label":KIND[c.kind]+"卡，"+TIER[c.tier]+"，"+c.title,style:"--kc:"+kc(c.kind)});
+  let cv;if(c.thumb&&/^data:image\//.test(c.thumb)){cv=h("img",{class:"art",src:c.thumb,alt:"",style:"object-fit:cover"});}else{cv=h("canvas",{class:"art","aria-hidden":"true"});drawArt(cv,hash(c.id+c.title),c.kind,c.tier);}
+  const names=(c.attribute_ids||[]).map(id=>{const a=attr(id);return a?"「"+a.text+"」":null;}).filter(Boolean).join(" ");
+  el.append(cv,h("div",{class:"face"},h("div",{class:"eb"},iconCanvas(c.kind),KIND[c.kind]+(c.subkind==="bookmark"?" · 书签":c.subkind==="screenshot"?" · 截图":""),h("span",{class:"tier"},TIER[c.tier])),h("div",{class:"t"},c.title),names?h("div",{class:"attrs"},names):null));
+  if(c.tier==="stone")el.append(h("span",{class:"badge"},"新"));
+  const st=stackOf(c.id);if(st.length)el.append(h("span",{class:"stack"},"叠 "+st.length));
+  if(!opts.static&&!opts.onClick)el.addEventListener("click",()=>openCard(c.id));
+  if(opts.onClick)el.addEventListener("click",opts.onClick);
+  return el;}
+function stackOf(id){return allCards().filter(x=>(S.cards[x.id]||{}).stackedUnder===id);}
+
+/* ---------- actions ---------- */
+const ACTIONS={
+  decision:[["对","confirm",1],["不对","reject",-1],["改一句","edit",1]],
+  recommendation:[["再看","revisit",1],["升为收藏","to_collection",1],["其实不喜欢","dislike",-1]],
+  person:[["跟","follow",1],["不跟","unfollow",-1],["记一次联系","contact",1]],
+  follow:[["catch up","catchup",1],["看了","seen",1],["不追了","drop",-1]],
+  interest:[["是","yes",1],["不是我在意的","no",-1]],
+  quote:[["留","keep",1],["删","delete",-1]],
+  collection:[["留","keep",1],["删","delete",-1],["升为关注","to_follow",1]]
+};
+function act(c,code,sign,text){
+  const s=cs(c.id);s.used=true;
+  if(sign>0){if(c.tier==="stone")s.tier="bronze";bumpAttrs(c.attribute_ids,1);blip("keep");}
+  else{s.archived=true;bumpAttrs(c.attribute_ids,-1);blip("drop");}
+  if(code==="confirm")confirmAttrs(c.attribute_ids);
+  if(code==="edit"&&text){s.note=text;}
+  if(code==="to_collection")s.kind="collection";
+  if(code==="to_follow")s.kind="follow";
+  log(code,c.id,text||null);promote();persist();render();}
+
+/* ---------- sheet ---------- */
+let sheetEl=null;
+function closeSheet(){if(sheetEl){sheetEl.remove();sheetEl=null;}}
+function sheet(tierVar,...kids){closeSheet();const sh=h("div",{class:"sheet",role:"dialog","aria-modal":"true",style:"--tier:var(--"+(tierVar||"stone")+")"},...kids);
+  sheetEl=h("div",{class:"scrim",onclick:e=>{if(e.target===sheetEl)closeSheet();}},sh);document.body.append(sheetEl);
+  const f=sh.querySelector("button,textarea,input");f&&f.focus();return sh;}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();});
+function openCard(id){
+  const c=card(id);if(!c)return;if(!cs(id).used){cs(id).used=true;log("open",id);promote();persist();}
+  const c2=card(id);
+  const acts=h("div",{class:"acts"});
+  if(c2.tier==="stone")acts.append(h("button",{class:"btn",type:"button",onclick:e=>{const rr=e.currentTarget.closest(".sheet").querySelector(".card").getBoundingClientRect();act(c2,"keep_stone",1);closeSheet();reward(rr,card(c2.id),"石 → 铜");}},"留下"),h("button",{class:"btn ghost",type:"button",onclick:()=>{act(c2,"drop_stone",-1);closeSheet();toast("丢了");}},"丢"));
+  (ACTIONS[c2.kind]||[]).forEach(([label,code,sign])=>{
+    acts.append(h("button",{class:sign>0?"btn":"btn ghost",type:"button",onclick:()=>{
+      if(code==="edit"){const ta=$("#editTa");if(ta&&ta.value.trim()){act(c2,"edit",1,ta.value.trim());closeSheet();toast("改好了");}else{ta&&ta.focus();toast("先在上面写一句");}return;}
+      act(c2,code,sign);closeSheet();toast(label+(sign>0?" ✓":""));}},label));});
+  if(c2.tier!=="stone"&&!c2.archived)acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();slotPickerFor(c2.id);}},"放进卡槽"));
+  const fz=fusionsFor(c2.id);if(fz.length)acts.append(h("button",{class:"btn gold",type:"button",onclick:()=>{closeSheet();openFusion(fz[0]);}},"可以融合"));
+  const attrs=(c2.attribute_ids||[]).map(aid=>{const a=attr(aid);if(!a)return null;return h("div",{class:"achip"},h("b",{},"「"+a.text+"」"),h("span",{},(a.reason||"")+(a.contrast?" · 反对："+a.contrast:"")),h("span",{},(a.status==="confirmed"?"已确认":"候选")+" · 用了 "+a.uses+" 次，升金需要 "+S.threshold+" 次"));});
+  const st=stackOf(id);
+  sheet(c2.tier,
+    h("div",{class:"top"},face(c2,{static:true}),h("div",{style:"display:flex;flex-direction:column;gap:6px;min-width:0;flex:1"},
+      h("div",{class:"meta"},KIND[c2.kind]+"卡 · "+TIER[c2.tier]+(c2.archived?" · 已归档":"")),h("h3",{},c2.title),c2.tier_reason?h("div",{class:"meta"},"品级："+c2.tier_reason):null),
+      h("button",{class:"close",type:"button",onclick:closeSheet,"aria-label":"关闭"},"关闭")),
+    c2.body?h("p",{},c2.body):null,
+    c2.note?h("p",{class:"meta"},"你改过："+c2.note):null,
+    c2.item&&c2.item.url&&/^https:\/\//.test(c2.item.url)?h("p",{},h("a",{href:c2.item.url,target:"_blank",rel:"noopener"},c2.item.name||c2.item.url)):null,
+    c2.watch?h("p",{class:"meta"},"跟踪："+c2.watch.query+" · "+(c2.watch.cadence==="weekly"?"每周":c2.watch.cadence)+(c2.watch.last_seen?" · 上次看到 "+c2.watch.last_seen:"")):null,
+    attrs.length?h("div",{style:"display:flex;flex-direction:column;gap:6px"},h("div",{class:"meta"},"背后的属性"),...attrs):null,
+    c2.kind==="decision"?h("textarea",{id:"editTa",placeholder:"想改成怎么说？写一句再点「改一句」","aria-label":"改一句"}):null,
+    acts,
+    st.length?h("div",{},h("div",{class:"meta"},"叠在下面的原卡"),h("div",{class:"picker"},st.map(x=>face(card(x.id),{onClick:()=>openCard(x.id)})))):null,
+    c2.evidence&&c2.evidence.length?h("details",{},h("summary",{class:"meta"},"证据 "+c2.evidence.length+" 条"),h("ul",{class:"ev"},c2.evidence.map(e=>h("li",{},h("span",{class:"w"},e.when+" · "+e.where),e.what)))):null);
+}
+
+/* ---------- fusion ---------- */
+function fusionsFor(id){return(DATA.fusions||[]).filter((f,i)=>!S.fusionsDone.includes(i)&&f.inputs.includes(id)&&f.inputs.every(x=>{const c=card(x);return c&&!c.archived&&!c.stackedUnder;})).map(f=>DATA.fusions.indexOf(f));}
+function openFusion(i){const f=DATA.fusions[i];const ins=f.inputs.map(card).filter(Boolean);
+  const shared=(f.shared_attribute_ids||[]).map(attr).filter(Boolean).map(a=>"「"+a.text+"」").join(" ");
+  const row=h("div",{class:"picker"},ins.map(c=>face(c,{static:true})));
+  sheet("silver",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"融合"),h("h3",{},f.output.title),h("p",{class:"meta"},"共享的属性："+shared)),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
+    row,h("p",{class:"note"},"原卡不会删，叠在新卡下面当证据。"),
+    h("div",{class:"acts"},h("button",{class:"btn gold",type:"button",onclick:()=>{row.querySelectorAll(".card").forEach(x=>x.classList.add("fusing"));setTimeout(()=>doFuse(i),550);}},"融合")));}
+function doFuse(i){const f=DATA.fusions[i];const out=Object.assign({},f.output);out.id=out.id||("F"+(i+1));out.tier="silver";out.fused_from=f.inputs.slice();
+  if(!S.added.find(x=>x.id===out.id))S.added.push(out);
+  f.inputs.forEach(id=>{cs(id).stackedUnder=out.id;});cs(out.id).used=true;
+  S.fusionsDone.push(i);bumpAttrs(f.shared_attribute_ids,1);log("fuse",out.id,{inputs:f.inputs});fx("fuse");promote();persist();closeSheet();render();toast("融合成一张银卡："+out.title);reward({left:innerWidth/2-60,top:innerHeight/2-80,width:120,height:160},out,"+1 银卡");setTimeout(()=>openCard(out.id),1300);}
+
+/* ---------- slots / agents ---------- */
+const ROLES=["约束","对象","对象","口味","野卡"];
+const ROLE_TIP=["先筛：只看什么","从哪里找","从哪里找","最后怎么挑、怎么说","Sense 往盲区放一张"];
+let agentIdx=0;
+function slotsOf(ag){if(!S.slots[ag.id])S.slots[ag.id]=(ag.slots||[]).slice(0,4).concat([null,null,null,null]).slice(0,4).concat([null]);return S.slots[ag.id];}
+function hasGold(){return allCards().some(c=>{const x=card(c.id);return x&&x.tier==="gold"&&!x.archived;});}
+function eligible(){return allCards().map(c=>card(c.id)).filter(c=>c&&c.tier!=="stone"&&!c.archived&&!c.stackedUnder);}
+function slotPickerFor(cardId){const ags=DATA.agents||[];if(!ags.length)return;const ag=ags[agentIdx];const sl=slotsOf(ag);
+  sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"放进卡槽 · "+ag.name),h("h3",{},card(cardId).title)),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
+    h("div",{class:"btnrow"},ROLES.slice(0,4).map((r,i)=>h("button",{class:"btn ghost",type:"button",onclick:()=>{sl[i]=cardId;cs(cardId).used=true;log("slot_put",cardId,{agent:ag.id,slot:i});promote();persist();closeSheet();tab="table";render();toast("放进第 "+(i+1)+" 槽："+r);}},(i+1)+" · "+r+(sl[i]?"（替换）":"")))));}
+function pickForSlot(ag,i){const sl=slotsOf(ag);const list=eligible();
+  sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},ag.name+" · 第 "+(i+1)+" 槽 · "+ROLES[i]),h("h3",{},ROLE_TIP[i])),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
+    list.length?h("div",{class:"picker"},list.map(c=>face(c,{onClick:()=>{sl[i]=c.id;cs(c.id).used=true;log("slot_put",c.id,{agent:ag.id,slot:i});promote();persist();closeSheet();render();blip("keep");}}))):h("div",{class:"empty"},"口袋里还没有铜卡以上的卡。先去口袋里留下几张。"));}
+
+let sampleFn=null;
+let playState={agent:null,results:null,busy:false,live:false,err:null};
+function precomputed(ag){const p=(DATA.plays||[]).find(x=>x.agent_id===ag.id);return p?p.results.map(r=>Object.assign({},r)):[];}
+async function play(ag,prompt){
+  const sl=slotsOf(ag);const filled=sl.map((id,i)=>id?{i,c:card(id)}:null).filter(Boolean);
+  playState={agent:ag.id,results:null,busy:true,live:!!sampleFn,err:null};render();blip("deal");
+  if(sampleFn&&filled.length){
+    const desc=filled.map(({i,c})=>`槽${i}（${ROLES[i]}）：${KIND[c.kind]}卡「${c.title}」。${c.body||""} 属性：${(c.attribute_ids||[]).map(id=>{const a=attr(id);return a?`${id}=「${a.text}」(${a.reason||""})`:"";}).join("；")}`).join("\n");
+    const wild=hasGold()?"\n第 4 槽是野卡：另外给一条他档案之外、可能是盲区的结果，contributed_by 的 slot 写 4。":"";
+    const input=`你在扮演 Sense，一个替用户挑东西的 agent。用户说："${prompt}"\n\n他的卡槽（从左到右结算：约束先筛，对象定起点，口味定怎么挑、怎么说为什么）：\n${desc}${wild}\n\n给 3 到 4 条结果。每条必须是你确定真实存在的作品、论文、仓库、人或文章；不确定就不要给，不要编。不要推荐卡槽里已经出现的东西。body 用中文一到两句，说清它为什么符合哪张槽卡的哪条属性。只输出 JSON：{"results":[{"title":"","kind":"作品|论文|仓库|人|文章","body":"","url":"若确定则给官方或维基链接，否则空字符串","contributed_by":[{"slot":0,"attribute_id":"A1"}]}]}`;
+    try{const out=await sampleFn.json(input,{modelTier:"default"});playState.results=(out&&out.results||[]).slice(0,4);playState.live=true;}
+    catch(e){playState.err=e&&e.code;playState.results=precomputed(ag);playState.live=false;}
+  }else{await new Promise(r=>setTimeout(r,450));playState.results=precomputed(ag);playState.live=false;}
+  playState.busy=false;log("play",null,{agent:ag.id,prompt,live:playState.live,n:(playState.results||[]).length});persist();render();}
+function keepResult(ag,r,idx,keep,fromEl){
+  if(r._done)return;r._done=keep?"kept":"gone";
+  if(keep){const id="P"+Date.now().toString(36)+idx;const aids=[...new Set((r.contributed_by||[]).map(x=>x.attribute_id).filter(x=>ATTR.has(x)))];
+    S.added.push({id,kind:"recommendation",tier:"bronze",title:r.title,body:r.body,attribute_ids:aids.slice(0,3),item:{name:r.title,url:r.url||""},evidence:[{when:new Date().toISOString().slice(0,10),where:"出一手 · "+ag.name,what:"「"+(playState.prompt||"")+"」"+(playState.live?"":"（预先算好的一手）")}],tier_reason:"出一手时你留下了它"});
+    cs(id).used=true;bumpAttrs(aids,1);const sl=slotsOf(ag);(r.contributed_by||[]).forEach(x=>{const cid=sl[x.slot];if(cid)cs(cid).used=true;});
+    log("play_keep",id,{title:r.title});promote();const rect=fromEl&&fromEl.closest(".res")?fromEl.closest(".res").getBoundingClientRect():null;persist();render();reward(rect,card(id),"+1 推荐卡");return;}
+  else{log("play_drop",null,{title:r.title});blip("drop");}
+  persist();render();}
+
+/* ---------- quests ---------- */
+function questState(q){return S.quests[q.id]||(S.quests[q.id]={filled:[],done:false});}
+function pickForQuest(q,i){const need=(q.slots[i]||{}).requires_kind;const qs=questState(q);const list=eligible().filter(c=>!need||c.kind===need).concat(need?[]:[]);
+  const pool=need?allCards().map(c=>card(c.id)).filter(c=>c&&c.kind===need&&!c.archived&&!c.stackedUnder):eligible();
+  sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"委托 · "+q.title),h("h3",{},"放一张"+(need?KIND[need]+"卡":"卡"))),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
+    pool.length?h("div",{class:"picker"},pool.map(c=>face(c,{onClick:()=>{qs.filled[i]=c.id;cs(c.id).used=true;persist();closeSheet();render();blip("keep");}}))):h("div",{class:"empty"},"口袋里没有这类卡。"));}
+function finishQuest(q){const qs=questState(q);qs.done=true;const ids=qs.filled.filter(Boolean);ids.forEach(id=>{const c=card(id);if(c)bumpAttrs(c.attribute_ids,1);});log("quest_done",null,{quest:q.id,cards:ids});fx("gold");promote();persist();render();toast("委托完成");}
+
+/* ---------- survey ---------- */
+const FORMS={
+  keep:{n:1,q:"这张你还在意吗？",how:"留下：它的属性记一次使用，石卡变铜。不在意：归档，属性用次减一。"},
+  pick_one:{n:2,q:"同一类的两张，哪张更像你？",how:"选中的那张给属性记一次使用。没选的那张写成属性的「对照」，你说的那句写成「理由」。对照和理由都齐了，候选属性转为已确认。"},
+  rank:{n:3,q:"同一类的三张，按在意程度排：先点最在意的。",how:"排第一的属性记一次使用。排序写进属性的轻重，越重的越适合放牌桌右边的口味槽。"},
+  same:{n:3,q:"这三张挂着同一条属性。它们说的是同一个东西吗？",how:"是：当场融合成一张银色兴趣卡，原卡叠在下面。不是：这条属性用次减一，并记下「这几张不是一回事」。"},
+  odd:{n:4,q:"哪张和另外三张不是一路的？",how:"如果它也挂着那条共同的属性，就把属性从它身上拿掉，并给属性记上「不包括」这张。"}
+};
+let hand=null;
+function liveCards(){return allCards().map(c=>card(c.id)).filter(c=>c&&!c.archived&&!c.stackedUnder);}
+function wOf(c){let x=1;if((c.attribute_ids||[]).some(id=>{const a=attr(id);return a&&a.status!=="confirmed";}))x+=3;if(c.tier==="stone")x+=2;if(c.tier==="bronze"&&!c.used)x+=2;if(c.tier==="gold")x+=.5;return x;}
+function wPick(arr,n,r){const left=arr.slice(),out=[];while(out.length<n&&left.length){const tot=left.reduce((s,c)=>s+wOf(c),0);let t=r()*tot,k=0;for(;k<left.length-1;k++){t-=wOf(left[k]);if(t<=0)break;}out.push(left.splice(k,1)[0]);}return out;}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+function drawFor(form,r){const live=liveCards();
+  if(form==="keep"){const pool=live.filter(c=>c.tier==="stone"||(c.tier==="bronze"&&!c.used));return pool.length?{cards:wPick(pool,1,r)}:(live.length?{cards:wPick(live,1,r)}:null);}
+  const byKind={};live.forEach(c=>(byKind[c.kind]=byKind[c.kind]||[]).push(c));
+  if(form==="pick_one"||form==="rank"){const n=form==="rank"?3:2;const ks=Object.keys(byKind).filter(k=>byKind[k].length>=n);if(!ks.length)return null;const k=ks[(r()*ks.length)|0];return{cards:wPick(byKind[k],n,r),kind:k};}
+  const byAttr={};live.forEach(c=>(c.attribute_ids||[]).forEach(a=>(byAttr[a]=byAttr[a]||[]).push(c)));
+  const as=Object.keys(byAttr).filter(a=>byAttr[a].length>=3);if(!as.length)return null;
+  if(form==="same"){const a=as[(r()*as.length)|0];return{cards:wPick(byAttr[a],3,r),attr:a};}
+  if(form==="odd"){const ok=as.filter(a=>live.some(c=>!(c.attribute_ids||[]).includes(a)));if(!ok.length)return null;const a=ok[(r()*ok.length)|0];
+    const three=wPick(byAttr[a],3,r);const out=live.filter(c=>!(c.attribute_ids||[]).includes(a));return{cards:shuffle(three.concat(wPick(out,1,r)),r),attr:a};}
+  return null;}
+function newHand(redraw){const r=rng((Date.now()^hash(String(S.survey.length)))>>>0);let forms=redraw&&hand?[hand.form]:shuffle(Object.keys(FORMS),r);
+  for(const f of forms){const d=drawFor(f,r);if(d&&d.cards.length===FORMS[f].n){hand=Object.assign({form:f,picked:[],redrawn:!!redraw,answered:false,effects:[]},d,{cards:d.cards.map(c=>c.id)});blip("deal");render();return;}}
+  hand=null;toast("口袋里的卡还不够抽这一手");render();}
+function T(c){return"「"+c.title+"」";}
+function A(id){const a=attr(id);return a?"「"+a.text+"」":id;}
+function answer(val,text){const hd=hand,eff=[];const cs_=hd.cards.map(card);
+  if(hd.form==="keep"){const c=cs_[0];const st=cs(c.id);st.used=true;
+    if(val){if(c.tier==="stone"){st.tier="bronze";eff.push(T(c)+"从石卡变成铜卡。");}bumpAttrs(c.attribute_ids,1);(c.attribute_ids||[]).forEach(a=>eff.push(A(a)+"用次 +1。"));if(!(c.attribute_ids||[]).length)eff.push(T(c)+"还没挂属性，下次整理时 Sense 会给它提一条。");}
+    else{st.archived=true;bumpAttrs(c.attribute_ids,-1);eff.push(T(c)+"归档了，检索还能搜到。");(c.attribute_ids||[]).forEach(a=>eff.push(A(a)+"用次 -1。"));}}
+  else if(hd.form==="pick_one"){const win=card(val),lose=cs_.find(c=>c.id!==val);cs(win.id).used=true;bumpAttrs(win.attribute_ids,1);
+    const ids=(win.attribute_ids||[]).filter(a=>!(lose.attribute_ids||[]).includes(a));const tgt=ids.length?ids:(win.attribute_ids||[]);
+    if(!tgt.length)eff.push(T(win)+"还没挂属性，这次的对照先记在操作记录里。");
+    tgt.forEach(a=>{learn(a,"contrast","选了"+T(win)+"，没选"+T(lose)+(text?"。理由："+text:""));eff.push(A(a)+"记下对照：没选"+T(lose)+"。");
+      if(text){const at=attr(a);if(at&&at.status!=="confirmed"){confirmAttrs([a]);eff.push(A(a)+"对照和理由都齐了，转为已确认。");}else eff.push(A(a)+"的理由多了一句："+text);}});
+    if(!text&&tgt.length)eff.push("下次加一句为什么，候选属性就能转为已确认。");}
+  else if(hd.form==="rank"){val.forEach((id,i)=>{const c=card(id);(c.attribute_ids||[]).forEach(a=>{const s=S.attrs[a]||(S.attrs[a]={});s.rank=(s.rank||0)+(val.length-i);});});
+    const top=card(val[0]);bumpAttrs(top.attribute_ids,1);cs(top.id).used=true;eff.push(T(top)+"排第一，它的属性用次 +1。");
+    eff.push("排序写进了属性的轻重："+val.map(id=>T(card(id))).join(" > ")+"。");}
+  else if(hd.form==="same"){const a=hd.attr;
+    if(val){const out={id:"FD"+Date.now().toString(36),kind:"interest",tier:"silver",title:(attr(a)||{}).text||cs_[0].title,body:"抽卡时你说这三张是同一个东西："+cs_.map(T).join("、")+"。",attribute_ids:[a],fused_from:cs_.map(c=>c.id),evidence:[{when:new Date().toISOString().slice(0,10),where:"抽卡 · 是同一个东西吗",what:cs_.map(c=>c.title).join(" / ")}],tier_reason:"抽卡时融合"};
+      S.added.push(out);cs_.forEach(c=>{cs(c.id).stackedUnder=out.id;});cs(out.id).used=true;bumpAttrs([a],1);learn(a,"same",cs_.map(T).join("、")+"是同一个东西");
+      eff.push("三张融合成一张银色兴趣卡「"+out.title+"」，原卡叠在下面。");eff.push(A(a)+"用次 +1。");hd.fused=out.id;}
+    else{bumpAttrs([a],-1);learn(a,"split",cs_.map(T).join("、")+"不是一回事");eff.push(A(a)+"用次 -1，并记下这几张不是一回事。它可能太宽了，下次整理时 Sense 会提议拆成两条。");}}
+  else if(hd.form==="odd"){const a=hd.attr,odd=card(val);
+    if((odd.attribute_ids||[]).includes(a)){const st=cs(odd.id);(st.detach||(st.detach=[])).push(a);learn(a,"exclude","不包括"+T(odd));bumpAttrs([a],-1);
+      eff.push(A(a)+"从"+T(odd)+"身上拿掉了，属性记上「不包括」这张。");}
+    else{bumpAttrs([a],1);learn(a,"exclude",T(odd)+"确实不在这条里");eff.push("你挑中了唯一没挂"+A(a)+"的那张，说明这条属性的边界是对的，用次 +1。");}}
+  S.survey.push({at:new Date().toISOString(),form:hd.form,cards:hd.cards.slice(),attr:hd.attr||null,answer:val,text:text||null,effects:eff});
+  log("survey",null,{form:hd.form,answer:val,text:text||null});hd.answered=true;hd.effects=eff;promote();persist();render();
+  if(hd.fused){const r=$(".hand")?$(".hand").getBoundingClientRect():null;reward(r?{left:r.left+r.width/2-60,top:r.top,width:120,height:160}:null,card(hd.fused),"+1 银卡");}
+  else blip("keep");}
+
+/* ---------- render ---------- */
+let tab="sense";try{tab=localStorage.getItem(KEY+"-tab")||"sense";}catch(e){}
+let q="",fKind=null,fTier=null,fAttr="";
+const TABS=[["sense","Sense"],["pocket","口袋"],["table","牌桌"],["draw","抽卡"],["quests","委托"],["attrs","属性"]];
+function renderTabs(){const t=$("#tabs");t.innerHTML="";TABS.forEach(([k,l])=>t.append(h("button",{role:"tab","aria-selected":String(tab===k),type:"button",onclick:()=>{tab=k;try{localStorage.setItem(KEY+"-tab",k)}catch(e){};render();}},l)));}
+function renderPurse(){const p=$("#purse");p.innerHTML="";const vis=allCards().map(c=>card(c.id)).filter(c=>c&&!c.archived&&!c.stackedUnder);
+  ["stone","bronze","silver","gold"].forEach(t=>p.append(h("span",{},h("i",{class:"gem",style:"background:"+tc(t)}),TIER[t]+" "+vis.filter(c=>c.tier===t).length)));}
+function matches(c){if(c.archived||c.stackedUnder)return false;if(fKind&&c.kind!==fKind)return false;if(fTier&&c.tier!==fTier)return false;if(fAttr&&!(c.attribute_ids||[]).includes(fAttr))return false;
+  if(q){const hay=[c.title,c.body,(c.evidence||[]).map(e=>e.what+" "+e.where).join(" "),(c.attribute_ids||[]).map(id=>(attr(id)||{}).text).join(" ")].join(" ").toLowerCase();return q.toLowerCase().split(/\s+/).every(w=>hay.includes(w));}return true;}
+function pocket(){
+  const m=$("#main");
+  const sIn=h("input",{type:"search",id:"q",placeholder:"搜卡面、证据、属性…","aria-label":"搜索口袋",value:q});
+  sIn.addEventListener("input",()=>{q=sIn.value;drawGrid();});
+  const kinds=h("div",{class:"filters"},KIND_ORDER.map(k=>h("button",{class:"chip",type:"button","aria-pressed":String(fKind===k),onclick:()=>{fKind=fKind===k?null:k;render();}},iconCanvas(k),KIND[k])));
+  const tiers=h("div",{class:"filters"},["stone","bronze","silver","gold"].map(t=>h("button",{class:"chip",type:"button","aria-pressed":String(fTier===t),onclick:()=>{fTier=fTier===t?null:t;render();}},h("i",{class:"gem",style:"background:"+tc(t)}),TIER[t])),
+    (()=>{const s=h("select",{class:"attr",id:"fAttr","aria-label":"按属性筛"},h("option",{value:""},"按属性筛…"),DATA.attributes.map(a=>h("option",{value:a.id,selected:fAttr===a.id},"「"+a.text+"」")));s.addEventListener("change",()=>{fAttr=s.value;render();});return s;})());
+  const fileIn=h("input",{type:"file",id:"clipFile",accept:"image/*"});
+  fileIn.addEventListener("change",()=>{const f=fileIn.files&&fileIn.files[0];if(f)intakeImage(f,zone.getBoundingClientRect());fileIn.value="";});
+  const zone=h("section",{class:"clipzone",id:"clipzone"},
+    h("p",{},"截一张图放进口袋：按 ",h("kbd",{},"⌃⌘A")," 框选，截图进剪贴板，回到这里按 ",h("kbd",{},"⌘V"),"，它会飞进口袋。也可以把图片拖进来。",clipBusy?h("span",{class:"clipping"}," 正在认这张图…"):null,
+      h("details",{style:"margin-top:6px"},h("summary",{style:"cursor:pointer;color:var(--chalk-2);font-size:12px"},"⌃⌘A 怎么设置（一次）"),
+        h("ol",{style:"margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--chalk-2)"},
+          h("li",{},"打开 macOS 的「快捷指令」app，新建一个快捷指令，叫「Sense 截图」。"),
+          h("li",{},"加一个「运行 Shell 脚本」动作，内容填：screencapture -i -c"),
+          h("li",{},"在快捷指令详情里「添加键盘快捷键」，按 ⌃⌘A。微信 Mac 版默认也用 ⌃⌘A 截图，二选一或改掉微信的。"),
+          h("li",{},"没设置之前，系统自带的 ⌃⇧⌘4 也是截到剪贴板，效果一样。")))),
+    h("label",{class:"btn ghost",for:"clipFile"},"选一张图"),fileIn);
+  zone.addEventListener("dragover",e=>{e.preventDefault();zone.classList.add("over");});
+  zone.addEventListener("dragleave",()=>zone.classList.remove("over"));
+  zone.addEventListener("drop",e=>{e.preventDefault();zone.classList.remove("over");const f=[...(e.dataTransfer&&e.dataTransfer.files||[])].find(x=>x.type.startsWith("image/"));if(f)intakeImage(f,zone.getBoundingClientRect());});
+  m.append(zone);
+  m.append(h("section",{class:"search"},sIn,kinds,tiers));
+  const fz=(DATA.fusions||[]).map((f,i)=>i).filter(i=>!S.fusionsDone.includes(i)&&DATA.fusions[i].inputs.every(x=>{const c=card(x);return c&&!c.archived&&!c.stackedUnder;}));
+  if(fz.length)m.append(h("section",{style:"display:flex;flex-direction:column;gap:10px"},h("h2",{class:"sec"},"可以融合",h("em",{},"共享属性的卡")),
+    h("div",{class:"strip"},fz.map(i=>{const f=DATA.fusions[i];return h("button",{class:"fuse",type:"button",onclick:()=>openFusion(i)},...f.inputs.map(id=>{const c=card(id);return h("i",{class:"mini",style:"--tier:"+tc(c.tier)});}),h("span",{},h("b",{},"→ "+f.output.title),h("small",{},(f.shared_attribute_ids||[]).map(attr).filter(Boolean).map(a=>"「"+a.text+"」").join(" "))));}))));
+  const gridWrap=h("div",{id:"gridWrap",style:"display:flex;flex-direction:column;gap:22px"});m.append(gridWrap);drawGrid();}
+function drawGrid(){const w=$("#gridWrap");if(!w)return;w.innerHTML="";
+  const vis=allCards().map(c=>card(c.id)).filter(c=>c&&matches(c));
+  const groups=[["stone","刚进来","石卡：留下才变铜"],["live","口袋","铜卡与银卡，最近的在前"],["gold","常驻","金卡不会自动消失"]];
+  groups.forEach(([g,title,sub])=>{const list=vis.filter(c=>g==="live"?(c.tier==="bronze"||c.tier==="silver"):c.tier===g).sort((a,b)=>TIER_RANK[b.tier]-TIER_RANK[a.tier]||KIND_ORDER.indexOf(a.kind)-KIND_ORDER.indexOf(b.kind));
+    if(!list.length&&g!=="live")return;
+    w.append(h("section",{style:"display:flex;flex-direction:column;gap:10px"},h("h2",{class:"sec"},title+" "+list.length,h("em",{},sub)),list.length?h("div",{class:"grid"},list.map(c=>face(c))):h("div",{class:"empty"},"没有符合条件的卡。")));});
+  const arch=allCards().map(c=>card(c.id)).filter(c=>c&&c.archived);
+  if(arch.length&&!fKind&&!fTier&&!fAttr&&!q)w.append(h("details",{},h("summary",{class:"note",style:"cursor:pointer"},"已归档 "+arch.length+" 张（检索还能搜到，这里只列标题）"),h("ul",{class:"note"},arch.map(c=>h("li",{},KIND[c.kind]+" · "+c.title)))));}
+function table(){const m=$("#main");const ags=DATA.agents||[];if(!ags.length){m.append(h("div",{class:"empty"},"还没有 agent。"));return;}
+  if(agentIdx>=ags.length)agentIdx=0;const ag=ags[agentIdx];const sl=slotsOf(ag);const gold=hasGold();
+  m.append(h("section",{style:"display:flex;flex-direction:column;gap:10px"},h("h2",{class:"sec"},"牌桌是派 agent 出去找东西的地方"),
+    h("p",{class:"note"},"口袋是你已经有的东西。牌桌让 agent 带着你的口味，去外面找你还没见过的。放进卡槽的卡，就是这次带上的口味。"),
+    h("ol",{class:"steps"},h("li",{},"选一个 agent：追番、读论文、找参照写故事。"),h("li",{},"往四个卡槽里放卡。放什么卡，它就带着什么口味去找。"),h("li",{},"说一句你想要什么，按「出一手」。"),h("li",{},"每条结果都标出来自哪张卡。留下的飞进口袋，并给那几张卡的属性各记一次使用。"))));
+  m.append(h("h2",{class:"sec"},"1 · 选一个 agent"));
+  m.append(h("div",{class:"agents"},ags.map((a,i)=>h("button",{class:"chip",type:"button","aria-pressed":String(i===agentIdx),onclick:()=>{agentIdx=i;playState={};render();}},a.name))));
+  m.append(h("h2",{class:"sec"},"2 · 往卡槽里放卡",h("em",{},"点空槽挑一张，点卡片看详情")));
+  m.append(h("p",{class:"note"},"从左到右结算：约束先筛，对象定从哪找，口味定怎么挑、怎么说为什么。同一张卡放左边会直接筛掉不合的，放右边只是排到后面。"+(gold?"你有金卡了，第 5 槽野卡已解锁。":"第一张金卡出现时解锁第 5 槽。")));
+  m.append(h("div",{class:"slots"},sl.map((id,i)=>{const locked=i===4&&!gold;const c=id?card(id):null;
+    return h("div",{class:"slot"+(locked?" locked":"")},h("div",{class:"lab"},h("span",{},(i+1)+" · "+ROLES[i]),h("span",{},ROLE_TIP[i])),
+      h("div",{class:"well"},i===4?h("div",{class:"empty",style:"border:none;flex:1;display:flex;align-items:center;justify-content:center"},locked?"未解锁":"Sense 出一手时放一张盲区的卡"):
+        c?face(c):h("button",{class:"add",type:"button",onclick:()=>pickForSlot(ag,i),"aria-label":"往第 "+(i+1)+" 槽放卡"},"＋ 放一张")),
+      c&&i<4?h("button",{class:"rm",type:"button",onclick:()=>{sl[i]=null;persist();render();}},"拿下来"):null);})));
+  const p=(DATA.plays||[]).find(x=>x.agent_id===ag.id);
+  const inp=h("input",{id:"askIn",type:"text","aria-label":"想让 agent 找什么",placeholder:"想让它找什么？",value:playState.prompt||(p&&p.prompt)||""});
+  const go=h("button",{class:"btn gold",type:"button",disabled:playState.busy||null,onclick:()=>{playState.prompt=inp.value.trim()||(p&&p.prompt)||"";play(ag,playState.prompt).then(()=>{playState.prompt=inp.value.trim()||playState.prompt;});}},playState.busy?"在找…":"出一手");
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter")go.click();});
+  m.append(h("section",{style:"display:flex;flex-direction:column;gap:10px"},h("h2",{class:"sec"},"3 · 说一句，出一手",h("em",{},sampleFn?"会真的去问 Claude；它不联网，结果标「未核实」":"现在是预先算好的一手（结果已联网核实）")),h("div",{class:"ask"},inp,go)));
+  if(playState.agent===ag.id&&playState.results){
+    if(playState.err)m.append(h("p",{class:"note"},"在线出一手没成功（"+playState.err+"），先给你预先算好的那手。"));
+    const rs=playState.results;
+    m.append(rs.length?h("div",{class:"results"},rs.map((r,idx)=>h("article",{class:"res"+(r._done?" "+r._done:""),style:"animation-delay:"+(idx*.12)+"s"},
+      h("div",{class:"k"},(r.kind||"结果")+(playState.live?" · ":""),playState.live?h("span",{class:"tag-unverified"},"未核实"):null),h("h3",{},r.title),h("p",{},r.body),
+      r.url&&/^https:\/\//.test(r.url)?h("a",{href:r.url,target:"_blank",rel:"noopener"},r.url):null,
+      h("div",{class:"pops"},(r.contributed_by||[]).map((x,j)=>{const a=attr(x.attribute_id);const c=sl[x.slot]?card(sl[x.slot]):null;return h("span",{class:"pop",style:"animation-delay:"+(idx*.12+.3+j*.15)+"s"},"＋「"+(a?a.text:x.attribute_id)+"」"+(c?" · 槽"+(x.slot+1):x.slot===4?" · 野卡":""));})),
+      r._done?h("div",{class:"k"},r._done==="kept"?"留下了，进了口袋":"丢了"):h("div",{class:"row"},h("button",{class:"btn ghost",type:"button",onclick:()=>keepResult(ag,r,idx,false)},"丢"),h("button",{class:"btn",type:"button",onclick:e=>keepResult(ag,r,idx,true,e.currentTarget)},"留下"))))):h("div",{class:"empty"},"这一手没找到东西。换几张卡再试。"));}
+}
+function quests(){const m=$("#main");const qs=DATA.quests||[];
+  m.append(h("p",{class:"note"},"每周一两张。放对的卡才能开，过期也不罚，下周换新的。"));
+  if(!qs.length){m.append(h("div",{class:"empty"},"这周没有委托。"));return;}
+  m.append(h("div",{class:"quests"},qs.map(q=>{const st=questState(q);const full=q.slots.every((_,i)=>st.filled[i]);
+    return h("article",{class:"quest"+(st.done?" done":"")},h("div",{style:"display:flex;justify-content:space-between;gap:8px;align-items:baseline"},h("h3",{},q.title),h("span",{class:"due"},st.done?"已完成":"剩 "+q.due_days+" 天")),
+      h("div",{class:"qs"},q.slots.map((s,i)=>{const c=st.filled[i]?card(st.filled[i]):null;return h("button",{class:"qslot"+(c?" filled":""),type:"button",disabled:st.done||null,onclick:()=>pickForQuest(q,i)},c?c.title:"放一张"+(s.requires_kind?KIND[s.requires_kind]+"卡":"卡"));})),
+      h("div",{class:"reward"},"完成后："+q.reward),
+      st.done?null:h("button",{class:"btn gold",type:"button",disabled:!full||null,onclick:()=>finishQuest(q)},"开委托"));})));}
+function draw(){const m=$("#main");const n=liveCards().length;
+  m.append(h("section",{style:"display:flex;flex-direction:column;gap:10px"},h("h2",{class:"sec"},"抽卡：一手一个快问题"),
+    h("p",{class:"note"},"口袋大了以后，你不用一张张翻。抽一手，答一个很快能答的问题，答案直接改属性和品级。优先抽还没确认属性的卡、刚进来的石卡、很久没碰的铜卡。现在口袋里 "+n+" 张。")));
+  if(!hand){m.append(h("div",{class:"btnrow"},h("button",{class:"btn gold",type:"button",onclick:()=>newHand(false)},"抽一手")));
+    if(S.survey.length)m.append(lastAnswers());return;}
+  const F=FORMS[hand.form];const cards=hand.cards.map(card).filter(Boolean);
+  const box=h("div",{class:"qbox"},h("div",{class:"qq"},F.q),hand.attr?h("div",{class:"how"},"共同的属性："+A(hand.attr)):null,h("div",{class:"how"},"答完会写回："+F.how));
+  const handEl=h("div",{class:"hand"});
+  cards.forEach(c=>{const el=face(c,{onClick:()=>{
+    if(hand.answered)return openCard(c.id);
+    if(hand.form==="pick_one"||hand.form==="odd"){hand.picked=[c.id];render();}
+    else if(hand.form==="rank"){if(!hand.picked.includes(c.id))hand.picked.push(c.id);render();}
+    else openCard(c.id);}});
+    const pi=hand.picked.indexOf(c.id);if(pi>=0){el.classList.add("picked");if(hand.form==="rank")el.append(h("span",{class:"ord"},String(pi+1)));}
+    handEl.append(el);});
+  box.append(handEl);
+  const ctl=h("div",{class:"btnrow"});
+  if(hand.answered){box.append(h("div",{class:"effects"},h("b",{},"写回了"),h("ul",{style:"margin:0;padding-left:18px"},hand.effects.map(e=>h("li",{},e)))));
+    ctl.append(h("button",{class:"btn gold",type:"button",onclick:()=>newHand(false)},"再抽一手"),h("button",{class:"btn ghost",type:"button",onclick:()=>{tab="attrs";render();}},"去看属性"),h("button",{class:"btn ghost",type:"button",onclick:()=>{tab="sense";render();}},"去看 Sense"));}
+  else{
+    if(hand.form==="keep")ctl.append(h("button",{class:"btn",type:"button",onclick:()=>answer(true)},"还在意"),h("button",{class:"btn ghost",type:"button",onclick:()=>answer(false)},"不在意了"));
+    if(hand.form==="pick_one"){const ta=h("textarea",{id:"whyTa",placeholder:"为什么是它？说一句就能让候选属性转为已确认。可以不写","aria-label":"为什么"});box.append(ta);
+      ctl.append(h("button",{class:"btn",type:"button",disabled:!hand.picked.length||null,onclick:()=>answer(hand.picked[0],ta.value.trim())},"就是它"));}
+    if(hand.form==="rank")ctl.append(h("button",{class:"btn",type:"button",disabled:hand.picked.length<cards.length||null,onclick:()=>answer(hand.picked.slice())},"排好了"),h("button",{class:"btn ghost",type:"button",onclick:()=>{hand.picked=[];render();}},"重排"));
+    if(hand.form==="same")ctl.append(h("button",{class:"btn",type:"button",onclick:()=>answer(true)},"是同一个，融合"),h("button",{class:"btn ghost",type:"button",onclick:()=>answer(false)},"不是一回事"));
+    if(hand.form==="odd")ctl.append(h("button",{class:"btn",type:"button",disabled:!hand.picked.length||null,onclick:()=>answer(hand.picked[0])},"就这张不一样"));
+    ctl.append(h("button",{class:"btn ghost",type:"button",disabled:hand.redrawn||null,onclick:()=>newHand(true)},hand.redrawn?"已经重抽过":"弃掉重抽"));}
+  box.append(ctl);m.append(box);
+  if(S.survey.length)m.append(lastAnswers());}
+function lastAnswers(){const L={keep:"还在意吗",pick_one:"二选一",rank:"排序",same:"是同一个吗",odd:"哪张不一样"};
+  return h("details",{},h("summary",{class:"note",style:"cursor:pointer"},"已经答了 "+S.survey.length+" 手"),h("ul",{class:"changes"},S.survey.slice(-12).reverse().map(x=>h("li",{},L[x.form]+"："+((x.effects||[])[0]||"")))));}
+function sensePage(){const m=$("#main");const live=liveCards();const list=DATA.attributes.map(a=>attr(a.id));
+  const conf=list.filter(a=>a.status==="confirmed").length;const gold=live.filter(c=>c.tier==="gold").length;
+  m.append(h("section",{class:"hero"},h("h2",{},(DATA.meta.subject||"你")+" 的 sense"),
+    h("p",{},list.length+" 条属性串起口袋里的 "+live.length+" 张卡。"+conf+" 条你已经确认过，"+gold+" 张卡因此升了金。属性被用得越多，挂着它的卡升得越高。")));
+  const box=h("div",{class:"mapbox"});const cv=h("canvas",{id:"senseMap","aria-label":"属性与卡的连接图"});box.append(cv,h("div",{class:"legend"},h("span",{},"◆ 已确认属性"),h("span",{},"◇ 候选属性"),h("span",{},"· 卡，颜色是类别")));m.append(box);
+  requestAnimationFrame(()=>drawMap(cv,list,live));
+  const forks=DATA.meta.summary||[];
+  if(forks.length)m.append(h("section",{style:"display:flex;flex-direction:column;gap:10px"},h("h2",{class:"sec"},"你和默认做法分岔的地方"),h("ul",{class:"forks"},forks.map(t=>h("li",{},t)))));
+  const top=list.slice().sort((a,b)=>(b.status==="confirmed")-(a.status==="confirmed")||b.uses-a.uses||b.rank-a.rank);
+  m.append(h("h2",{class:"sec"},"最能代表你的几条",h("em",{},"按确认与使用次数排")));
+  m.append(h("div",{class:"stiles"},top.slice(0,8).map(a=>{const cards=live.filter(c=>(c.attribute_ids||[]).includes(a.id));
+    return h("article",{class:"stile"+(a.status==="confirmed"?" conf":"")},h("div",{class:"how"},(a.status==="confirmed"?"已确认":"候选")+" · 用了 "+a.uses+" 次 · "+cards.length+" 张卡"),
+      h("h3",{},"「"+a.text+"」"),a.reason?h("div",{class:"r"},a.reason):null,a.contrast?h("div",{class:"c"},"反对："+a.contrast):null,
+      a.learned.length?h("div",{class:"learn"},a.learned.slice(-3).map(l=>h("span",{},({contrast:"对照",exclude:"边界",same:"合并",split:"拆开"}[l.type]||"记下")+"："+l.text))):null,
+      h("div",{class:"minis"},cards.slice(0,8).map(c=>{let el;if(c.thumb){el=h("img",{src:c.thumb,alt:c.title,title:c.title});}else{el=h("canvas",{title:c.title});drawArt(el,hash(c.id+c.title),c.kind,c.tier);}el.style.setProperty("--tier",tc(c.tier));el.addEventListener("click",()=>openCard(c.id));return el;})),
+      h("div",{class:"btnrow"},h("button",{class:"btn ghost",type:"button",onclick:()=>{fAttr=a.id;tab="pocket";render();}},"看这些卡")));})));
+  const cand=list.filter(a=>a.status!=="confirmed").length;
+  if(cand)m.append(h("section",{class:"qbox"},h("div",{class:"qq"},"还有 "+cand+" 条属性等你确认"),h("p",{class:"note"},"最快的办法是抽卡里的二选一：挑一张，说一句为什么。"),h("div",{class:"btnrow"},h("button",{class:"btn gold",type:"button",onclick:()=>{tab="draw";newHand(false);}},"抽一手"))));
+  const H={open:"打开了",keep_stone:"留下了",drop_stone:"丢了",confirm:"确认了",reject:"否了",edit:"改了一句",fuse:"融合出",slot_put:"放进卡槽：",play:"出了一手",play_keep:"留下推荐：",clip_in:"截图进口袋：",survey:"答了一手抽卡",quest_done:"完成委托",tier_up_gold:"升金："};
+  const recent=S.log.filter(l=>l.action!=="open").slice(-8).reverse();
+  if(recent.length)m.append(h("section",{style:"display:flex;flex-direction:column;gap:8px"},h("h2",{class:"sec"},"最近的变化"),h("ul",{class:"changes"},recent.map(l=>{const c=l.card?card(l.card):null;return h("li",{},new Date(l.at).toLocaleString()+" · "+(H[l.action]||l.action)+(c?" "+c.title:(l.detail&&l.detail.title?" "+l.detail.title:"")));}))));}
+function drawMap(cv,list,live){const W=cv.clientWidth||600,Hh=cv.clientHeight||300,dpr=Math.min(2,devicePixelRatio||1);cv.width=W*dpr;cv.height=Hh*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);g.imageSmoothingEnabled=false;
+  const cx=W/2,cy=Hh/2,rx=W*(W<520?.30:.40),ry=Hh*.38;const pos={};
+  const order=list.slice().sort((a,b)=>b.uses-a.uses);order.forEach((a,i)=>{const t=i/order.length*6.283-1.57;pos[a.id]={x:cx+Math.cos(t)*rx*(i%2?.72:1),y:cy+Math.sin(t)*ry*(i%2?.72:1),a};});
+  const dots=[];const r=rng(7);
+  live.forEach(c=>{const ids=(c.attribute_ids||[]).filter(id=>pos[id]);if(!ids.length)return;let x=0,y=0;ids.forEach(id=>{x+=pos[id].x;y+=pos[id].y;});x/=ids.length;y/=ids.length;
+    if(ids.length===1){x=x+(cx-x)*.28+(r()-.5)*30;y=y+(cy-y)*.28+(r()-.5)*22;}else{x+=(r()-.5)*16;y+=(r()-.5)*12;}dots.push({x,y,c,ids});});
+  dots.forEach(d=>d.ids.forEach(id=>{const p=pos[id];g.strokeStyle=p.a.status==="confirmed"?"rgba(232,194,90,.32)":"rgba(169,188,182,.16)";g.lineWidth=1;g.beginPath();g.moveTo(Math.round(d.x)+.5,Math.round(d.y)+.5);g.lineTo(Math.round(p.x)+.5,Math.round(p.y)+.5);g.stroke();}));
+  dots.forEach(d=>{const s=d.c.tier==="gold"?6:d.c.tier==="silver"?5:4;g.fillStyle=kc(d.c.kind);g.fillRect(Math.round(d.x-s/2),Math.round(d.y-s/2),s,s);if(d.c.tier==="gold"){g.strokeStyle="#e8c25a";g.strokeRect(Math.round(d.x-s/2)-1.5,Math.round(d.y-s/2)-1.5,s+3,s+3);}});
+  g.font="12px DotGothic16, monospace";g.textBaseline="middle";
+  Object.values(pos).forEach(p=>{const conf=p.a.status==="confirmed";const s=Math.min(14,6+p.a.uses);g.fillStyle=conf?"#e8c25a":"#a9bcb6";g.save();g.translate(Math.round(p.x),Math.round(p.y));g.rotate(.785);
+    if(conf)g.fillRect(-s/2,-s/2,s,s);else{g.strokeStyle="#a9bcb6";g.lineWidth=2;g.strokeRect(-s/2,-s/2,s,s);}g.restore();
+    const left=p.x>cx;const room=left?W-(p.x+s)-6:p.x-s-6;let label=p.a.text.length>(W<520?7:12)?p.a.text.slice(0,W<520?7:12)+"…":p.a.text;
+    while(label.length>2&&g.measureText(label).width>room)label=label.slice(0,-2)+"…";
+    g.textAlign=left?"left":"right";g.fillStyle=conf?"#f3e3c7":"#a9bcb6";if(room>20)g.fillText(label,Math.round(p.x+(left?s:-s)),Math.round(p.y));});
+  cv.onclick=e=>{const b=cv.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;let best=null,bd=1e9;
+    Object.values(pos).forEach(p=>{const d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;best={t:"a",p};}});dots.forEach(d=>{const dd=Math.hypot(d.x-x,d.y-y);if(dd<bd){bd=dd;best={t:"c",d};}});
+    if(!best||bd>28)return;if(best.t==="a"){fAttr=best.p.a.id;tab="pocket";render();}else openCard(best.d.c.id);};}
+function attrs(){const m=$("#main");
+  m.append(h("p",{class:"note"},"这就是你的 sense：一条条你会说出口的话，每条后面串着它解释的卡。被用得越多，挂着它的卡升得越高。现在升金要 "+S.threshold+" 次，这个数会按你的操作自己调。"));
+  const list=DATA.attributes.map(a=>attr(a.id)).sort((a,b)=>b.uses-a.uses);
+  m.append(h("div",{class:"attrlist"},list.map(a=>{const n=allCards().filter(c=>{const x=card(c.id);return x&&!x.archived&&(x.attribute_ids||[]).includes(a.id);}).length;
+    return h("button",{class:"attr-row",type:"button",onclick:()=>{fAttr=a.id;tab="pocket";render();}},h("b",{},"「"+a.text+"」"),
+      h("span",{class:"meter"},h("span",{class:"pips"},Array.from({length:Math.max(S.threshold,Math.min(a.uses,10))},(_,i)=>h("i",{class:i<a.uses?"on":""}))),"  "+a.uses+" 次 · "+n+" 张卡"),
+      h("span",{class:"why"},(a.reason||"")+(a.contrast?" · 反对："+a.contrast:"")+(a.learned.length?" · 抽卡学到："+a.learned.slice(-2).map(l=>l.text).join("；"):"")+(a.rank?" · 轻重 "+a.rank:"")),h("span",{class:"st"+(a.status==="confirmed"?"":" cand")},a.status==="confirmed"?"已确认":"候选"));})));}
+function render(){renderTabs();renderPurse();const m=$("#main");m.innerHTML="";
+  ({sense:sensePage,pocket,table,quests,draw,attrs}[tab]||sensePage)();
+  if(tab==="pocket"){const si=$("#q");if(si&&document.activeElement!==si&&q){}}}
+
+/* ---------- footer ---------- */
+$("#method").textContent=DATA.meta.method||"";
+(DATA.meta.sources||[]).forEach(s=>$("#sources").append(h("li",{},s)));
+(DATA.meta.caveats||[]).forEach(s=>$("#caveats").append(h("li",{},s)));
+$("#exportBtn").addEventListener("click",()=>{const text=JSON.stringify(S.log,null,1);const done=()=>toast("复制了 "+S.log.length+" 条操作记录");
+  const fb=()=>{const pre=h("pre",{style:"white-space:pre-wrap;font-size:11px;max-height:40vh;overflow:auto"},text);sheet("stone",h("div",{class:"meta"},"复制下面的内容"),pre);const r=document.createRange();r.selectNodeContents(pre);const s=getSelection();s.removeAllRanges();s.addRange(r);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(text).then(done,fb);else fb();});
+const sb=$("#soundBtn");const sbt=()=>sb.textContent="音效："+(sound?"开":"关");sbt();
+sb.addEventListener("click",()=>{sound=!sound;try{localStorage.setItem(KEY+"-sound",sound?"1":"0")}catch(e){};sbt();blip("keep");});
+
+render();
+
+/* ---------- background: dithered felt swirl ---------- */
+(function(){const cv=$("#bg");const g=cv.getContext("2d");const P=5;let W=0,H=0,img=null,t=0,last=0;
+  const C=[[16,40,37],[20,47,43],[25,56,51],[33,70,64],[46,84,72]];
+  function size(){W=Math.ceil(innerWidth/P);H=Math.ceil(innerHeight/P);cv.width=W;cv.height=H;img=g.createImageData(W,H);}
+  function frame(now){if(document.hidden){requestAnimationFrame(frame);return;}if(now-last<90&&!RM.matches){requestAnimationFrame(frame);return;}last=now;t+=.035;
+    const d=img.data,cx=W*.5,cy=H*.3;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){const dx=x-cx,dy=y-cy,r=Math.sqrt(dx*dx+dy*dy)*.06,a=Math.atan2(dy,dx);
+      let v=Math.sin(a*3+r*1.6-t)*.5+Math.sin(x*.045+t*.7)*.25+Math.sin(y*.06-t*.5+Math.sin(x*.02))*.25;v=(v+1)/2;v=v*(1-Math.min(1,r*.12)*.45);
+      const th=BAYER[(y&3)*4+(x&3)]/16;let k=Math.floor(v*4+th*.9);k=k<0?0:k>4?4:k;const c=C[k];const o=(y*W+x)*4;d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;}
+    g.putImageData(img,0,0);if(!RM.matches)requestAnimationFrame(frame);}
+  size();addEventListener("resize",()=>{size();if(RM.matches)requestAnimationFrame(frame);});requestAnimationFrame(frame);})();
+
+/* ---------- capabilities (light up later) ---------- */
+(async()=>{
+  if(!window.claude||!window.claude.use)return;
+  try{const db=await window.claude.use("db");
+    if(db){dbDoc=db.doc("pocket/state");
+      try{const snap=await dbDoc.get();
+        if(snap.exists&&!dirty){S=Object.assign(JSON.parse(JSON.stringify(base)),snap.data());try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){};render();setStatus("口袋已同步，Claude 能读到你的操作。");}
+        else if(dirty||S.log.length){persist();}else setStatus("口袋已接上存储，你的操作会同步给 Claude。");
+      }catch(e){setStatus("存储暂时读不到，操作先留在这台设备上。");}}
+  }catch(e){}
+  try{const s=await window.claude.use("sample");if(s){sampleFn=s;try{const lim=await s.limits();sampleImages=lim&&lim.images?lim.images:null;}catch(e){}render();}}catch(e){}
+})();
+})();
+</script>

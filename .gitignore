@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+*.local
+.DS_Store
+dist/
+build/
+__pycache__/
+# 本地导入的原始日志与证据，永不入库
+data/raw/
+data/evidence/
+# Tauri 构建产物；app/ui 由 app/scripts/build-ui.mjs 从 m0/ 生成
+app/src-tauri/target/
+app/ui/

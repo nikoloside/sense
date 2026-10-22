@@ -1,0 +1,83 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Sense 口袋",
+  "version": "0.1.0",
+  "identifier": "app.sense.pocket",
+  "build": {
+    "frontendDist": "../ui",
+    "beforeDevCommand": "node scripts/build-ui.mjs",
+    "beforeBuildCommand": "node scripts/build-ui.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Sense 口袋",
+        "width": 1180,
+        "height": 860,
+        "minWidth": 380,
+        "minHeight": 560,
+        "backgroundColor": "#f6ead3",
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      },
+      {
+        "label": "menu",
+        "url": "menu.html",
+        "title": "Sense 快捷菜单",
+        "width": 300,
+        "height": 480,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": true,
+        "focus": false,
+        "acceptFirstMouse": true,
+        "visibleOnAllWorkspaces": true
+      },
+      {
+        "label": "pet",
+        "url": "pet.html",
+        "title": "Sense 桌宠",
+        "width": 168,
+        "height": 184,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "focus": false,
+        "acceptFirstMouse": true,
+        "visibleOnAllWorkspaces": true,
+        "dragDropEnabled": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "macOSPrivateApi": true
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.png"
+    ],
+    "category": "Productivity",
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    }
+  }
+}

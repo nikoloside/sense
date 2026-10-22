@@ -1,0 +1,80 @@
+{
+  "version": 3,
+  "owner": "niko",
+  "updated_at": "2026-10-20T01:10:00+09:00",
+  "evidence": [
+    {
+      "id": "ev_001",
+      "claim": "多次要求去掉解释性注释，只保留说明为什么的注释",
+      "kind": "revealed",
+      "scope": "work",
+      "source": { "tool": "claude-code", "ref": "sessions 2026-09 ×14 turns", "project": "[项目 A]" },
+      "observed_at": "2026-09-30T00:00:00+09:00",
+      "count": 14
+    },
+    {
+      "id": "ev_002",
+      "claim": "CLAUDE.md 里写了：先给结论，再给理由，不要铺垫",
+      "kind": "stated",
+      "scope": "work",
+      "source": { "tool": "claude-code", "ref": "~/.claude/CLAUDE.md" },
+      "observed_at": "2026-08-12T00:00:00+09:00",
+      "count": 1
+    },
+    {
+      "id": "ev_003",
+      "claim": "用户给出的喜欢的游戏：Outer Wilds、Baba Is You；不喜欢：需要大量前置教程的 4X 策略",
+      "kind": "stated",
+      "scope": "personal",
+      "source": { "tool": "manual", "ref": "user said, onboarding" },
+      "observed_at": "2026-10-19T23:00:00+09:00",
+      "count": 1
+    }
+  ],
+  "judgments": [
+    {
+      "id": "jd_001",
+      "text": "你喜欢规则简单却能产生复杂行为的系统，不喜欢开头就要学一大套规则。",
+      "domains": ["games", "projects"],
+      "condition": "",
+      "status": "confirmed",
+      "evidence_ids": ["ev_003"],
+      "created_at": "2026-10-19T23:05:00+09:00",
+      "confirmed_at": "2026-10-19T23:06:00+09:00"
+    },
+    {
+      "id": "jd_002",
+      "text": "你喜欢通过探索自己拼出世界的全貌，而不是被人讲给你听。",
+      "domains": ["games"],
+      "condition": "想放松的晚上",
+      "status": "edited",
+      "previous_text": "你喜欢有复杂世界设定的作品。",
+      "evidence_ids": ["ev_003"],
+      "created_at": "2026-10-19T23:05:00+09:00",
+      "confirmed_at": "2026-10-20T01:08:00+09:00"
+    },
+    {
+      "id": "jd_003",
+      "text": "读文章时你要先看到结论，不耐烦铺垫。",
+      "domains": ["articles"],
+      "condition": "",
+      "status": "proposed",
+      "evidence_ids": ["ev_002", "ev_001"],
+      "created_at": "2026-10-20T00:00:00+09:00"
+    }
+  ],
+  "pending_questions": [
+    {
+      "id": "pq_001",
+      "question": "你在工作中反复要求'再简洁一点'。挑游戏时，你也更偏好极简表达的作品吗？",
+      "from_evidence_ids": ["ev_001", "ev_002"],
+      "target_domain": "games",
+      "if_yes_judgment": "你偏好表达极简、不堆系统的游戏。"
+    }
+  ],
+  "history": [
+    { "version": 1, "at": "2026-10-19T23:05:00+09:00", "summary": "从 1 次导入和 5 件作品生成了 3 条判断。", "cause": "import" },
+    { "version": 2, "at": "2026-10-19T23:06:00+09:00", "summary": "你确认了关于'规则简单、行为复杂'的判断。", "cause": "confirm" },
+    { "version": 3, "at": "2026-10-20T01:08:00+09:00", "summary": "上次你说'我喜欢的是探索感，不是设定复杂'，这次按探索感找。", "cause": "correction" }
+  ]
+}

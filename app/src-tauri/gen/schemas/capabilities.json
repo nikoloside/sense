@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"口袋主窗口、快捷菜单、桌宠可以调用的能力","local":true,"windows":["main","menu","pet"],"permissions":["core:default","core:event:default","global-shortcut:allow-register","global-shortcut:allow-unregister","global-shortcut:allow-is-registered","core:window:allow-start-dragging"]}}

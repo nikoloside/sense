@@ -1,0 +1,111 @@
+<title>Sense 快捷菜单</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* 快捷菜单：菜单栏图标、头部小口袋、桌宠点开的都是它。只读主窗口推来的摘要，按钮把命令发回主窗口。 */
+/*__THEMES__*/
+html,body{margin:0;background:transparent;overflow:hidden;-webkit-user-select:none;user-select:none;cursor:default}
+body{font-family:var(--f-body);font-size:13px;line-height:1.45;color:var(--ink)}
+.panel{margin:0;background:var(--felt-2);border:2px solid var(--hdr-2);border-radius:12px;overflow:hidden}
+.top{background:var(--hdr);color:var(--hdr-ink);padding:10px 12px 10px;display:flex;gap:10px;align-items:center;box-shadow:0 3px 0 var(--hdr-2)}
+.top canvas{width:36px;height:36px;image-rendering:pixelated;flex:none}
+.top .who{flex:1;min-width:0}
+.top b{font-family:var(--f-pixel);font-weight:400;font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top small{font-size:11px;opacity:.8}
+.xp{height:6px;border-radius:3px;background:color-mix(in srgb,var(--hdr-ink) 25%,transparent);margin-top:4px;overflow:hidden}
+.xp i{display:block;height:100%;background:var(--hdr-ink)}
+.eng{display:flex;gap:8px;align-items:center;padding:9px 12px 4px;font-size:12px;color:var(--chalk-2)}
+.eng .dot{width:8px;height:8px;border-radius:2px;background:var(--ok);flex:none}
+.eng.off .dot{background:var(--stone)}.eng.busy .dot{background:var(--accent);animation:pulse 1s steps(2) infinite}
+.eng span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes pulse{50%{opacity:.25}}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 10px 2px}
+.tile{all:unset;box-sizing:border-box;cursor:pointer;background:var(--paper);border:2px solid var(--felt-line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:0}
+.tile:hover,.tile:focus-visible{border-color:var(--accent)}
+.tile b{font-family:var(--f-pixel);font-weight:400;font-size:20px;line-height:1.1;color:var(--ink)}
+.tile small{font-size:11px;color:var(--ink-2)}
+.tile.hot b{color:var(--danger)}.tile.ready b{color:var(--accent-2)}
+.tile.zero{opacity:.55}
+h4{font-family:var(--f-pixel);font-weight:400;font-size:12px;letter-spacing:.06em;color:var(--chalk-2);margin:10px 12px 4px}
+.rows{display:flex;flex-direction:column;padding:0 6px}
+.row{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:6px}
+.row:hover,.row:focus-visible{background:var(--sink)}
+.row span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--chalk)}
+.row em{font-style:normal;font-size:11px;color:var(--danger);font-family:var(--f-pixel)}
+.crack{width:10px;height:12px;background:var(--stone);clip-path:polygon(0 0,45% 0,60% 35%,40% 55%,70% 100%,0 100%);flex:none}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px 10px 8px}
+.act{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:8px;align-items:center;padding:7px 8px;border-radius:8px;background:var(--paper);border:2px solid var(--felt-line);box-shadow:0 2px 0 var(--felt-line)}
+.act:hover,.act:focus-visible{border-color:var(--accent);box-shadow:0 2px 0 var(--accent)}
+.act:active{transform:translateY(2px);box-shadow:none}
+.act canvas{width:18px;height:18px;image-rendering:pixelated;flex:none}
+.act span{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.act b{font-weight:500;font-size:12.5px;color:var(--ink)}
+.act small{font-size:10.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--paper))}
+.act[disabled]{opacity:.5;pointer-events:none}
+.themes{display:flex;gap:8px;padding:2px 12px 10px;align-items:center}
+.themes button{all:unset;cursor:pointer;width:22px;height:22px;border-radius:6px;border:2px solid var(--felt-line);display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+.themes button.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--felt-2),0 0 0 4px var(--accent)}
+.themes button i{display:block}
+.foot{display:flex;border-top:2px dashed var(--felt-line)}
+.foot button{all:unset;cursor:pointer;flex:1;text-align:center;padding:9px 0;font-size:12.5px;color:var(--chalk)}
+.foot button+button{border-left:2px dashed var(--felt-line)}
+.foot button:hover,.foot button:focus-visible{background:var(--sink)}
+.foot .main{font-weight:600;color:var(--accent-2)}
+.wait{padding:24px 14px;text-align:center;color:var(--chalk-2);font-size:12px}
+</style>
+<body>
+<div class="panel" id="panel"><div class="wait">口袋还在加载…</div></div>
+<script>
+(function(){
+const T=window.__TAURI__;const invoke=T.core.invoke;const ev=T.event;
+const $=s=>document.querySelector(s);
+function h(t,a,...k){const e=document.createElement(t);for(const[n,v]of Object.entries(a||{})){if(v==null||v===false)continue;if(n.startsWith("on"))e.addEventListener(n.slice(2),v);else e.setAttribute(n,v===true?"":v);}k.flat(9).forEach(x=>{if(x!=null&&x!==false)e.append(x.nodeType?x:String(x));});return e;}
+const cmd=(c,arg,keep)=>{ev.emitTo("main","sense://cmd",{cmd:c,arg:arg??null});if(!keep)invoke("menu_hide");};
+const go=(c,arg)=>{cmd(c,arg,true);invoke("show_main");};
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* 9×9 像素小图标，颜色取主题 */
+const ICON={snap:["..aaa....","aaaaaaaaa","a.......a","a..bbb..a","a.b...b.a","a.b...b.a","a..bbb..a","a.......a","aaaaaaaaa"],
+  draw:["...aaaaa.","...a...a.",".bbbbb.a.",".b...b.a.",".b.a.b.a.",".b...b.a.",".b...baa.",".bbbbb...","........."],
+  clip:["..bbbbb..","aaab.baaa","a.bbbbb.a","a.......a","a.aaaaa.a","a.......a","a.aaaa..a","a.......a","aaaaaaaaa"],
+  pet:["...bbb...","..aaaaa..",".aaaaaaa.","aa.aaa.aa","aa.aaa.aa","aaaaaaaaa","aaaabaaaa",".aaaaaaa.","..a...a.."],
+  engine:["...aaa...",".a.aaa.a.","..aaaaa..","aaa.b.aaa","aaab.baaa","aaa.b.aaa","..aaaaa..",".a.aaa.a.","...aaa..."],
+  taste:["....a....","....a....","...aaa...","aaaabaaaa","...aaa...","....a..b.","....a.bbb","........b","........."]};
+function icon(k){const cv=h("canvas",{width:9,height:9,"aria-hidden":"true"});const g=cv.getContext("2d");const col={a:cssv("--accent-2"),b:cssv("--accent")};
+  ICON[k].forEach((r,y)=>[...r].forEach((c,x)=>{if(col[c]){g.fillStyle=col[c];g.fillRect(x,y,1,1);}}));return cv;}
+const POUCH=["..........................", "...........ooooooooo......", "..........oGGGGGGGGGo.W...", "..........oGrrrrrrrGoWGW..", ".....ooooooGrhhrrrrGo.W...", "....oSSSSSSGrhhrGGrGo.....", "....oStttttGrrrrGGrGo.....", "....oStttttGrrrrrrrGo.....", "....oStttttGPPPPPPPGo.....", "...oSPPPPPPGPkkkkkPGo.....", "...oSPPPPPPGPPPPPPPGooo...", "..obbbbbbbbbbbbbbbbbbbbo..", "..oBddddddddddddddddddBo..", "..oBhhhBBBBdGGdBBBBBBBBo..", ".oBBhhhBBBBddddBBBBBBBBBo.", ".oBBhhhBBBdBBBBdBBBBBBBbo.", ".oBBBBBBBBdBBBBdBBBBBBbbo.", ".oBBBBBBBBdBBBBdBBBBBbbbo.", ".oBBBBBBBBBBBBBBBBBBbbbbo.", "..oBBBhBBhBBhBBhBBhbbbbo..", "..obbbbbbbbbbbbbbbbbbbbo..", "...obbbbbbbbbbbbbbbbbbo...", "....oobbbbbbbbbbbbbboo....", "......oooooooooooooo......", "..........................", ".........................."];
+const POUCH_PAL={"o":"#3a2416","P":"#fffaf0","G":"#e3a72f","S":"#b0becc","B":"#e8762c","b":"#b4561c","h":"#f8a860","d":"#6e3a1a","t":"#2f9a92","r":"#d9643a","W":"#ffffff","k":"#e8be78"};
+function pouch(){const cv=h("canvas",{width:26,height:26,"aria-hidden":"true"});const g=cv.getContext("2d");POUCH.forEach((r,y)=>[...r].forEach((c,x)=>{if(POUCH_PAL[c]){g.fillStyle=POUCH_PAL[c];g.fillRect(x,y,1,1);}}));return cv;}
+const THEMES=[["cream",["#e8762c","#f6ead3"]],["pink",["#ec5f8f","#fff4f7"]],["red",["#d93b3b","#fbf6f3"]],["sky",["#4a78d0","#f1f5fa"]],["felt",["#16302d","#e8c25a"]]];
+const days=d=>d<1?(d<.05?"今天碎":"不到 1 天"):"还剩 "+Math.ceil(d)+" 天";
+let S=null;
+function render(){const p=$("#panel");p.innerHTML="";
+  if(!S){p.append(h("div",{class:"wait"},"口袋还在加载…"));fit();return;}
+  document.documentElement.dataset.theme=S.theme||"cream";
+  const E=S.engine||{};const busy=E.busy||E.taste;
+  p.append(h("div",{class:"top"},pouch(),h("div",{class:"who"},h("b",{},"Lv."+S.lv+" "+S.title),h("small",{},S.cls+" · "+S.live+" 张卡 · 金 "+S.counts.gold+" 银 "+S.counts.silver),h("div",{class:"xp"},h("i",{style:"width:"+S.into+"%"})))));
+  p.append(h("div",{class:"eng"+(E.off?" off":busy?" busy":"")},h("i",{class:"dot"}),h("span",{},E.off?"引擎暂停了 · 手动按钮照常能用":E.taste?"正在整理品味 · "+E.taste:E.busy?"正在查「"+E.busy+"」":E.next?"在转 · 下一个「"+E.next.name+"」"+E.next.when:"在转 · 追踪台上没有座位")));
+  const nc=S.crumble.length;
+  p.append(h("div",{class:"tiles"},
+    h("button",{class:"tile"+(S.nNew?"":" zero"),type:"button",onclick:()=>go("new")},h("b",{},S.nNew),h("small",{},"NEW 新卡")),
+    h("button",{class:"tile"+(nc?" hot":" zero"),type:"button",onclick:()=>go("new")},h("b",{},nc),h("small",{},"快碎了")),
+    h("button",{class:"tile"+(S.qReady.length?" ready":" zero"),type:"button",onclick:()=>go("go","settings")},h("b",{},S.qReady.length),h("small",{},"任务可领"))));
+  if(nc){p.append(h("h4",{},"快碎了 · 点开处理"),h("div",{class:"rows"},S.crumble.slice(0,3).map(c=>h("button",{class:"row",type:"button",onclick:()=>go("card",c.id)},h("i",{class:"crack"}),h("span",{},c.title),h("em",{},days(c.left))))));}
+  const act=(k,b,s,fn,on,dis)=>h("button",{class:"act"+(on?" on":""),type:"button",disabled:dis||null,onclick:fn},icon(k),h("span",{},h("b",{},b),h("small",{},s)));
+  p.append(h("h4",{},"快捷"),h("div",{class:"acts"},
+    act("snap","截图进口袋","⌃⌘A 框一块屏幕",()=>{invoke("menu_hide");setTimeout(()=>invoke("snap_now"),180);}),
+    act("draw","抽一手","答完会写进属性",()=>go("go","draw")),
+    act("clip","剪贴板",S.clipOn?"在记 · 点一下停":"没在记 · 点一下开",()=>cmd("clip",null,true),S.clipOn),
+    act("pet","桌宠",S.petOn?"在桌面上 · 点一下收":"收着 · 点一下放出来",()=>cmd("pet",null,true),S.petOn),
+    act("engine","引擎",E.off?"暂停了 · 点一下继续":"在转 · 点一下暂停",()=>cmd("engine",null,true),!E.off),
+    act("taste","整理品味",E.taste?"整理中…":S.tasteAt?"上次 "+S.tasteAt:"还没整理过",()=>cmd("taste",null,true),false,!!E.taste)));
+  p.append(h("div",{class:"themes",role:"group","aria-label":"配色"},THEMES.map(([k,c])=>h("button",{type:"button",class:(S.theme||"cream")===k?"on":null,title:k,"aria-label":"配色 "+k,onclick:()=>cmd("theme",k,true)},h("i",{style:"background:"+c[0]}),h("i",{style:"background:"+c[1]})))));
+  p.append(h("div",{class:"foot"},h("button",{class:"main",type:"button",onclick:()=>go("open")},"打开口袋"),h("button",{type:"button",onclick:()=>go("go","settings")},"设置"),h("button",{type:"button",onclick:()=>invoke("quit_app")},"退出")));
+  fit();}
+function fit(){requestAnimationFrame(()=>invoke("menu_fit",{h:Math.ceil($("#panel").getBoundingClientRect().height)}));}
+ev.listen("sense://summary",e=>{S=e.payload;render();});
+ev.listen("sense://menu-open",()=>{ev.emitTo("main","sense://cmd",{cmd:"need",arg:null});});
+addEventListener("keydown",e=>{if(e.key==="Escape")invoke("menu_hide");});
+ev.emitTo("main","sense://cmd",{cmd:"need",arg:null});render();
+})();
+</script>
+</body>
