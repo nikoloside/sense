@@ -1,6 +1,6 @@
 # Sense
 
-**Your personal taste agent.**
+**Your personal taste agent.** · [English](README.en.md) · [日本語](README.ja.md)
 懂你的品味，帮你发现值得喜欢的东西。
 あなたの好みを理解し、次の「好き」を見つける。
 

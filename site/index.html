@@ -9,6 +9,7 @@
 <meta property="og:description" content="Your personal taste agent. 懂你的品味，帮你发现值得喜欢的东西。">
 <meta property="og:image" content="https://ludics.space/icon.png">
 <link rel="icon" href="icon.png">
+<link rel="alternate" hreflang="zh" href="https://ludics.space/?lang=zh"><link rel="alternate" hreflang="en" href="https://ludics.space/?lang=en"><link rel="alternate" hreflang="ja" href="https://ludics.space/?lang=ja">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+SC:wght@400;500;700&display=swap">
 <style>
@@ -43,52 +44,82 @@ ul{margin:0;padding-left:20px}li{margin:4px 0}
 code{font-family:ui-monospace,monospace;font-size:.92em;background:var(--paper);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
 footer{max-width:880px;margin:0 auto;padding:0 16px 40px;font-size:12.5px;color:var(--ink-2);display:flex;gap:14px;flex-wrap:wrap}
 footer a{color:inherit}
+main a{color:var(--ac-2)}
+.lang{margin-left:auto;display:flex;gap:6px;align-self:flex-start}
+.lang button{all:unset;cursor:pointer;font-family:var(--px);font-size:13px;padding:4px 10px;border-radius:6px;border:2px solid rgba(255,255,255,.55);color:#fff}
+.lang button[aria-pressed="true"]{background:#fff;color:var(--ac-2);border-color:#fff}
+.lang button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 @media (max-width:520px){.band h1{font-size:32px}.btn{min-width:0;flex:1 1 100%}}
 </style>
 </head>
 <body>
 <div class="band"><div class="in">
   <img src="icon.png" alt="Sense 口袋图标">
-  <div><h1>Sense 口袋</h1><p>懂你的品味，帮你发现值得喜欢的东西。</p><div class="en">YOUR PERSONAL TASTE AGENT · OPEN SOURCE</div></div>
+  <div><h1>Sense 口袋</h1><p data-i="tag">懂你的品味，帮你发现值得喜欢的东西。</p><div class="en">YOUR PERSONAL TASTE AGENT · OPEN SOURCE</div></div>
+  <nav class="lang" aria-label="Language"><button type="button" data-l="zh">中文</button><button type="button" data-l="en">EN</button><button type="button" data-l="ja">日本語</button></nav>
 </div></div>
 <main>
   <div class="cta">
-    <a class="btn main" href="https://github.com/nikoloside/sense/releases/latest"><b>下载 macOS 版</b><small>.dmg · Apple 芯片</small></a>
-    <a class="btn" href="https://github.com/nikoloside/sense"><b>GitHub 源码</b><small>nikoloside/sense · MIT</small></a>
-    <a class="btn" href="demo/"><b>在线 Demo</b><small>作者本人的口袋，直接在浏览器里玩</small></a>
+    <a class="btn main" href="https://github.com/nikoloside/sense/releases/latest"><b data-i="dl">下载 macOS 版</b><small data-i="dl_s">.dmg · Apple 芯片</small></a>
+    <a class="btn" href="https://github.com/nikoloside/sense"><b data-i="gh">GitHub 源码</b><small>nikoloside/sense · MIT</small></a>
+    <a class="btn" href="demo/"><b data-i="demo">在线 Demo</b><small data-i="demo_s">作者本人的口袋，直接在浏览器里玩</small></a>
   </div>
 
   <section>
-    <h2>它在做什么</h2>
-    <p>Sense 从你看过、听过、截过、和 AI 聊过的东西里整理出一张张卡，放进口袋。你留下、丢掉、抽卡回答，它就越来越清楚你在意什么，再替你去找新的。不打分、不算百分比，每张卡都能追到证据。</p>
+    <h2 data-i="h_what">它在做什么</h2>
+    <p data-i="what">Sense 从你看过、听过、截过、和 AI 聊过的东西里整理出一张张卡，放进口袋。你留下、丢掉、抽卡回答，它就越来越清楚你在意什么，再替你去找新的。不打分、不算百分比，每张卡都能追到证据。</p>
     <div class="tiers">
-      <div class="tier"><b><i style="background:var(--stone)"></i>石</b><p>刚进来，还没处理。7 天没理会就碎掉，只留下"查到过"。</p></div>
-      <div class="tier"><b><i style="background:var(--bronze)"></i>铜</b><p>你留下了，说明有点在意。</p></div>
-      <div class="tier"><b><i style="background:var(--silver)"></i>银</b><p>在关注：它自己有新一话、新作、新论文时告诉你。</p></div>
-      <div class="tier"><b><i style="background:var(--gold)"></i>金</b><p>一种口味：两张银卡说得出同一个为什么就融合成金，按口味往外推荐。</p></div>
+      <div class="tier"><b><i style="background:var(--stone)"></i><span data-i="t_stone">石</span></b><p data-i="d_stone">刚进来，还没处理。7 天没理会就碎掉，只留下"查到过"。</p></div>
+      <div class="tier"><b><i style="background:var(--bronze)"></i><span data-i="t_bronze">铜</span></b><p data-i="d_bronze">你留下了，说明有点在意。</p></div>
+      <div class="tier"><b><i style="background:var(--silver)"></i><span data-i="t_silver">银</span></b><p data-i="d_silver">在关注：它自己有新一话、新作、新论文时告诉你。</p></div>
+      <div class="tier"><b><i style="background:var(--gold)"></i><span data-i="t_gold">金</span></b><p data-i="d_gold">一种口味：两张银卡说得出同一个为什么就融合成金，按口味往外推荐。</p></div>
     </div>
   </section>
 
   <section>
-    <h2>数据从哪来</h2>
+    <h2 data-i="h_src">数据从哪来</h2>
     <ul>
-      <li>⌃⌘A 截一块屏幕、开着的剪贴板记录、把图片拖给桌宠。</li>
-      <li>你自己的 Chrome 履历和 YouTube 观看记录，在本机读，读完即删副本。</li>
-      <li>你登录着的 YouTube Music / Spotify 页面：Claude 只读白名单里的几页，只记歌名和歌手。</li>
-      <li>你和 Claude Code 的会话日志里，你说过的判断。</li>
+      <li data-i="src0">⌃⌘A 截一块屏幕、开着的剪贴板记录、把图片拖给桌宠。</li>
+      <li data-i="src1">你自己的 Chrome 履历和 YouTube 观看记录，在本机读，读完即删副本。</li>
+      <li data-i="src2">你登录着的 YouTube Music / Spotify 页面：Claude 只读白名单里的几页，只记歌名和歌手。</li>
+      <li data-i="src3">你和 Claude Code 的会话日志里，你说过的判断。</li>
     </ul>
-    <p>所有东西存在你的 Mac 上，不上传。agent 调用都是本机的 Claude Code，用你自己的账号。</p>
+    <p data-i="local">所有东西存在你的 Mac 上，不上传。agent 调用都是本机的 Claude Code，用你自己的账号。</p>
   </section>
 
   <section class="box">
-    <h2>安装前要知道</h2>
+    <h2 data-i="h_before">安装前要知道</h2>
     <ul>
-      <li>只支持 macOS（Apple 芯片），需要已安装并登录的 <a href="https://claude.com/claude-code">Claude Code</a>。读听歌页面还要装 Claude in Chrome 扩展。</li>
-      <li>安装包没有经过 Apple 公证。第一次打开被拦时，到「系统设置 › 隐私与安全性」点「仍要打开」。</li>
-      <li>要读 Chrome 履历，请在「完全磁盘访问权限」里打开「Sense 口袋」；不打开也能用，只是少一个来源。</li>
+      <li data-i="b0">只支持 macOS（Apple 芯片），需要已安装并登录的 <a href="https://claude.com/claude-code">Claude Code</a>。读听歌页面还要装 Claude in Chrome 扩展。</li>
+      <li data-i="b1">安装包没有经过 Apple 公证。第一次打开被拦时，到「系统设置 › 隐私与安全性」点「仍要打开」。</li>
+      <li data-i="b2">要读 Chrome 履历，请在「完全磁盘访问权限」里打开「Sense 口袋」；不打开也能用，只是少一个来源。</li>
     </ul>
   </section>
 </main>
-<footer><span>MIT License · by <a href="https://github.com/nikoloside">nikoloside</a></span><a href="https://ludics.space">ludics.space</a><a href="https://github.com/nikoloside/sense/tree/main/docs">设计文档</a></footer>
+<footer><span>MIT License · by <a href="https://github.com/nikoloside">nikoloside</a></span><a href="https://ludics.space">ludics.space</a><a href="https://github.com/nikoloside/sense/tree/main/docs" data-i="docs">设计文档</a></footer>
+<script>
+/* 三语：中文写在 HTML 里（没有脚本也能读），英文和日文在这里。?lang= 优先，其次上次选的，再次浏览器语言。 */
+const T={
+en:{title:"Sense · Download",tag:"Knows your taste. Finds the next thing worth loving.",dl:"Download for macOS",dl_s:".dmg · Apple silicon",gh:"Source on GitHub",demo:"Live demo",demo_s:"The author's own pocket, right in your browser",
+h_what:"What it does",what:"Sense turns what you watch, listen to, screenshot and talk about with AI into cards in a pocket. As you keep, drop and answer quick draws, it learns what you actually care about, then goes looking for new things for you. No scores, no percentages — every card traces back to its evidence.",
+t_stone:"Stone",d_stone:"Just arrived, not handled yet. Ignore it for 7 days and it shatters, leaving only a note that it was found.",t_bronze:"Bronze",d_bronze:"You kept it — you care a little.",t_silver:"Silver",d_silver:"Followed: it tells you when there is a new episode, new work or new paper.",t_gold:"Gold",d_gold:"A taste: two silver cards that share the same reason fuse into gold, which recommends outward.",
+h_src:"Where the data comes from",src0:"⌃⌘A to grab part of the screen, clipboard capture when you turn it on, or images dropped onto the desktop pet.",src1:"Your own Chrome history and YouTube watch history, read locally; the temporary copy is deleted right after.",src2:"Your signed-in YouTube Music / Spotify pages: Claude reads only a short allowlist of pages and keeps just titles and artists.",src3:"Judgments you stated in your Claude Code sessions.",
+local:"Everything stays on your Mac and is never uploaded. Every agent call is your local Claude Code, on your own account.",
+h_before:"Before you install",b0:"macOS on Apple silicon only. Requires <a href=\"https://claude.com/claude-code\">Claude Code</a>, installed and signed in. Reading listening pages also needs the Claude in Chrome extension.",b1:"The app is not notarized by Apple. If the first launch is blocked, open System Settings › Privacy & Security and click “Open Anyway”.",b2:"To read Chrome history, turn on “Sense 口袋” under Full Disk Access. It still works without it — just with one fewer source.",docs:"Design docs"},
+ja:{title:"Sense · ダウンロード",tag:"あなたの好みを理解し、次の「好き」を見つける。",dl:"macOS 版をダウンロード",dl_s:".dmg · Apple シリコン",gh:"GitHub のソースコード",demo:"オンラインデモ",demo_s:"作者本人のポケットをブラウザでそのまま",
+h_what:"何をするのか",what:"見たもの、聴いたもの、スクショしたもの、AI と話したことから、Sense がカードを作ってポケットに入れます。残す・捨てる・カードを引いて答える、を繰り返すうちに、あなたが本当に大事にしているものを覚え、新しいものを探しに行きます。点数もパーセントもなし。どのカードも根拠までたどれます。",
+t_stone:"石",d_stone:"入ったばかりで未処理。7 日放っておくと砕けて、「見つけた」という記録だけが残ります。",t_bronze:"銅",d_bronze:"残したカード。少しは気になっている。",t_silver:"銀",d_silver:"フォロー中。新しい話数、新作、新しい論文が出たら知らせます。",t_gold:"金",d_gold:"好みそのもの。同じ「なぜ」を語れる銀カード 2 枚が融合して金になり、外へ向けておすすめします。",
+h_src:"データの出どころ",src0:"⌃⌘A で画面の一部を切り取る、オンにしたときのクリップボード記録、デスクトップペットへの画像ドロップ。",src1:"あなた自身の Chrome 履歴と YouTube 視聴履歴をローカルで読み、コピーは読み終えたらすぐ削除。",src2:"ログイン中の YouTube Music / Spotify のページ。Claude は許可リストの数ページだけを読み、曲名とアーティストだけを残します。",src3:"Claude Code との会話であなたが述べた判断。",
+local:"すべてあなたの Mac に保存され、アップロードはしません。エージェントの呼び出しはすべてローカルの Claude Code で、あなた自身のアカウントです。",
+h_before:"インストールの前に",b0:"Apple シリコンの macOS のみ。インストール済みでログインした <a href=\"https://claude.com/claude-code\">Claude Code</a> が必要です。聴いた曲のページを読むには Claude in Chrome 拡張も必要です。",b1:"Apple の公証を受けていません。初回起動がブロックされたら、システム設定 › プライバシーとセキュリティ で「このまま開く」を押してください。",b2:"Chrome 履歴を読むには「フルディスクアクセス」で「Sense 口袋」をオンに。オフでも使えます（情報源が一つ減るだけ）。",docs:"設計ドキュメント"}};
+const ZH={};document.querySelectorAll("[data-i]").forEach(e=>ZH[e.dataset.i]=e.innerHTML);ZH.title=document.title;
+function pick(){const q=new URLSearchParams(location.search).get("lang");if(q&&(q==="zh"||T[q]))return q;try{const s=localStorage.getItem("sense-site-lang");if(s)return s;}catch(e){}
+  const n=(navigator.language||"").toLowerCase();return n.startsWith("ja")?"ja":n.startsWith("zh")?"zh":"en";}
+function setLang(l){const D=l==="zh"?ZH:T[l];document.documentElement.lang=l;document.title=D.title;
+  document.querySelectorAll("[data-i]").forEach(e=>{const v=D[e.dataset.i];if(v!=null)e.innerHTML=v;});
+  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===l)));}
+document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{setLang(b.dataset.l);try{localStorage.setItem("sense-site-lang",b.dataset.l)}catch(e){}});
+setLang(pick());
+</script>
 </body>
 </html>
