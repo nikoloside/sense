@@ -1124,11 +1124,11 @@ function drawPoster(cv){const W=720,H=1040;cv.width=W;cv.height=H;const g=cv.get
   drawQR(g,W-56-128,46,128,K);
   return cv;}
 /* 展示卡右上角的二维码 → 下载页。矩阵在构建前算好（qrcode 7.4.2，纠错 M），这里只画格子；白底黑格，任何配色都扫得出。 */
-const DOWNLOAD_URL="https://ludics.space/sense";
-const QR=["1111111000000000101111111", "1000001001011001001000001", "1011101011110011001011101", "1011101011000111101011101", "1011101010100000101011101", "1000001011100101101000001", "1111111010101010101111111", "0000000010110010000000000", "1011111000101111101111100", "0101110000111000110100010", "1100111011100011011001011", "0010100001111010111110001", "1101111000101100011010111", "1110110110001100000101010", "1000101101000111111111011", "1010110110100010001110001", "1011101101001111111110100", "0000000010010010100011000", "1111111000000100101010111", "1000001011111010100011000", "1011101011000111111110100", "1011101011110000111011111", "1011101010101011000001101", "1000001000110011100111001", "1111111010111110011111111"];
+const DOWNLOAD_URL="https://ludics.space";
+const QR=["1111111011111110001111111", "1000001010110110001000001", "1011101010000111101011101", "1011101001001100001011101", "1011101011010010101011101", "1000001000000100001000001", "1111111010101010101111111", "0000000000110101000000000", "1001111111110011010010111", "0111000110111011010111110", "1100111011001001001011001", "1010110010101011001111111", "1110101011010110101100001", "1010010110101011000010010", "1100111010000011011011111", "1011110111101111101101101", "1010001101111001111110110", "0000000011010001100010110", "1111111010101110101010001", "1000001011110101100010001", "1011101011010101111110011", "1011101010101101011000011", "1011101000110101010011111", "1000001001011100010110111", "1111111010011100101001001"];
 function drawQR(g,x,y,size,K){const n=QR.length,q=2,c=Math.floor(size/(n+q*2)),s=c*(n+q*2);g.fillStyle="#ffffff";g.fillRect(x,y,s,s);g.strokeStyle=K.ac;g.lineWidth=4;g.strokeRect(x-2,y-2,s+4,s+4);
   g.fillStyle="#1b1410";QR.forEach((r,i)=>[...r].forEach((b,j)=>{if(b==="1")g.fillRect(x+(j+q)*c,y+(i+q)*c,c,c);}));
-  g.fillStyle=K.t2;g.font="13px DotGothic16, monospace";g.textAlign="center";g.fillText("扫码下载 Sense",x+s/2,y+s+20);g.fillText("ludics.space/sense",x+s/2,y+s+37);g.textAlign="left";}
+  g.fillStyle=K.t2;g.font="13px DotGothic16, monospace";g.textAlign="center";g.fillText("扫码下载 Sense",x+s/2,y+s+20);g.fillText("ludics.space",x+s/2,y+s+37);g.textAlign="left";}
 async function savePoster(cv){const url=cv.toDataURL("image/png");const name="sense-"+today()+".png";
   if(DESK){try{const p=await invoke("save_png",{name,b64:url});toast("存到了 "+p.replace(/^.*\/Downloads/,"下载"));}catch(e){toast("没存成："+e);}return;}
   const a=h("a",{href:url,download:name});document.body.append(a);a.click();a.remove();}
@@ -1575,7 +1575,7 @@ if(DESK){(async()=>{try{const raw=await invoke("load_state");if(raw&&!dirty){con
     setInterval(()=>{if(S.engineOff)return;if(listenDue())listenScan(true);else if(S.taste&&Date.now()-S.taste.at>7*864e5)buildTaste(true);},36e5);setStatus("桌面版 · 状态存在 ~/Library/Application Support/Sense，Claude Code 能读到");}catch(e){}
   if(S.clipOn)invoke("clip_watch",{on:true});
   const ev=TAURI.event;
-  ev.listen("sense://clip",e=>{clipQ.push(e.payload);drainClips();});
+  ev.listen("sense://clip",e=>{clipQ.push(e.payload);drainClips();if(e.payload.copied)toast("截图进口袋了，也复制到了剪贴板：⌘V 可以贴到别处");});
   ev.listen("sense://cmd",e=>onCmd(e.payload||{}));pushSummary(true);
   $("#pouchwrap").addEventListener("click",()=>{const r=$("#pouch").getBoundingClientRect();invoke("menu_toggle",{x:r.left-4,y:r.top-2,w:r.width+20,h:r.height+4});});
   if(petOn())invoke("pet_show",{on:true,x:S.pet&&S.pet.x!=null?S.pet.x:null,y:S.pet&&S.pet.y!=null?S.pet.y:null});

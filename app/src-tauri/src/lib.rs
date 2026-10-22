@@ -1,7 +1,7 @@
 //! Sense 口袋的 Rust 薄壳。
 //!
 //! 只做网页做不到的事：
-//! - ⌃⌘A 全局热键 → 系统框选截图 → 把图片交给口袋页面，页面自己建卡、播放进口袋的特效。
+//! - ⌃⌘A 全局热键 → 系统框选截图 → 把图片交给口袋页面，页面自己建卡、播放进口袋的特效；同一张图也放进系统剪贴板，⌘V 能贴。
 //! - 菜单栏图标：左键弹快捷菜单，右键是原生菜单。桌宠：一个透明小窗，拖图片给它就是喂进口袋。
 //! - 口袋状态读写到 ~/Library/Application Support/Sense/pocket-state.json，Claude Code 能读回。
 //! - 读本机 Chrome 履历与书签，按频次规则出候选。只读作者本人的 profile，副本读完即删，
@@ -93,6 +93,8 @@ struct Clip {
     b64: String,
     mime: &'static str,
     source_app: String,
+    /// 是否也复制到了系统剪贴板
+    copied: bool,
 }
 
 fn frontmost_app() -> String {
@@ -128,13 +130,17 @@ fn snap(app: AppHandle) {
             Err(_) => return,
         };
         let _ = fs::remove_file(&path); // 原图不留在磁盘上
+        #[cfg(target_os = "macos")]
+        let copied = clipboard::put_png(&bytes);
+        #[cfg(not(target_os = "macos"))]
+        let copied = false;
         if let Some(w) = app.get_webview_window("main") {
             let _ = w.show();
             let _ = w.set_focus();
         }
         let _ = app.emit(
             "sense://clip",
-            Clip { b64: base64::engine::general_purpose::STANDARD.encode(bytes), mime: "image/png", source_app },
+            Clip { b64: base64::engine::general_purpose::STANDARD.encode(bytes), mime: "image/png", source_app, copied },
         );
     });
 }
@@ -892,7 +898,7 @@ fn feed(app: &AppHandle, paths: &[PathBuf]) -> usize {
         let _ = app.emit_to(
             "main",
             "sense://clip",
-            Clip { b64: base64::engine::general_purpose::STANDARD.encode(bytes), mime, source_app: "桌宠".into() },
+            Clip { b64: base64::engine::general_purpose::STANDARD.encode(bytes), mime, source_app: "桌宠".into(), copied: false },
         );
         n += 1;
     }

@@ -4,7 +4,7 @@
 懂你的品味，帮你发现值得喜欢的东西。
 あなたの好みを理解し、次の「好き」を見つける。
 
-**下载 · Download：[ludics.space/sense](https://ludics.space/sense)** · Demo：[ludics.space/sense/demo](https://ludics.space/sense/demo/) · MIT License
+**下载 · Download：[ludics.space](https://ludics.space)** · Demo：[ludics.space/demo](https://ludics.space/demo/) · MIT License
 
 Sense 是一个理解你个人品味的 Agent。它从你与 AI 的对话、收藏和喜欢的作品中学习，通过你的确认和纠正，逐渐理解你的选择标准，再帮你寻找文章、游戏、作品与创作者。你可以随时查看、修改和带走它对你的理解。
 
