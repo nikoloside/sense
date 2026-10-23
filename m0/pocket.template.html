@@ -748,7 +748,7 @@ const HELP=[
   ["跟：开始关注它本身","铜卡升成银卡：之后它自己有新一话、新作、新论文时告诉你。"],
   ["不跟了","银卡退回铜卡，不再替你查它的动向。"],
   ["不对，拆开","这张融合错了：拆回原来的卡，它们回到口袋。"],
-  ["融合…","自己挑两张以上的卡收成一张：口袋少几张、给 XP。默认不升级，全是银卡时可以勾「成金」。"],
+  ["融合…","自己挑两张以上的卡收成一张，石卡也行：口袋少几张、给 XP。取最高品级、至少铜；全是银卡时可以勾「成金」。"],
   ["放进卡槽","放进一个卡槽（比如某个用例或主题），让它和同槽的卡一起被用到。"],
   ["现在查一次动向","不等排期，马上让引擎查一次它最近有什么新的。"],
   ["现在推荐一轮","按这张金卡代表的口味，马上往外找一轮新东西推荐给你。"],
@@ -828,7 +828,7 @@ function openCard(id,o){
   if(!c2.archived&&c2.tier==="stone")acts.append(h("button",{class:"btn ghost smash",type:"button",onclick:()=>{const r=rr();closeSheet();shatterNow(c2.id,"你亲手碾碎",r);toast("碎了：「"+c2.title+"」进了碎卡堆，以后不会再塞给你");render();}},"碾碎：不太在意"));
   if(!c2.archived&&(c2.tier==="stone"||c2.tier==="bronze")&&c2.subkind!=="update")acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();putOnTrack(c2.id);}},seats()[c2.id]?"在追踪台上出题":"放上追踪台出题"));
   if(!c2.archived&&(c2.tier==="silver"||c2.tier==="gold"))acts.append(h("button",{class:"btn",type:"button",disabled:!canAgent()||!!trackBusy||null,onclick:()=>{closeSheet();syncTracks();runSeat(c2.id,true);tab="track";render();}},c2.tier==="gold"?"现在推荐一轮":"现在查一次动向"));
-  if(c2.tier!=="stone"&&!c2.archived&&!cs(c2.id).stackedUnder){const fz=fusionsFor(c2.id);acts.append(h("button",{class:"btn gold",type:"button",onclick:()=>{closeSheet();openFusion(fz[0]||{inputs:[c2.id],manual:true});}},fz.length?"融合…（Sense 有建议）":"融合…"));}
+  if(!c2.archived&&!cs(c2.id).stackedUnder){const fz=fusionsFor(c2.id);acts.append(h("button",{class:"btn gold",type:"button",onclick:()=>{closeSheet();openFusion(fz[0]||{inputs:[c2.id],manual:true});}},fz.length?"融合…（Sense 有建议）":"融合…"));}
   const attrs=(c2.attribute_ids||[]).map(aid=>{const a=attr(aid);if(!a)return null;return h("div",{class:"achip"},h("b",{},"「"+a.text+"」"),h("span",{},(a.reason||"")+(a.contrast?" · 反对："+a.contrast:"")),h("span",{},(a.status==="confirmed"?"已确认":"候选")+" · 用了 "+a.uses+" 次"));});
   const st=stackOf(id);
   sheet(c2.tier,
@@ -918,7 +918,8 @@ function fusionOffers(){S.fusedKeys=S.fusedKeys||[];const by={};
     return{key:a+":"+fkey(ids),attr:a,inputs:ids,output:{kind:"interest",title:named?named.output.title:at.text,attribute_ids:[a]}};}).filter(o=>!S.fusedKeys.includes(o.key));}
 function fusionsFor(id){return fusionOffers().filter(o=>o.inputs.includes(id));}
 /* Fusion (0033): Sense suggests, the author picks. Any two or more kept cards; the result keeps the highest tier unless the author ticks "成金". */
-function maxTier(ids){return ids.map(card).filter(Boolean).map(c=>c.tier).sort((a,b)=>TIER_RANK[b]-TIER_RANK[a])[0]||"bronze";}
+/* fusing is itself a decision to keep: stones in, at least bronze out */
+function maxTier(ids){const t=ids.map(card).filter(Boolean).map(c=>c.tier).sort((a,b)=>TIER_RANK[b]-TIER_RANK[a])[0];return!t||t==="stone"?"bronze":t;}
 function canGold(ids){return ids.length>=2&&ids.every(id=>{const c=card(id);return c&&(c.tier==="silver"||c.tier==="gold");});}
 function sharedAttr(ids,pref){const cnt={};ids.map(card).filter(Boolean).forEach(c=>(c.attribute_ids||[]).forEach(a=>{if(attr(a))cnt[a]=(cnt[a]||0)+1;}));
   if(pref&&cnt[pref]===ids.length)return pref;const all=Object.keys(cnt).filter(a=>cnt[a]===ids.length);if(all.length)return all[0];
@@ -932,11 +933,11 @@ function openFusion(o){const pick=new Set(o.inputs||[]);let gold=false;
   const overlap=c=>{const mine=new Set();pick.forEach(id=>(card(id).attribute_ids||[]).forEach(a=>mine.add(a)));return(c.attribute_ids||[]).filter(a=>mine.has(a)).length;};
   const draw=()=>{const ids=[...pick];chosen.innerHTML="";more.innerHTML="";
     ids.forEach(id=>chosen.append(face(card(id),{onClick:()=>{pick.delete(id);draw();}})));if(!ids.length)chosen.append(h("p",{class:"note"},"从下面点卡加进来。"));
-    keptCards().filter(c=>!pick.has(c.id)).sort((a,b)=>overlap(b)-overlap(a)||TIER_RANK[b.tier]-TIER_RANK[a.tier]).forEach(c=>more.append(face(c,{onClick:()=>{pick.add(c.id);draw();}})));
+    liveCards().filter(c=>!pick.has(c.id)).sort((a,b)=>(a.tier==="stone")-(b.tier==="stone")||overlap(b)-overlap(a)||TIER_RANK[b.tier]-TIER_RANK[a.tier]).forEach(c=>more.append(face(c,{onClick:()=>{pick.add(c.id);draw();}})));
     const g=canGold(ids);if(!g){gold=false;goldBox.checked=false;}goldBox.disabled=!g;goldLbl.style.opacity=g?"1":".5";
     if(!nameIn.dataset.touched)nameIn.value=ids.length?fuseTitle(ids,o):"";
     const tier=gold?"gold":maxTier(ids),less=Math.max(0,ids.length-1);
-    note.textContent=ids.length<2?"至少挑两张。点上面的卡可以去掉。":"融合成一张"+TIER[tier]+"卡，原卡叠在下面，点开像相册一样翻看，不对可以拆开。口袋少 "+less+" 张，+"+(10*less+(gold?50:0))+" XP。"+(g?"":"全是银卡或金卡才能成金。");
+    const st=ids.filter(id=>card(id).tier==="stone").length;note.textContent=ids.length<2?"至少挑两张。点上面的卡可以去掉。":(st?st+" 张石卡一起收进来，不会再碎。":"")+"融合成一张"+TIER[tier]+"卡，原卡叠在下面，点开像相册一样翻看，不对可以拆开。口袋少 "+less+" 张，+"+(10*less+(gold?50:0))+" XP。"+(g?"":"全是银卡或金卡才能成金。");
     go.disabled=ids.length<2;};
   goldBox.addEventListener("change",()=>{gold=goldBox.checked;draw();});
   go.addEventListener("click",()=>{if(pick.size<2)return;chosen.querySelectorAll(".card").forEach(x=>x.classList.add("fusing"));const ids=[...pick],title=nameIn.value.trim(),g=gold;setTimeout(()=>doFuse(o,ids,{title,gold:g}),550);});
@@ -944,13 +945,13 @@ function openFusion(o){const pick=new Set(o.inputs||[]);let gold=false;
   sheet("gold",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},o.manual?"融合 · 自己挑":"融合 · Sense 的建议，可以改"),h("h3",{},"挑几张，收成一张"),
       o.attr&&attr(o.attr)?h("p",{class:"meta"},"Sense 看到的共同点：「"+attr(o.attr).text+"」"+(attr(o.attr).reason?" · "+attr(o.attr).reason:"")):null),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
     h("div",{class:"meta"},"已选"),chosen,h("div",{class:"fopts"},nameIn,goldLbl),note,h("div",{class:"acts"},go),
-    h("details",{open:o.manual||null},h("summary",{class:"meta"},"从口袋里再挑（挂着相同属性的排前面）"),more));}
+    h("details",{open:o.manual||null},h("summary",{class:"meta"},"从口袋里再挑（挂着相同属性的排前面，石卡在最后）"),more));}
 function doFuse(o,ids,opt){opt=opt||{};ids=ids||o.inputs;const aid=sharedAttr(ids,o.attr);const at=aid?attr(aid):null;const tier=opt.gold&&canGold(ids)?"gold":maxTier(ids);
   const out={kind:"interest",title:opt.title||fuseTitle(ids,o),attribute_ids:aid?[aid]:[],id:"F"+Date.now().toString(36),tier,fused_from:ids.slice(),manual:!!o.manual,
     body:"你把"+ids.map(id=>"「"+card(id).title+"」").join("、")+"收成一张"+(at?"，它们说得出同一个为什么：「"+at.text+"」":"")+"。",
     evidence:[{when:today(),where:o.manual?"融合 · 你自己挑的":"融合 · Sense 建议、你确认",what:ids.map(id=>card(id).title).join(" / ")}],
-    tier_reason:tier==="gold"?"由 "+ids.length+" 张银卡融合，你确认这是一种口味":"融合 "+ids.length+" 张，取原卡里最高的品级"};
-  S.added.push(out);ids.forEach(id=>{cs(id).stackedUnder=out.id;});touch(out.id);if(o.key)(S.fusedKeys=S.fusedKeys||[]).push(o.key);
+    tier_reason:tier==="gold"?"由 "+ids.length+" 张银卡融合，你确认这是一种口味":"融合 "+ids.length+" 张，取原卡里最高的品级（至少铜）"};
+  S.added.push(out);ids.forEach(id=>{cs(id).stackedUnder=out.id;cs(id).used=true;});touch(out.id);if(o.key)(S.fusedKeys=S.fusedKeys||[]).push(o.key);
   if(aid)bumpAttrs([aid],1);log("fuse",out.id,{inputs:ids,tier,manual:!!o.manual});fx(tier==="gold"?"gold":"fuse");syncTracks();
   if(tier==="gold"&&seats()[out.id])seats()[out.id].next=Date.now()+15000;
   {const less=ids.length-1;giveXp(10*less+(tier==="gold"?50:0),"融合少了 "+less+" 张"+(tier==="gold"?"，成金":""));}
