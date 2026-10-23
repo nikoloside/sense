@@ -41,7 +41,7 @@ h2{font-family:var(--px);font-weight:400;font-size:20px;margin:0 0 10px;color:va
 .tier p{margin:4px 0 0;font-size:13.5px;color:var(--ink-2)}
 ul{margin:0;padding-left:20px}li{margin:4px 0}
 .box{background:var(--panel);border:2px dashed var(--line);border-radius:10px;padding:14px 18px}
-code{font-family:ui-monospace,monospace;font-size:.92em;background:var(--paper);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+code{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:.92em;background:var(--paper);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
 footer{max-width:880px;margin:0 auto;padding:0 16px 40px;font-size:12.5px;color:var(--ink-2);display:flex;gap:14px;flex-wrap:wrap}
 footer a{color:inherit}
 main a{color:var(--ac-2)}
@@ -49,13 +49,39 @@ main a{color:var(--ac-2)}
 .lang button{all:unset;cursor:pointer;font-family:var(--px);font-size:13px;padding:4px 10px;border-radius:6px;border:2px solid rgba(255,255,255,.55);color:#fff}
 .lang button[aria-pressed="true"]{background:#fff;color:var(--ac-2);border-color:#fff}
 .lang button:focus-visible{outline:2px solid #fff;outline-offset:2px}
-@media (max-width:520px){.band h1{font-size:32px}.btn{min-width:0;flex:1 1 100%}}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.badge{font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.6);color:#fff;white-space:nowrap}
+.badge.on{background:#fff;color:var(--ac-2);border-color:#fff}
+.reel{border-radius:14px;overflow:hidden;border:3px solid var(--line);box-shadow:0 4px 0 var(--line);background:var(--panel);aspect-ratio:16/9}
+.reel video{display:block;width:100%;height:100%;object-fit:cover}
+.cast{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.mate{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:12px 14px 14px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.mate img{width:170px;height:170px;object-fit:contain;transition:transform .2s}
+.mate:hover img{transform:translateY(-4px) rotate(-2deg)}
+.mate b{font-family:var(--px);font-weight:400;font-size:19px;margin-top:2px}
+.mate .role{font-size:12.5px;color:var(--ac-2);font-weight:700;margin-top:2px}
+.mate p{margin:6px 0 0;font-size:13.5px;color:var(--ink-2)}
+.moves{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.move{background:var(--paper);border:2px dashed var(--line);border-radius:10px;padding:6px 6px 10px;text-align:center;font-size:12.5px;color:var(--ink-2)}
+.move img{width:100%;max-width:120px;aspect-ratio:1;object-fit:contain;display:block;margin:0 auto}
+.move b{display:block;color:var(--ink);font-size:13.5px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.feat{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
+.feat h3{margin:0 0 6px;font-size:16px}
+.feat p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.feat img{position:absolute;right:-14px;bottom:-18px;width:120px;opacity:.95;pointer-events:none}
+.feat .txt{padding-right:92px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--gold);color:#3a2416;margin-left:6px;vertical-align:2px}
+.note{font-size:12.5px;color:var(--ink-2);margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){.mate img{transition:none}}
+@media (max-width:520px){.band h1{font-size:32px}.btn{min-width:0;flex:1 1 100%}.feat .txt{padding-right:0}.feat img{position:static;display:block;margin:8px auto -18px}}
 </style>
 </head>
 <body>
 <div class="band"><div class="in">
   <img src="icon.png" alt="Sense 口袋图标">
-  <div><h1>Sense 口袋</h1><p data-i="tag">懂你的品味，帮你发现值得喜欢的东西。</p><div class="en">YOUR PERSONAL TASTE AGENT · OPEN SOURCE</div></div>
+  <div><h1>Sense 口袋</h1><p data-i="tag">懂你的品味，帮你发现值得喜欢的东西。</p><div class="en">YOUR PERSONAL TASTE AGENT · OPEN SOURCE</div>
+    <div class="badges"><span class="badge on">macOS</span><span class="badge" data-i="bg_local">本机运行</span><span class="badge" data-i="bg_noup">不上传</span><span class="badge">MIT</span><span class="badge">Claude · DeepSeek</span><span class="badge" data-i="bg_lang">中 / 日 / 英</span><span class="badge" data-i="bg_noscore">不打分</span></div></div>
   <nav class="lang" aria-label="Language"><button type="button" data-l="zh">中文</button><button type="button" data-l="en">EN</button><button type="button" data-l="ja">日本語</button></nav>
 </div></div>
 <main>
@@ -65,6 +91,8 @@ main a{color:var(--ac-2)}
     <a class="btn" href="demo/"><b data-i="demo">在线 Demo</b><small data-i="demo_s">作者本人的口袋，直接在浏览器里玩</small></a>
   </div>
 
+  <div class="reel"><video autoplay muted loop playsinline preload="metadata" poster="media/poster.webp" aria-label="Sense 口袋 20 秒介绍动画"><source src="media/teaser.webm" type="video/webm"><source src="media/teaser.mp4" type="video/mp4"></video></div>
+
   <section>
     <h2 data-i="h_what">它在做什么</h2>
     <p data-i="what">Sense 从你看过、听过、截过、和 AI 聊过的东西里整理出一张张卡，放进口袋。你留下、丢掉、抽卡回答，它就越来越清楚你在意什么，再替你去找新的。不打分、不算百分比，每张卡都能追到证据。</p>
@@ -73,6 +101,39 @@ main a{color:var(--ac-2)}
       <div class="tier"><b><i style="background:var(--bronze)"></i><span data-i="t_bronze">铜</span></b><p data-i="d_bronze">你留下了，说明有点在意。</p></div>
       <div class="tier"><b><i style="background:var(--silver)"></i><span data-i="t_silver">银</span></b><p data-i="d_silver">在关注：它自己有新一话、新作、新论文时告诉你。</p></div>
       <div class="tier"><b><i style="background:var(--gold)"></i><span data-i="t_gold">金</span></b><p data-i="d_gold">一种口味：两张银卡说得出同一个为什么就融合成金，按口味往外推荐。</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 data-i="h_cast">桌上的伙伴</h2>
+    <p data-i="cast">口袋会站在你的桌面上。谁站在那儿由你自己选，它只演口袋里真发生的事，不演假的。</p>
+    <div class="cast">
+      <div class="mate"><img src="characters/pouch-wave.webp" alt="口袋精" loading="lazy" width="170" height="170"><b data-i="n_pouch">口袋精</b><span class="role" data-i="r_pouch">小可爱 · 口袋本身</span><p data-i="d_pouch">个子最小，抱着石、铜、银、金四张卡。进卡会吃，碎卡会抖，有事会举手。</p></div>
+      <div class="mate"><img src="characters/claude-idle.webp" alt="Claude" loading="lazy" width="170" height="170"><b>Claude</b><span class="role" data-i="r_claude">大小姐 · 引擎用 Claude 时</span><p data-i="d_claude">自称「本小姐」，骄傲但从不马虎：查到什么都记进账本，查不到就直说。</p></div>
+      <div class="mate"><img src="characters/deepseek-idle.webp" alt="DeepSeek" loading="lazy" width="170" height="170"><b>DeepSeek</b><span class="role" data-i="r_ds">大肥鱼 · 引擎用 DeepSeek 时</span><p data-i="d_ds">圆滚滚、慢吞吞，什么都拿吃的打比方。联网搜索它自己在服务端跑。</p></div>
+    </div>
+    <p class="note" data-i="cast_note">每个角色之后还会有男版，也由你手动选。</p>
+  </section>
+
+  <section>
+    <h2 data-i="h_moves">它只演真发生的事</h2>
+    <div class="moves">
+      <div class="move"><img src="characters/pouch-eat.webp" alt="" loading="lazy"><b data-i="m_eat">进了一张卡</b><span data-i="m_eat_d">截图、拖图、整理品味</span></div>
+      <div class="move"><img src="characters/pouch-crack.webp" alt="" loading="lazy"><b data-i="m_crack">碎了一张</b><span data-i="m_crack_d">7 天没理会的石卡</span></div>
+      <div class="move"><img src="characters/claude-busy.webp" alt="" loading="lazy"><b data-i="m_busy">引擎在查</b><span data-i="m_busy_d">追踪台、用例、出牌</span></div>
+      <div class="move"><img src="characters/pouch-cheer.webp" alt="" loading="lazy"><b data-i="m_cheer">开始关注</b><span data-i="m_cheer_d">升银、融合、领任务</span></div>
+      <div class="move"><img src="characters/deepseek-sleep.webp" alt="" loading="lazy"><b data-i="m_sleep">引擎暂停</b><span data-i="m_sleep_d">你按了暂停，它就睡</span></div>
+    </div>
+    <p class="note" data-i="moves_note">点一下桌宠弹快捷菜单，双击打开口袋，把图片拖到它身上就是喂进口袋。气泡说到哪张卡，点气泡就跳过去。</p>
+  </section>
+
+  <section>
+    <h2 data-i="h_new">这一版新加的</h2>
+    <div class="two">
+      <div class="feat"><div class="txt"><h3><span data-i="f_eng">引擎可选 Claude / DeepSeek</span></h3><p data-i="f_eng_d">同一套只读工具和规矩，换一个模型跑。用 DeepSeek 时把自己的 key 写进本机配置，联网搜索由 DeepSeek 执行。</p></div><img src="characters/deepseek-busy.webp" alt="" loading="lazy"></div>
+      <div class="feat"><div class="txt"><h3><span data-i="f_voice">和桌上那位打电话</span><span class="tag" data-i="exp">实验中</span></h3><p data-i="f_voice_d">中文、日语、英语。问它口袋里有什么、哪张快碎了，用嘴回答「要问你的」是非题，它复述一遍你说「对」才记。录音和逐字稿都不留。</p></div><img src="characters/claude-idle_talk_a.webp" alt="" loading="lazy"></div>
+      <div class="feat"><div class="txt"><h3 data-i="f_snap">截图键 ⌃⇧⌘A，可以改</h3><p data-i="f_snap_d">截完同时放进剪贴板，⌘V 就能贴。也可以打开「收剪贴板里的截图」，别的工具截的图会问一句要不要。</p></div><img src="characters/pouch-eat.webp" alt="" loading="lazy"></div>
+      <div class="feat"><div class="txt"><h3 data-i="f_lin">每张卡都有谱系</h3><p data-i="f_lin_d">点开一张卡，能看到它从哪来、推出了什么：哪张金卡推荐的、哪次追踪查到的，一路点过去。</p></div><img src="characters/claude-cheer.webp" alt="" loading="lazy"></div>
     </div>
   </section>
 
@@ -92,6 +153,8 @@ main a{color:var(--ac-2)}
     <ul>
       <li data-i="b0">只支持 macOS（Apple 芯片），需要已安装并登录的 <a href="https://claude.com/claude-code">Claude Code</a>。读听歌页面还要装 Claude in Chrome 扩展。</li>
       <li data-i="b1">安装包没有经过 Apple 公证。第一次打开被拦时，到「系统设置 › 隐私与安全性」点「仍要打开」。</li>
+      <li data-i="b3">用 DeepSeek 当引擎是可选的：在 <code>~/Library/Application Support/Sense/config.json</code> 里填自己的 <code>deepseek_api_key</code>。key 只留在你的 Mac 上。</li>
+      <li data-i="b4">语音通话还在实验：需要在本机另外跑一个语音服务，第一次打电话时会问麦克风权限。</li>
       <li data-i="b2">要读 Chrome 履历，请在「完全磁盘访问权限」里打开「Sense 口袋」；不打开也能用，只是少一个来源。</li>
     </ul>
   </section>
@@ -105,12 +168,22 @@ h_what:"What it does",what:"Sense turns what you watch, listen to, screenshot an
 t_stone:"Stone",d_stone:"Just arrived, not handled yet. Ignore it for 7 days and it shatters, leaving only a note that it was found.",t_bronze:"Bronze",d_bronze:"You kept it — you care a little.",t_silver:"Silver",d_silver:"Followed: it tells you when there is a new episode, new work or new paper.",t_gold:"Gold",d_gold:"A taste: two silver cards that share the same reason fuse into gold, which recommends outward.",
 h_src:"Where the data comes from",src0:"⌃⇧⌘A to grab part of the screen (or pick up a screenshot another tool put on the clipboard), clipboard capture when you turn it on, or images dropped onto the desktop pet.",src1:"Your own Chrome history and YouTube watch history, read locally; the temporary copy is deleted right after.",src2:"Your signed-in YouTube Music / Spotify pages: Claude reads only a short allowlist of pages and keeps just titles and artists.",src3:"Judgments you stated in your Claude Code sessions.",
 local:"Everything stays on your Mac and is never uploaded. Every agent call is your local Claude Code, on your own account.",
+h_cast:"Your desk companions",cast:"The pocket can stand on your desktop. You choose who stands there, and it only acts out what really happens in your pocket.",n_pouch:"Pouchling",r_pouch:"The little one · the pocket itself",d_pouch:"The smallest, hugging four cards — stone, bronze, silver, gold. She munches when a card comes in, flinches when one shatters, raises a hand when something needs you.",r_claude:"The young lady · when the engine runs Claude",d_claude:"Proud but never sloppy: whatever she finds goes into her ledger, and if she can't find it, she says so.",r_ds:"The chubby whale · when the engine runs DeepSeek",d_ds:"Round, slow, and explains everything in terms of food. Web search runs on DeepSeek's side.",cast_note:"Male versions of every character are coming too — also your choice.",
+h_moves:"It only acts out what really happened",m_eat:"A card came in",m_eat_d:"screenshot, drop, taste pass",m_crack:"A card shattered",m_crack_d:"a stone card ignored for 7 days",m_busy:"The engine is looking",m_busy_d:"tracker, use cases, draws",m_cheer:"Now following",m_cheer_d:"silver, fusion, quests",m_sleep:"Engine paused",m_sleep_d:"you paused it, so it naps",moves_note:"Click the pet for the quick menu, double-click to open the pocket, drop an image on it to feed it. When a bubble mentions a card, click the bubble to jump there.",
+h_new:"New in this version",f_eng:"Engine: Claude or DeepSeek",f_eng_d:"Same read-only tools and rules, different model. For DeepSeek, put your own key in the local config; web search runs on DeepSeek.",f_voice:"Call the one on your desk",exp:"experimental",f_voice_d:"Chinese, Japanese, English. Ask what's in your pocket or what's about to shatter, answer its yes/no questions out loud — it repeats your answer and records it only after you say yes. No audio or transcript is kept.",f_snap:"Screenshot key ⌃⇧⌘A, rebindable",f_snap_d:"The capture also lands on your clipboard, ready for ⌘V. Turn on clipboard pickup and screenshots from other tools get a quick “keep it?”.",f_lin:"Every card has a lineage",f_lin_d:"Open a card to see where it came from and what it led to — which gold card recommended it, which tracker run found it — and click along the chain.",
+b3:"DeepSeek as the engine is optional: add your own <code>deepseek_api_key</code> to <code>~/Library/Application Support/Sense/config.json</code>. The key stays on your Mac.",b4:"Voice calls are experimental: they need a separate local voice service, and macOS asks for microphone access on the first call.",
+bg_local:"Runs locally",bg_noup:"No uploads",bg_lang:"中 / 日 / EN",bg_noscore:"No scores",
 h_before:"Before you install",b0:"macOS on Apple silicon only. Requires <a href=\"https://claude.com/claude-code\">Claude Code</a>, installed and signed in. Reading listening pages also needs the Claude in Chrome extension.",b1:"The app is not notarized by Apple. If the first launch is blocked, open System Settings › Privacy & Security and click “Open Anyway”.",b2:"To read Chrome history, turn on “Sense 口袋” under Full Disk Access. It still works without it — just with one fewer source.",docs:"Design docs"},
 ja:{title:"Sense · ダウンロード",tag:"あなたの好みを理解し、次の「好き」を見つける。",dl:"macOS 版をダウンロード",dl_s:".dmg · Apple シリコン",gh:"GitHub のソースコード",demo:"オンラインデモ",demo_s:"作者本人のポケットをブラウザでそのまま",
 h_what:"何をするのか",what:"見たもの、聴いたもの、スクショしたもの、AI と話したことから、Sense がカードを作ってポケットに入れます。残す・捨てる・カードを引いて答える、を繰り返すうちに、あなたが本当に大事にしているものを覚え、新しいものを探しに行きます。点数もパーセントもなし。どのカードも根拠までたどれます。",
 t_stone:"石",d_stone:"入ったばかりで未処理。7 日放っておくと砕けて、「見つけた」という記録だけが残ります。",t_bronze:"銅",d_bronze:"残したカード。少しは気になっている。",t_silver:"銀",d_silver:"フォロー中。新しい話数、新作、新しい論文が出たら知らせます。",t_gold:"金",d_gold:"好みそのもの。同じ「なぜ」を語れる銀カード 2 枚が融合して金になり、外へ向けておすすめします。",
 h_src:"データの出どころ",src0:"⌃⇧⌘A で画面の一部を切り取る（ほかのツールがクリップボードに置いたスクショも取り込める）、オンにしたときのクリップボード記録、デスクトップペットへの画像ドロップ。",src1:"あなた自身の Chrome 履歴と YouTube 視聴履歴をローカルで読み、コピーは読み終えたらすぐ削除。",src2:"ログイン中の YouTube Music / Spotify のページ。Claude は許可リストの数ページだけを読み、曲名とアーティストだけを残します。",src3:"Claude Code との会話であなたが述べた判断。",
 local:"すべてあなたの Mac に保存され、アップロードはしません。エージェントの呼び出しはすべてローカルの Claude Code で、あなた自身のアカウントです。",
+h_cast:"デスクの相棒",cast:"ポケットはデスクトップに立ちます。誰が立つかはあなたが選び、ポケットで本当に起きたことだけを演じます。",n_pouch:"ポケット精",r_pouch:"ちびっこ · ポケットそのもの",d_pouch:"いちばん小さくて、石・銅・銀・金の 4 枚を抱えています。カードが入ると食べ、砕けるとびくっとし、用があると手を挙げます。",r_claude:"お嬢様 · エンジンが Claude のとき",d_claude:"一人称は「わたくし」。誇り高いけれど手は抜かない。見つけたものは帳簿へ、見つからなければそう言います。",r_ds:"まんまるクジラ · エンジンが DeepSeek のとき",d_ds:"まるくて、のんびり、なんでも食べ物にたとえます。ウェブ検索は DeepSeek 側で動きます。",cast_note:"どのキャラにも男の子版を用意中。こちらも手動で選べます。",
+h_moves:"本当に起きたことだけを演じる",m_eat:"カードが入った",m_eat_d:"スクショ・ドロップ・好みの整理",m_crack:"カードが砕けた",m_crack_d:"7 日放置した石カード",m_busy:"エンジンが調査中",m_busy_d:"トラッカー・用例・カード",m_cheer:"フォロー開始",m_cheer_d:"銀・融合・クエスト",m_sleep:"エンジン一時停止",m_sleep_d:"止めたらお昼寝",moves_note:"ペットをクリックでクイックメニュー、ダブルクリックでポケットを開く、画像をドロップでポケットへ。吹き出しがカードの話なら、クリックでそのカードへ。",
+h_new:"このバージョンの新機能",f_eng:"エンジンは Claude / DeepSeek",f_eng_d:"同じ読み取り専用ツールとルールで、モデルだけ替えます。DeepSeek を使うときは自分のキーをローカル設定に。ウェブ検索は DeepSeek 側で実行。",f_voice:"デスクの相棒と通話",exp:"実験中",f_voice_d:"中国語・日本語・英語。ポケットの中身や砕けそうなカードを聞いたり、「聞きたいこと」の はい/いいえ に声で答えたり。復唱して「うん」と言ってから記録します。録音も書き起こしも残しません。",f_snap:"スクショキー ⌃⇧⌘A、変更可",f_snap_d:"撮った画像はクリップボードにも入るので ⌘V で貼れます。クリップボード取り込みをオンにすると、ほかのツールのスクショも「入れる？」と聞きます。",f_lin:"どのカードにも系譜",f_lin_d:"カードを開くと、どこから来て何につながったか（どの金カードのおすすめか、どの追跡で見つかったか）をたどれます。",
+b3:"DeepSeek をエンジンにするのは任意です。<code>~/Library/Application Support/Sense/config.json</code> に自分の <code>deepseek_api_key</code> を書いてください。キーは Mac の中だけに残ります。",b4:"音声通話は実験中です。ローカルで別の音声サービスを動かす必要があり、最初の通話でマイクの許可を求められます。",
+bg_local:"ローカルで動く",bg_noup:"アップロードなし",bg_lang:"中 / 日 / 英",bg_noscore:"点数なし",
 h_before:"インストールの前に",b0:"Apple シリコンの macOS のみ。インストール済みでログインした <a href=\"https://claude.com/claude-code\">Claude Code</a> が必要です。聴いた曲のページを読むには Claude in Chrome 拡張も必要です。",b1:"Apple の公証を受けていません。初回起動がブロックされたら、システム設定 › プライバシーとセキュリティ で「このまま開く」を押してください。",b2:"Chrome 履歴を読むには「フルディスクアクセス」で「Sense 口袋」をオンに。オフでも使えます（情報源が一つ減るだけ）。",docs:"設計ドキュメント"}};
 const ZH={};document.querySelectorAll("[data-i]").forEach(e=>ZH[e.dataset.i]=e.innerHTML);ZH.title=document.title;
 function pick(){const q=new URLSearchParams(location.search).get("lang");if(q&&(q==="zh"||T[q]))return q;try{const s=localStorage.getItem("sense-site-lang");if(s)return s;}catch(e){}
