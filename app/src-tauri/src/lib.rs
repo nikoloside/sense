@@ -917,7 +917,13 @@ fn toggle_menu_at(app: &AppHandle, x: f64, y: f64, w: f64, h: f64) {
 
 /// 主窗口或桌宠里某个元素被点了：rect 是该窗口内容区里的逻辑坐标。
 #[tauri::command]
-fn menu_toggle(app: AppHandle, window: tauri::WebviewWindow, x: f64, y: f64, w: f64, h: f64) {
+fn menu_toggle(app: AppHandle, window: tauri::WebviewWindow, x: f64, y: f64, w: f64, h: f64, pressed_ms_ago: Option<f64>) {
+    // 桌宠单击要等一下才知道不是双击；按下那一刻菜单已经因失焦收起了，这一下算「收起」，不要再弹出来。
+    if let (Some(ago), Some(t)) = (pressed_ms_ago, *MENU_HIDDEN_AT.lock().unwrap()) {
+        if t.elapsed().as_secs_f64() * 1000.0 <= ago + 80.0 {
+            return;
+        }
+    }
     let sf = window.scale_factor().unwrap_or(2.0);
     let Ok(p) = window.inner_position() else { return };
     toggle_menu_at(&app, p.x as f64 + x * sf, p.y as f64 + y * sf, w * sf, h * sf);

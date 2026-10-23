@@ -1786,7 +1786,8 @@ if(DESK){(async()=>{try{const raw=await invoke("load_state");if(raw&&!dirty){con
   ev.listen("sense://snap-fail",e=>toast("截图没成："+String(e.payload||"").slice(0,80)+"。如果是权限：系统设置 → 隐私与安全性 → 屏幕与系统录音 里允许 Sense 口袋，然后重开 Sense"));
   ev.listen("sense://clip",e=>{clipQ.push(e.payload);drainClips();if(e.payload.copied)toast("截图进口袋了，也复制到了剪贴板：⌘V 可以贴到别处");});
   ev.listen("sense://cmd",e=>onCmd(e.payload||{}));pushSummary(true);
-  $("#pouchwrap").addEventListener("click",()=>{const r=$("#pouch").getBoundingClientRect();invoke("menu_toggle",{x:r.left-4,y:r.top-2,w:r.width+20,h:r.height+4});});
+  let pouchDown=0;$("#pouchwrap").addEventListener("pointerdown",()=>{pouchDown=performance.now();});
+  $("#pouchwrap").addEventListener("click",()=>{const r=$("#pouch").getBoundingClientRect();invoke("menu_toggle",{x:r.left-4,y:r.top-2,w:r.width+20,h:r.height+4,pressedMsAgo:pouchDown?performance.now()-pouchDown:null});});
   if(petOn())invoke("pet_show",{on:true,x:S.pet&&S.pet.x!=null?S.pet.x:null,y:S.pet&&S.pet.y!=null?S.pet.y:null});
   ev.listen("sense://copy",e=>onCopy(e.payload));ev.listen("sense://copy-to",e=>onCopyTo(e.payload));})();}
 /* ---------- capabilities (light up later) ---------- */

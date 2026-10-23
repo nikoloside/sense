@@ -69,11 +69,12 @@ ev.listen("sense://pet-drag",e=>{const k=e.payload.kind;if(k==="enter"){dragOver
   if(e.payload.n){setMood("eat",2400);say("收到 "+e.payload.n+" 张，正在认…",5000);}else say("只吃图片（png / jpg / gif / webp）",4000);}draw();});
 /* 拖动、单击、双击 */
 let down=null,moved=false,clickT=null;
-cv.addEventListener("mousedown",e=>{if(e.button!==0)return;down={x:e.screenX,y:e.screenY};moved=false;});
+let downAt=0;
+cv.addEventListener("mousedown",e=>{if(e.button!==0)return;down={x:e.screenX,y:e.screenY};moved=false;downAt=performance.now();});
 addEventListener("mousemove",e=>{if(!down||moved)return;if(Math.hypot(e.screenX-down.x,e.screenY-down.y)>3){moved=true;down=null;invoke("pet_drag");}});
 addEventListener("mouseup",e=>{if(!down)return;down=null;if(moved)return;
   if(clickT){clearTimeout(clickT);clickT=null;invoke("show_main");return;}
-  clickT=setTimeout(()=>{clickT=null;const r=cv.getBoundingClientRect();invoke("menu_toggle",{x:r.left,y:r.top,w:r.width,h:r.height});},230);});
+  const at=downAt;clickT=setTimeout(()=>{clickT=null;const r=cv.getBoundingClientRect();invoke("menu_toggle",{x:r.left,y:r.top,w:r.width,h:r.height,pressedMsAgo:performance.now()-at});},230);});
 addEventListener("blur",()=>{down=null;});
 cv.addEventListener("contextmenu",e=>{e.preventDefault();const r=cv.getBoundingClientRect();invoke("menu_toggle",{x:r.left,y:r.top,w:r.width,h:r.height});});
 cv.addEventListener("mouseenter",()=>{if(!S||$("#bub").classList.contains("show"))return;const bits=[S.nNew?"NEW "+S.nNew:"",S.crumble.length?S.crumble.length+" 张快碎了":"",S.qReady.length?S.qReady.length+" 个任务能领":""].filter(Boolean);say(bits.length?bits.join(" · "):"口袋里 "+S.live+" 张卡",S.nNew&&S.newId?5000:2500,S.nNew?S.newId:null);});
