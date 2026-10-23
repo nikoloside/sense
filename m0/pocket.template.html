@@ -240,6 +240,8 @@ html:not(.nohelp) .sheet .acts [data-help]::after{content:"?";display:inline-blo
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 /* pouch + reward */
 .pouch{width:36px;height:36px;image-rendering:pixelated;display:block}
+.purse .cap{font-size:12px;opacity:.9;padding:1px 6px;border-radius:6px;border:1px solid color-mix(in srgb,var(--hdr-ink) 40%,transparent)}.purse .cap.full{background:var(--danger);color:#fff;border-color:transparent}
+.capbar{background:var(--panel);border:2px dashed var(--danger);border-radius:10px;padding:10px 14px;margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.capbar p{margin:0;flex:1;min-width:200px}
 .pouchwrap{all:unset;position:relative;display:inline-flex;align-items:center;gap:4px;padding:2px 4px;border-radius:8px;cursor:default}
 html.desk .pouchwrap{cursor:pointer}html.desk .pouchwrap:hover,.pouchwrap:focus-visible{background:color-mix(in srgb,var(--hdr-ink) 16%,transparent)}
 .pouchwrap .caret{display:none;width:0;height:0;border:4px solid transparent;border-top:5px solid var(--hdr-ink);margin-top:5px}html.desk .pouchwrap .caret{display:block}
@@ -599,12 +601,51 @@ function autoArchive(){const now=Date.now();let n=0,sh=0;allCards().forEach(c0=>
   if(idle>lim){s.archived=true;s.autoArchived=now;n++;log("auto_archive",c.id,{tier:c.tier,days:Math.round(idle/864e5)});}});
   if(n||sh){persist();if(sh)blip("drop");toast([sh?sh+" 张没碰过的石卡碎了":"",n?n+" 张很久没碰的卡进了仓库":""].filter(Boolean).join("，")+"。仓库里还能找到");}return n+sh;}
 function tuneThreshold(d,why){const from=S.threshold;S.threshold=Math.max(2,Math.min(8,S.threshold+d));if(S.threshold!==from){(S.thresholdLog=S.thresholdLog||[]).push({at:new Date().toISOString(),from,to:S.threshold,why});log("threshold",null,{from,to:S.threshold,why});toast("门槛从 "+from+" 调到 "+S.threshold+"："+why);}}
+function capAdjust(){const a=S.capAdj=S.capAdj||{total:0,silver:0};const C=caps();const box=h("div",{});
+  const row=(k,label,lim,step)=>h("div",{class:"btnrow",style:"align-items:center"},h("b",{style:"min-width:9em"},label+"："+caps()[k]),
+    h("button",{class:"btn ghost",type:"button",onclick:()=>{a[k]=Math.max(-lim,(a[k]||0)-step);log("cap_adjust",null,{k,adj:a[k]});persist();render();capAdjust();}},"−"+step),
+    h("button",{class:"btn ghost",type:"button",onclick:()=>{a[k]=Math.min(lim,(a[k]||0)+step);log("cap_adjust",null,{k,adj:a[k]});persist();render();capAdjust();}},"+"+step),
+    h("span",{class:"note"},"手动 "+((a[k]||0)>=0?"+":"")+(a[k]||0)));
+  sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"口袋上限（决策 0032）"),h("h3",{},"一个人的精力有限，卡要不断融合"),
+      h("p",{class:"note"},"留下的卡 = 30 + 5 ×（等级 − 1）；在跟的银卡 = 10 +（等级 − 1）。升级自动加，这里可以再手动加减。现在 Lv."+lvl().lv+"：留下 "+keptCards().length+" / "+C.total+"，在跟 "+silverCards().length+" / "+C.silver+"。")),
+      h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),row("total","留下的卡",20,5),row("silver","在跟的银卡",6,1));}
+
+/* ---------- pocket cap (0032) ----------
+   The pocket holds attention: kept cards (bronze/silver/gold, not stacked under a fusion) have a hard cap,
+   following silvers have their own. Both grow with level; Settings can nudge them. Making room is rewarded. */
+const CAP_BASE={total:30,silver:10};
+function caps(){const L=lvl().lv;const a=S.capAdj||{};return{total:CAP_BASE.total+5*(L-1)+(a.total||0),silver:CAP_BASE.silver+(L-1)+(a.silver||0)};}
+function keptCards(){return liveCards().filter(c=>c.tier!=="stone");}
+function silverCards(){return liveCards().filter(c=>c.tier==="silver");}
+function hasRoom(kind){const C=caps();return kind==="silver"?silverCards().length<C.silver:keptCards().length<C.total;}
+function giveXp(n,why){if(!n)return;S.bonusXp=(S.bonusXp||0)+n;log("xp",null,{n,why});}
+/* bronze-or-mixed groups sharing an attribute: merging them is the cheapest way to make room */
+function mergeOffers(){const by={};keptCards().filter(c=>c.tier!=="gold").forEach(c=>(c.attribute_ids||[]).forEach(a=>{if(attr(a))(by[a]=by[a]||[]).push(c.id);}));
+  return Object.entries(by).filter(([a,ids])=>ids.length>=2&&ids.some(id=>card(id).tier==="bronze")).sort((x,y)=>y[1].length-x[1].length).slice(0,4)
+    .map(([a,ids])=>({key:a+":"+fkey(ids),attr:a,inputs:ids.slice(0,4),output:{kind:"interest",title:attr(a).text,attribute_ids:[a]}})).filter(o=>!(S.fusedKeys||[]).includes(o.key));}
+let pendingRoom=null;
+function guardRoom(kind,what,fn){if(hasRoom(kind)){fn();return;}openRoom(kind,what,fn);}
+function openRoom(kind,what,fn){pendingRoom={kind,fn,at:Date.now()};const C=caps();const silver=kind==="silver";
+  const n=silver?silverCards().length:keptCards().length,cap=silver?C.silver:C.total;
+  const offers=silver?fusionOffers():fusionOffers().concat(mergeOffers());
+  const stale=silver?silverCards().sort((a,b)=>(cs(a.id).lastTouch||0)-(cs(b.id).lastTouch||0)).slice(0,6)
+    :keptCards().filter(c=>c.tier==="bronze").sort((a,b)=>(cs(a.id).lastTouch||0)-(cs(b.id).lastTouch||0)).slice(0,6);
+  sheet(silver?"silver":"bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},silver?"在跟的银卡满了 · "+n+" / "+cap:"口袋满了 · 留下 "+n+" / "+cap),
+      h("h3",{},"先腾一个位置，再"+what),h("p",{class:"note"},"一个人的精力有限，口袋装的是注意力。融合最好：几张说得出同一个为什么的卡收成一张，每少一张 +10 XP。升级会加上限。")),
+      h("button",{class:"close",type:"button",onclick:()=>{pendingRoom=null;closeSheet();}},"算了")),
+    offers.length?h("div",{},h("div",{class:"meta"},silver?"融合成金（每少一张 +10 XP，成金再 +50）":"融合（每少一张 +10 XP）"),
+      h("div",{class:"btnrow"},offers.slice(0,5).map(o=>h("button",{class:"btn gold",type:"button",onclick:()=>openFusion(o)},"「"+(attr(o.attr)||{}).text+"」· "+o.inputs.length+" 张")))):h("p",{class:"note"},"现在没有挂同一条属性的卡可以融合。"),
+    h("div",{class:"meta"},silver?"不跟其中一张（回到铜卡，+3 XP）":"归档一张很久没碰的铜卡（检索还能搜到，+3 XP）"),
+    h("div",{class:"picker"},stale.map(c=>face(c,{onClick:()=>{if(silver){followCard(c.id,false);giveXp(3,"不跟了一张银卡腾位置");}else{cs(c.id).archived=true;log("archive_room",c.id);giveXp(3,"归档一张铜卡腾位置");}persist();roomCheck();}}))));}
+function roomCheck(){if(!pendingRoom)return;if(hasRoom(pendingRoom.kind)){const p=pendingRoom;pendingRoom=null;closeSheet();toast("腾出位置了");setTimeout(p.fn,250);}else if(sheetEl==null)pendingRoom=null;else{const p=pendingRoom;openRoom(p.kind,"",p.fn);}}
+
 function promote(){const ups=[];
   allCards().forEach(c0=>{const c=card(c0.id);if(!c||c.archived||c.stackedUnder||c.tier!=="bronze")return;const s=cs(c.id);
-    if(!s.unfollowed&&(s.touch||0)>=S.threshold){s.tier="silver";s.autoSilver=true;ups.push(c);}});
+    if(!s.unfollowed&&(s.touch||0)>=S.threshold&&hasRoom("silver")){s.tier="silver";s.autoSilver=true;ups.push(c);}});
   if(ups.length){blip("fuse");toast("开始关注："+ups.map(c=>c.title).slice(0,2).join("、")+(ups.length>2?" 等":""));ups.forEach(c=>log("tier_up_silver",c.id,{by:"touch"}));}
   if(typeof syncTracks==="function")syncTracks();}
 function followCard(id,on,fromRect){const c=card(id);if(!c)return;const s=cs(id);
+  if(on&&c.tier!=="silver"&&!hasRoom("silver")){openRoom("silver","跟「"+c.title+"」",()=>followCard(id,true,fromRect));return;}
   if(on){if(c.tier==="bronze"&&(s.touch||0)<S.threshold)tuneThreshold(-1,"你主动跟了一张还没碰够 "+S.threshold+" 次的铜卡「"+c.title+"」");
     s.tier="silver";s.unfollowed=false;s.autoSilver=false;touch(id);log("follow",id);syncTracks();persist();render();reward(fromRect,card(id),"开始关注");}
   else{if(s.autoSilver)tuneThreshold(1,"自动升上来的「"+c.title+"」被你点了不跟");
@@ -767,11 +808,11 @@ function openCard(id,o){
   if(c2.tier==="bronze"&&!c2.archived)acts.append(h("button",{class:"btn",type:"button",onclick:()=>{const r=rr();closeSheet();followCard(c2.id,true,r);}},"跟：开始关注它本身"));
   if(c2.tier==="silver"&&!c2.archived)acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();followCard(c2.id,false);}},"不跟了"));
   if(c2.tier==="gold"&&!c2.archived&&stackOf(c2.id).length)acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();unfuse(c2.id);}},"不对，拆开"));
-  if(c2.tier==="stone")acts.append(h("button",{class:"btn",type:"button",onclick:e=>{const rr=e.currentTarget.closest(".sheet").querySelector(".card").getBoundingClientRect();act(c2,"keep_stone",1);closeSheet();reward(rr,card(c2.id),"石 → 铜");}},"留下"),h("button",{class:"btn ghost",type:"button",onclick:()=>{act(c2,"drop_stone",-1);closeSheet();toast("丢了");}},"丢"));
+  if(c2.tier==="stone")acts.append(h("button",{class:"btn",type:"button",onclick:e=>{const rr=e.currentTarget.closest(".sheet").querySelector(".card").getBoundingClientRect();guardRoom("total","留下「"+c2.title+"」",()=>{act(c2,"keep_stone",1);closeSheet();reward(rr,card(c2.id),"石 → 铜");});}},"留下"),h("button",{class:"btn ghost",type:"button",onclick:()=>{act(c2,"drop_stone",-1);closeSheet();toast("丢了");}},"丢"));
   (ACTIONS[c2.kind]||[]).forEach(([label,code,sign])=>{
     acts.append(h("button",{class:sign>0?"btn":"btn ghost",type:"button",onclick:()=>{
       if(code==="edit"){const ta=$("#editTa");if(ta&&ta.value.trim()){act(c2,"edit",1,ta.value.trim());closeSheet();toast("改好了");}else{ta&&ta.focus();toast("先在上面写一句");}return;}
-      act(c2,code,sign);closeSheet();toast(label+(sign>0?" ✓":""));}},label));});
+      const go=()=>{act(c2,code,sign);closeSheet();toast(label+(sign>0?" ✓":""));};if(sign>0&&c2.tier==="stone")guardRoom("total",label+"「"+c2.title+"」",go);else go();}},label));});
   if(c2.tier!=="stone"&&!c2.archived)acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();slotPickerFor(c2.id);}},"放进卡槽"));
   if(!c2.archived&&c2.tier==="stone")acts.append(h("button",{class:"btn ghost smash",type:"button",onclick:()=>{const r=rr();closeSheet();shatterNow(c2.id,"你亲手碾碎",r);toast("碎了：「"+c2.title+"」进了碎卡堆，以后不会再塞给你");render();}},"碾碎：不太在意"));
   if(!c2.archived&&(c2.tier==="stone"||c2.tier==="bronze")&&c2.subkind!=="update")acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();putOnTrack(c2.id);}},seats()[c2.id]?"在追踪台上出题":"放上追踪台出题"));
@@ -878,7 +919,8 @@ function doFuse(o,ids){ids=ids||o.inputs;const at=attr(o.attr);const tier=fuseTi
   S.added.push(out);ids.forEach(id=>{cs(id).stackedUnder=out.id;});touch(out.id);S.fusedKeys.push(o.key);
   bumpAttrs([o.attr],1);log("fuse",out.id,{inputs:ids,tier});fx(tier==="gold"?"gold":"fuse");syncTracks();
   if(tier==="gold"&&seats()[out.id])seats()[out.id].next=Date.now()+15000;
-  promote();persist();closeSheet();render();toast(tier==="gold"?"融合出一张金卡："+out.title+"。十几秒后它开始往外推荐":"合并成一张"+TIER[tier]+"卡："+out.title);
+  {const less=ids.length-1;giveXp(10*less+(tier==="gold"?50:0),"融合少了 "+less+" 张"+(tier==="gold"?"，成金":""));}
+  const wasPending=pendingRoom&&Date.now()-pendingRoom.at<180000?pendingRoom:null;pendingRoom=null;promote();persist();closeSheet();render();if(wasPending){pendingRoom=wasPending;roomCheck();}toast(tier==="gold"?"融合出一张金卡："+out.title+"。十几秒后它开始往外推荐":"合并成一张"+TIER[tier]+"卡："+out.title);
   reward({left:innerWidth/2-60,top:innerHeight/2-80,width:120,height:160},card(out.id),tier==="gold"?"+1 金卡":"+1 张");setTimeout(()=>openCard(out.id),1300);}
 
 /* ---------- slots / agents ---------- */
@@ -910,7 +952,7 @@ async function play(ag,prompt){
   }else if(!filled.length){playState.err="卡槽是空的，先放卡";playState.results=[];}else{await new Promise(r=>setTimeout(r,450));playState.results=precomputed(ag);playState.live=false;}
   playState.busy=false;log("play",null,{agent:ag.id,prompt,live:playState.live,n:(playState.results||[]).length});persist();render();}
 function keepResult(ag,r,idx,keep,fromEl){
-  if(r._done)return;r._done=keep?"kept":"gone";
+  if(r._done)return;if(keep&&!hasRoom("total")){openRoom("total","留下「"+r.title+"」",()=>keepResult(ag,r,idx,true,fromEl));return;}r._done=keep?"kept":"gone";
   if(keep){const id="P"+Date.now().toString(36)+idx;const aids=[...new Set((r.contributed_by||[]).map(x=>x.attribute_id).filter(x=>ATTR.has(x)))];
     S.added.push({id,kind:"recommendation",tier:"bronze",title:r.title,body:r.body,attribute_ids:aids.slice(0,3),item:{name:r.title,url:r.url||""},evidence:[{when:new Date().toISOString().slice(0,10),where:"出一手 · "+ag.name,what:"「"+(playState.prompt||"")+"」"+(playState.live?"":"（预先算好的一手）")}],tier_reason:"出一手时你留下了它"});
     touch(id);bumpAttrs(aids,1);const sl=slotsOf(ag);(r.contributed_by||[]).forEach(x=>{const cid=sl[x.slot];if(cid)touch(cid);});
@@ -953,7 +995,7 @@ function T(c){return"「"+c.title+"」";}
 function A(id){const a=attr(id);return a?"「"+a.text+"」":id;}
 function answer(val,text){const hd=hand,eff=[];const cs_=hd.cards.map(card);
   if(hd.form==="keep"){const c=cs_[0];const st=cs(c.id);if(val)touch(c.id);
-    if(val){if(c.tier==="stone"){st.tier="bronze";eff.push(T(c)+"从石卡变成铜卡。");}bumpAttrs(c.attribute_ids,1);(c.attribute_ids||[]).forEach(a=>eff.push(A(a)+"用次 +1。"));if(!(c.attribute_ids||[]).length)eff.push(T(c)+"还没挂属性，下次整理时 Sense 会给它提一条。");}
+    if(val){if(c.tier==="stone"&&hasRoom("total")){st.tier="bronze";eff.push(T(c)+"从石卡变成铜卡。");}else if(c.tier==="stone"){const C=caps();eff.push("口袋满了（留下 "+keptCards().length+" / "+C.total+"），"+T(c)+"先留在石卡：融合或归档几张再来。");}bumpAttrs(c.attribute_ids,1);(c.attribute_ids||[]).forEach(a=>eff.push(A(a)+"用次 +1。"));if(!(c.attribute_ids||[]).length)eff.push(T(c)+"还没挂属性，下次整理时 Sense 会给它提一条。");}
     else{st.archived=true;bumpAttrs(c.attribute_ids,-1);eff.push(T(c)+"归档了，检索还能搜到。");(c.attribute_ids||[]).forEach(a=>eff.push(A(a)+"用次 -1。"));}}
   else if(hd.form==="pick_one"){const win=card(val),lose=cs_.find(c=>c.id!==val);touch(win.id);bumpAttrs(win.attribute_ids,1);
     {const w=wear(lose.id,3,"抽卡时被「"+win.title+"」比下去");if(w)eff.push(T(lose)+"还没被你处理过，被比下去，耐久"+w+"。");}
@@ -1135,7 +1177,7 @@ async function runSeat(ref,manual){const st=seats()[ref];if(!st||trackBusy)retur
     else if(job==="gold"){const under=stackOf(ref).map(x=>card(x.id)).filter(Boolean);const taste=(c.attribute_ids||[]).map(id=>attr(id)).filter(Boolean);
       const r=await agent(`用户的一张金卡是一种口味：「${c.title}」。${c.body||""}\n这个口味的理由：${taste.map(a=>"「"+a.text+"」"+(a.reason?"，因为"+a.reason:"")+(a.contrast?"，不要"+a.contrast:"")).join("；")||"见卡面"}\n它由这几张他在关注的卡融合而来：${under.map(x=>KIND[x.kind]+"「"+x.title+"」").join("、")||"无"}。\n用 WebSearch 按这个口味往外找 2 到 3 样他还没有的新东西（作品、书、论文、仓库、人都可以）。必须真实存在、有链接，最好是近期的。每条说清它为什么符合这个口味、像下面哪张卡。他已有的卡：${allCards().map(x=>x.title).slice(0,80).join(" / ")}，不要重复。只输出 JSON：{"items":[{"title":"","kind":"作品|书|论文|仓库|人","body":"一到两句中文","url":"","like":"像哪张原卡的标题"}]}`,{web:true,turns:14});
       let n=0;(r.items||[]).slice(0,3).forEach(it=>{if(hasTitle(it.title))return;n++;add.push({kind:"spawn",title:it.title,body:it.body,url:it.url});
-        S.added.push({id:"G"+Date.now().toString(36)+n,kind:it.kind==="人"?"person":"recommendation",tier:"bronze",title:String(it.title).slice(0,80),body:String(it.body||"").slice(0,240),attribute_ids:(c.attribute_ids||[]).slice(0,2),item:{name:it.title,url:/^https:\/\//.test(it.url||"")?it.url:""},from_gold:ref,like_id:(under.concat(allCards()).find(x=>x.title===it.like)||{}).id,evidence:[{when:today(),where:"金卡「"+c.title+"」推荐",what:it.like?"像「"+it.like+"」":it.kind||""}],tier_reason:"金卡按口味推荐出来的，直接是铜"});});
+        S.added.push({id:"G"+Date.now().toString(36)+n,kind:it.kind==="人"?"person":"recommendation",tier:hasRoom("total")?"bronze":"stone",title:String(it.title).slice(0,80),body:String(it.body||"").slice(0,240),attribute_ids:(c.attribute_ids||[]).slice(0,2),item:{name:it.title,url:/^https:\/\//.test(it.url||"")?it.url:""},from_gold:ref,like_id:(under.concat(allCards()).find(x=>x.title===it.like)||{}).id,evidence:[{when:today(),where:"金卡「"+c.title+"」推荐",what:it.like?"像「"+it.like+"」":it.kind||""}],tier_reason:"金卡按口味推荐出来的，直接是铜"});});
       if(n){log("gold_spawn",ref,{n});requestAnimationFrame(()=>reward(null,card(ref),"+"+n+" 张铜卡"));}else add.push({kind:"note",title:"这轮没找到新的",body:""});}
     else{S.squeue=S.squeue||[];if(!S.squeue.includes(ref))S.squeue.push(ref);add.push({kind:"note",title:"抽卡里多了一手",body:"下次抽卡先出这张"});}
     st.err=null;}
@@ -1170,7 +1212,7 @@ function track(){syncTracks();const m=$("#main");const T_=seats();const all=Obje
       (st.feed||[]).length?h("ul",{class:"feed"},st.feed.slice(0,8).map((f,i)=>h("li",{class:f.kind},h("span",{class:"w"},({update:"更新",against:"反例",found:"挖到",spawn:"推荐 → 铜卡",note:"记下"}[f.kind]||"")+" · "+new Date(f.at).toLocaleDateString()+(f.date?" · "+f.date:"")+(f.web?"":" · 未核实")),h("b",{},f.title),f.body?h("span",{},f.body):null,
         f.url&&/^https:\/\//.test(f.url)?h("a",{href:f.url,target:"_blank",rel:"noopener"},hostOf(f.url)):null,
         f.kind==="found"?(f.done?h("span",{class:"w"},f.done==="kept"?"留下了":"丢了"):h("div",{class:"btnrow"},h("button",{class:"btn",type:"button",onclick:e=>keepFound(ref,i,true,e.currentTarget)},"留下"),h("button",{class:"btn ghost",type:"button",onclick:()=>keepFound(ref,i,false)},"丢"))):null))):h("p",{class:"note"},"还没跑过。"));})));}
-function keepFound(ref,i,keep,el){const st=seats()[ref];const f=st&&st.feed[i];if(!f||f.done)return;f.done=keep?"kept":"gone";
+function keepFound(ref,i,keep,el){const st=seats()[ref];const f=st&&st.feed[i];if(!f||f.done)return;if(keep&&!hasRoom("total")){openRoom("total","留下「"+f.title+"」",()=>keepFound(ref,i,true,null));return;}f.done=keep?"kept":"gone";
   if(keep){const c=card(ref);addCard({kind:"recommendation",tier:"bronze",title:f.title,body:f.body,from_track:ref,attribute_ids:c?(c.attribute_ids||[]).slice(0,2):[],item:{name:f.title,url:/^https:\/\//.test(f.url||"")?f.url:""},evidence:[{when:today(),where:"追踪台 · "+refName(ref),what:f.title}],tier_reason:"用例跑出来、你留下的"},el?el.getBoundingClientRect():null,"+1 铜卡");if(c)touch(ref);}
   else{persist();render();}}
 function pickForTrack(){const list=liveCards().filter(c=>(c.tier==="stone"||c.tier==="bronze")&&!seats()[c.id]);const ucs=useCases().filter(u=>!seats()[u.id]);
@@ -1275,11 +1317,15 @@ let q="",fKind=null,fTier=null,fAttr="",fNew=false;
 const TABS=[["sense","Sense"],["pocket","口袋"],["sources","入口"],["track","追踪"],["table","牌桌"],["cases","用例"],["draw","抽卡"],["attrs","属性"],["settings","设置"]];
 function renderTabs(){const t=$("#tabs");t.innerHTML="";const nNew=liveCards().filter(c=>c.isNew).length;TABS.forEach(([k,l])=>t.append(h("button",{role:"tab","aria-selected":String(tab===k),type:"button",onclick:()=>{tab=k;try{localStorage.setItem(KEY+"-tab",k)}catch(e){};render();}},l,k==="pocket"&&nNew?h("span",{class:"tabn"},nNew):null)));}
 function renderPurse(){const p=$("#purse");p.innerHTML="";const vis=allCards().map(c=>card(c.id)).filter(c=>c&&!c.archived&&!c.stackedUnder);
-  ["stone","bronze","silver","gold"].forEach(t=>p.append(h("span",{},h("i",{class:"gem",style:"background:"+tc(t)}),TIER[t]+" "+vis.filter(c=>c.tier===t).length)));}
+  ["stone","bronze","silver","gold"].forEach(t=>p.append(h("span",{},h("i",{class:"gem",style:"background:"+tc(t)}),TIER[t]+" "+vis.filter(c=>c.tier===t).length)));
+  const C=caps(),k=keptCards().length,sv=silverCards().length;p.append(h("span",{class:"cap"+(k>=C.total||sv>C.silver?" full":""),title:"口袋上限（0032）：留下的卡 / 在跟的银卡"},"留 "+k+"/"+C.total+" · 跟 "+sv+"/"+C.silver));}
 function matches(c){if(c.archived||c.stackedUnder)return false;if(fNew&&!c.isNew)return false;if(fKind&&c.kind!==fKind)return false;if(fTier&&c.tier!==fTier)return false;if(fAttr&&!(c.attribute_ids||[]).includes(fAttr))return false;
   if(q){const hay=[c.title,c.body,(c.evidence||[]).map(e=>e.what+" "+e.where).join(" "),(c.attribute_ids||[]).map(id=>(attr(id)||{}).text).join(" ")].join(" ").toLowerCase();return q.toLowerCase().split(/\s+/).every(w=>hay.includes(w));}return true;}
 function pocket(){
   const m=$("#main");
+  {const C=caps(),k=keptCards().length,sv=silverCards().length;if(k>=C.total||sv>C.silver)m.append(h("div",{class:"capbar"},
+    h("p",{},sv>C.silver?"在跟的银卡 "+sv+" / "+C.silver+"：超了。回到 "+C.silver+" 以下之前不能再跟新的。先把说得出同一个为什么的银卡融合成金，或者不跟几张。":"口袋满了：留下 "+k+" / "+C.total+"。再留新卡要先腾一个位置，融合最好。"),
+    h("button",{class:"btn gold",type:"button",onclick:()=>openRoom(sv>C.silver?"silver":"total","继续",()=>{})},"去腾位置")));}
   const sIn=h("input",{type:"search",id:"q",placeholder:"搜卡面、证据、属性…","aria-label":"搜索口袋",value:q});
   sIn.addEventListener("input",()=>{q=sIn.value;drawGrid();});
   const kinds=h("div",{class:"filters"},KIND_ORDER.map(k=>h("button",{class:"chip",type:"button","aria-pressed":String(fKind===k),onclick:()=>{fKind=fKind===k?null:k;render();}},iconCanvas(k),KIND[k])));
@@ -1565,12 +1611,12 @@ const QUESTS=[
   {id:"run",t:"转起来",d:"追踪跑满 5 次",xp:40,cur:()=>cnt("track_run"),n:5},
   {id:"draw",t:"手气",d:"抽卡答 3 手",xp:40,cur:()=>cnt("survey"),n:3},
   {id:"snap",t:"随手一截",d:"截一张图进口袋",xp:30,cur:()=>cnt("clip_in"),n:1},
-  {id:"full",t:"口袋渐满",d:"口袋里有 80 张卡",xp:40,cur:()=>liveCards().length,n:80},
+  {id:"trim",t:"收一收",d:"因为融合，口袋少了 5 张卡",xp:40,cur:()=>S.log.filter(l=>l.action==="fuse").reduce((a,l)=>a+Math.max(0,((l.detail&&l.detail.inputs)||[]).length-1),0),n:5},
   {id:"gold",t:"第一张金卡",d:"把两张能说出同一个为什么的银卡融合",xp:100,cur:()=>cnt("fuse"),n:1},
   {id:"days",t:"常来看看",d:"在 5 个不同的日子打开口袋",xp:50,cur:()=>new Set(S.log.map(l=>l.at.slice(0,10))).size,n:5},
   {id:"theme",t:"换身衣服",d:"换一套配色",xp:10,cur:()=>cnt("theme"),n:1}];
 const LV_T=["见习收藏家","口袋学徒","品味猎人","鉴赏家","策展人","传说中的口袋"];
-function lvl(){const xp=QUESTS.filter(q=>(S.qclaimed||{})[q.id]).reduce((a,q)=>a+q.xp,0);const lv=Math.floor(xp/100)+1;return{xp,lv,into:xp%100,title:LV_T[Math.min(lv-1,LV_T.length-1)]};}
+function lvl(){const xp=QUESTS.filter(q=>(S.qclaimed||{})[q.id]).reduce((a,q)=>a+q.xp,0)+(S.bonusXp||0);const lv=Math.floor(xp/100)+1;return{xp,lv,into:xp%100,title:LV_T[Math.min(lv-1,LV_T.length-1)]};}
 function claim(q){S.qclaimed=S.qclaimed||{};S.qclaimed[q.id]=Date.now();const before=lvl().lv;log("quest_claim",null,{id:q.id,xp:q.xp});persist();blip("gold");const L=lvl();toast(L.lv>before?"升到 Lv."+L.lv+"「"+L.title+"」":"+"+q.xp+" XP");render();}
 /* character: class follows the domain with the most content cards; no taste scores */
 const CLASS={anime:["番剧旅人","cap"],manga:["漫画书虫","band"],novel:["推理侦探","deer"],game:["跑团冒险者","helm"],music:["吟游诗人","feather"],idol:["应援团长","bow"],film:["放映员","beret"]};
@@ -1651,6 +1697,7 @@ function settings(){const m=$("#main");
   m.append(engine());
   m.append(h("section",{class:"setsec"},h("h2",{class:"sec"},"其他"),h("div",{class:"btnrow"},
     h("button",{class:"btn ghost",type:"button",onclick:()=>{sound=!sound;try{localStorage.setItem(KEY+"-sound",sound?"1":"0")}catch(e){};blip("keep");render();}},"音效："+(sound?"开":"关")),
+    h("button",{class:"btn ghost",type:"button",onclick:()=>capAdjust()},(()=>{const C=caps();return"口袋上限：留 "+C.total+" · 跟 "+C.silver;})()),
     h("button",{class:"btn ghost",type:"button",onclick:()=>{helpOff=!helpOff;try{localStorage.setItem(KEY+"-help",helpOff?"0":"1")}catch(e){};document.documentElement.classList.toggle("nohelp",helpOff);helpHide();render();toast(helpOff?"按钮说明关了":"按钮说明开了：鼠标停在卡片按钮上就会解释");}},"按钮说明："+(helpOff?"关":"开")),
     DESK?h("button",{class:"btn"+(petOn()?" gold":" ghost"),type:"button",onclick:()=>onCmd({cmd:"pet"})},"桌宠："+(petOn()?"在桌面上":"收着")):null),
     DESK?h("p",{class:"note"},"桌宠是口袋精，戴着你角色的帽子。它只演真发生的事：进卡会吃、碎卡会抖、引擎在跑会拿放大镜、有卡快碎或任务能领头上冒「!」、引擎暂停就睡觉。单击弹快捷菜单，双击打开口袋，按住拖走，把图片拖到它身上就是喂进口袋（和 ⌃⌘A 截图一样建石卡）。"):null));}
@@ -1773,7 +1820,7 @@ function summary(){const live=liveCards();const L=lvl();const by={};live.forEach
     nNew:live.filter(c=>c.isNew).length,crumble:live.filter(c=>c.crumble!=null).sort((a,b)=>a.crumble-b.crumble).map(c=>({id:c.id,title:c.title,left:c.crumble})),
     qReady:QUESTS.filter(q=>!(S.qclaimed||{})[q.id]&&q.cur()>=q.n).map(q=>({t:q.t,xp:q.xp})),
     engine:{model:engineModel(),working:agentRun>0,off:!!S.engineOff,busy:trackBusy?refName(trackBusy):null,taste:tasteBusy||null,next:nx?{name:refName(nx.ref),when:rel(nx.next)}:null},
-    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",petMale:!!S.petMale,newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
+    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",cap:(()=>{const C=caps();return{kept:keptCards().length,total:C.total,silver:silverCards().length,silverCap:C.silver};})(),petMale:!!S.petMale,newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
 let sumT=null;
 function pushSummary(now){if(!DESK)return;clearTimeout(sumT);sumT=setTimeout(()=>{try{TAURI.event.emit("sense://summary",summary());}catch(e){}},now?0:250);}
 function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-tab",k)}catch(e){};};
