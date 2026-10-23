@@ -26,34 +26,40 @@ consistent design across frames.
 
 ## 三个角色
 
-### claude — 温柔的思考者
+### claude — 大小姐
 ```
-A gentle, thoughtful girl. Very long flowing orange hair (#E8762C) reaching her knees, soft amber highlights,
-side locks framing her face, a large dark-brown ribbon bow on the right side of her head.
-Warm amber eyes, light blush. Dark chocolate-brown long-sleeved dress with orange trim and orange cuffs,
-cream-white round collar with a small orange bow. Dark stockings, brown mary-jane shoes.
-She hugs a thick brown leather book to her chest.
+An elegant, proud little ojou-sama (rich young lady). Very long orange hair (#E8762C) with soft amber highlights,
+the ends falling in big glossy ringlet curls, a large dark-brown satin ribbon bow on the right side of her head.
+Warm amber eyes with long lashes, a confident, slightly smug smile, chin a little raised.
+Luxurious dark chocolate-brown ruffled dress with orange trim, lace cuffs and a cream-white lace collar
+with a small gold brooch, layered petticoat, dark stockings, polished brown mary-jane shoes.
+She holds a small folding lace fan near her mouth; a thick leather-bound ledger book with gold corners
+is tucked under her other arm.
 A small orange drawstring pouch charm with a round gold clasp (#E3A72F) hangs from her waist on a short cord.
 ```
 
-### deepseek — 冷静的探索者
+### deepseek — 大肥鱼
 ```
-A calm, curious explorer girl. Long wavy royal-blue hair (#3F63D4) with periwinkle highlights, blue eyes.
-White frilled maid headdress. Navy dress with a white frilled apron and periwinkle trim, white stockings, navy shoes.
-A small blue whale tail peeks out from behind her skirt.
+A big, round, chubby whale girl — soft and plump like a dumpling, much rounder than the others.
+She wears a royal-blue (#3F63D4) whale costume hoodie: the hood is a whale head with little eyes on top
+and a white belly stripe down the front, sleeves end in small flippers, a big round whale tail behind her.
+Wavy blue hair peeks out from the hood, sleepy half-lidded blue eyes, round blushing cheeks, a lazy content smile.
+She hugs a small fish-shaped snack. Unbothered, slow, cozy.
 A small orange drawstring pouch charm with a round gold clasp (#E3A72F) hangs from her waist on a short cord.
 ```
 
-### pouch — 口袋精（口袋本身）
+### pouch — 小可爱
 ```
-The pouch itself personified: a cheerful small girl, orange-dominant (#E8762C) with cream and gold (#E3A72F) accents.
-She wears a hood shaped like a drawstring pouch: the two top corners of the hood stick up like little ears,
-a scalloped flap covers the top of her forehead, fastened by a round gold clasp.
-Short peach-blonde hair peeks out under the hood, orange eyes, rosy cheeks.
-Orange tunic dress over a cream blouse, drawstring cords with gold tassels hanging on her chest, brown boots.
+The pouch itself personified: a tiny, extra-cute baby-like girl, noticeably smaller than the other two
+(about 80% of their height), very big head, huge sparkly orange eyes, round rosy cheeks, tiny hands.
+Orange-dominant (#E8762C) with cream and gold (#E3A72F) accents.
+She wears a hood shaped like a drawstring pouch: the two top corners stick up like little ears,
+a scalloped flap over the forehead fastened by a round gold clasp.
+Short peach-blonde hair peeks out under the hood. Orange tunic dress over a cream blouse,
+drawstring cords with gold tassels on the chest, small brown boots.
 She holds a small fan of four cards colored stone grey, bronze, silver and gold.
 ```
-口袋精要比现在桌宠里那个像素口袋更像一个角色。兜帽的颜色和金扣沿用现在的口袋图标。
+口袋精要比现在桌宠里那个像素口袋更像一个角色：更小、更圆、更可爱。兜帽的颜色和金扣沿用现在的口袋图标。
 
 ## 每个角色要出的帧（每个角色 13 张）
 
@@ -64,13 +70,13 @@ She holds a small fan of four cards colored stone grey, bronze, silver and gold.
 | `idle_blink.png` | 眨眼 | `identical to idle, only the eyes closed in a gentle blink` |
 | `idle_talk_a.png` | 说话（小口型） | `identical to idle, only the mouth slightly open as if speaking` |
 | `idle_talk_b.png` | 说话（大口型） | `identical to idle, only the mouth open wider as if speaking` |
-| `busy.png` | 引擎在跑 | claude：`reading her open book with a small magnifying glass, focused`；deepseek：`holding a small lantern forward, peering ahead curiously`；pouch：`sorting her four cards, focused` |
+| `busy.png` | 引擎在跑 | claude：`reading her open ledger book through a gold lorgnette, focused and dignified`；deepseek：`swimming forward lazily with her tail, holding a small lantern, sniffing around for food`；pouch：`sorting her four cards with tiny hands, concentrating hard` |
 | `busy_blink.png` | 引擎在跑时眨眼 | `identical to busy, only the eyes closed in a blink` |
 | `eat.png` | 进了一张卡 | `a small glowing card dropping into the pouch charm at her waist, she looks down delighted`（pouch：`a card dropping into her hood pouch`） |
-| `cheer.png` | 开始关注、领任务、融合 | `both arms raised happily, eyes closed in a big smile` |
+| `cheer.png` | 开始关注、领任务、融合 | claude：`laughing proudly with the fan open, one hand on her hip`；deepseek：`bouncing happily, flippers up, belly jiggling`；pouch：`both tiny arms raised, eyes closed in a big smile` |
 | `crack.png` | 碎了一张卡 | `startled, small flinch, eyes wide, hands up near her face` |
 | `alert.png` | 有卡快碎或任务能领 | `one hand raised as if calling for attention, eyebrows up` |
-| `sleep.png` | 引擎暂停 | `sitting on the ground hugging her knees, eyes closed, sleeping peacefully` |
+| `sleep.png` | 引擎暂停 | claude：`dozing elegantly in a sitting pose, fan resting on her lap`；deepseek：`curled up like a round blue mochi, snoring softly`；pouch：`curled up asleep inside her own hood` |
 | `wave.png` | 打招呼（启动时） | `waving one hand at the viewer, cheerful smile` |
 
 `idle_blink`、`idle_talk_a`、`idle_talk_b`、`busy_blink` 和它们的原帧之间，**除了眼睛或嘴，一个像素都不能动**，因为 app 会快速切换这几帧做眨眼和口型。如果编辑模式改动了别处，就只取原帧的眼部或嘴部区域，把它合回原帧。
