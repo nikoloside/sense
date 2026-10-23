@@ -226,6 +226,11 @@ select.attr{font:inherit;font-size:12px;background:var(--felt-2);color:var(--cha
 .picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
 
 /* fx */
+.helptip{position:fixed;z-index:200;max-width:260px;background:var(--ink);color:var(--paper);font-size:12.5px;line-height:1.5;padding:7px 10px;border-radius:8px;box-shadow:0 3px 0 rgba(0,0,0,.25);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s}
+.helptip.show{opacity:1;transform:none}.helptip b{display:block;font-size:12px;opacity:.75;margin-bottom:2px}
+[data-help]{text-decoration-line:none}
+html:not(.nohelp) .sheet .acts [data-help]::after{content:"?";display:inline-block;margin-left:6px;width:14px;height:14px;line-height:14px;border-radius:50%;font-size:10px;text-align:center;background:color-mix(in srgb,currentColor 18%,transparent);vertical-align:1px}
+@media (prefers-reduced-motion:reduce){.helptip{transition:none}}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(40px);opacity:0;transition:.25s;background:var(--paper);color:var(--ink);font-family:var(--f-pixel);padding:8px 14px;border-radius:4px;z-index:60;box-shadow:0 3px 0 var(--shadow);max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%)}
 .flash{position:fixed;inset:0;pointer-events:none;z-index:55;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 55%,transparent),transparent 60%);animation:flash .7s ease both}
@@ -677,6 +682,53 @@ function face(c,opts={}){
   if(opts.onClick)el.addEventListener("click",opts.onClick);
   return el;}
 function stackOf(id){return allCards().filter(x=>(S.cards[x.id]||{}).stackedUnder===id);}
+
+
+/* ---------- button help ----------
+   Hover or focus a card button to see what it actually does. One dictionary, matched by the button's label;
+   off in Settings → 其他 → 按钮说明. */
+const HELP=[
+  ["留下","石卡升成铜卡：说明你有点在意。留下的卡不会再到期碎掉。"],
+  ["丢","这张不要：收进仓库，不再出现在口袋里；和它相关的口味记一次「不在意」。"],
+  ["碾碎：不太在意","现在就碎掉，进碎卡堆。以后同样的东西不会再塞给你。"],
+  ["记一次联系","你最近和这个人联系过一次：记下今天，算你在意这个人（石卡会升成铜）。"],
+  ["放上追踪台出题","让引擎定期替你查它的新消息，查到的东西变成一道题给你：留下还是丢。"],
+  ["在追踪台上出题","它已经在追踪台上了：去追踪台看它下次什么时候查。"],
+  ["跟：开始关注它本身","铜卡升成银卡：之后它自己有新一话、新作、新论文时告诉你。"],
+  ["不跟了","银卡退回铜卡，不再替你查它的动向。"],
+  ["不对，拆开","这张金卡融合错了：拆回原来的银卡。"],
+  ["放进卡槽","放进一个卡槽（比如某个用例或主题），让它和同槽的卡一起被用到。"],
+  ["现在查一次动向","不等排期，马上让引擎查一次它最近有什么新的。"],
+  ["现在推荐一轮","按这张金卡代表的口味，马上往外找一轮新东西推荐给你。"],
+  ["可以融合成金","有两张银卡说得出同一个为什么：确认后融合成一张金卡。"],
+  ["对","这条判断说对了：确认它，相关口味也算确认。"],
+  ["不对","这条判断不对：收起来，相关口味记一次反对。"],
+  ["改一句","判断大体对但说法不准：在上面写一句你的说法再点。"],
+  ["再看","打开原链接再看一次，也算一次在意。"],
+  ["升为收藏","从推荐变成你的收藏。"],
+  ["其实不喜欢","推荐错了：收起来，相关口味记一次反对。"],
+  ["看了","看过最新的一话 / 一期了：记下今天。"],
+  ["不追了","不再追它：收起来。"],
+  ["是","对，这是你在意的。"],
+  ["不是我在意的","不是你在意的：收起来，相关口味记一次反对。"],
+  ["留","留着这条。"],["删","不要这条：收进仓库。"],
+  ["升为关注","从收藏变成关注：之后有新的会告诉你。"],
+  ["证据","这张卡为什么在这：从哪个文件、哪次会话、哪一页读到的，原话是什么。"],
+];
+const helpFor=t=>{t=(t||"").replace(/\s+/g," ").trim();for(const [k,v] of HELP){if(k==="证据"?t.startsWith("证据 "):t===k)return v;}return null;};
+let helpOff=false;try{helpOff=localStorage.getItem(KEY+"-help")==="0";}catch(e){}
+document.documentElement.classList.toggle("nohelp",helpOff);
+const helpTip=h("div",{class:"helptip",role:"tooltip",id:"helptip"});document.body.append(helpTip);
+function helpMark(root){root.querySelectorAll(".sheet button, .sheet summary, .btnrow button").forEach(b=>{if(b.dataset.help!==undefined)return;const v=helpFor(b.textContent);if(v){b.dataset.help=v;b.setAttribute("aria-describedby","helptip");}});}
+new MutationObserver(()=>helpMark(document.body)).observe(document.body,{childList:true,subtree:true});
+let helpAt=null;
+function helpShow(el){if(helpOff||!el)return;const v=el.dataset.help;if(!v)return;helpTip.textContent="";helpTip.append(h("b",{},el.textContent.replace(/\?$/,"").trim()),v);
+  const r=el.getBoundingClientRect();helpTip.classList.add("show");const tw=helpTip.offsetWidth,th=helpTip.offsetHeight;
+  let x=Math.min(Math.max(8,r.left+r.width/2-tw/2),innerWidth-tw-8),y=r.top-th-8;if(y<8)y=r.bottom+8;helpTip.style.left=x+"px";helpTip.style.top=y+"px";helpAt=el;}
+function helpHide(){helpTip.classList.remove("show");helpAt=null;}
+document.addEventListener("pointerover",e=>{const el=e.target.closest&&e.target.closest("[data-help]");if(el&&el!==helpAt){clearTimeout(helpShow.t);helpShow.t=setTimeout(()=>helpShow(el),350);}else if(!el){clearTimeout(helpShow.t);helpHide();}});
+document.addEventListener("focusin",e=>{const el=e.target.closest&&e.target.closest("[data-help]");if(el&&e.target.matches(":focus-visible"))helpShow(el);else helpHide();});
+document.addEventListener("pointerdown",helpHide,true);document.addEventListener("scroll",helpHide,true);
 
 /* ---------- actions ---------- */
 const ACTIONS={
@@ -1599,6 +1651,7 @@ function settings(){const m=$("#main");
   m.append(engine());
   m.append(h("section",{class:"setsec"},h("h2",{class:"sec"},"其他"),h("div",{class:"btnrow"},
     h("button",{class:"btn ghost",type:"button",onclick:()=>{sound=!sound;try{localStorage.setItem(KEY+"-sound",sound?"1":"0")}catch(e){};blip("keep");render();}},"音效："+(sound?"开":"关")),
+    h("button",{class:"btn ghost",type:"button",onclick:()=>{helpOff=!helpOff;try{localStorage.setItem(KEY+"-help",helpOff?"0":"1")}catch(e){};document.documentElement.classList.toggle("nohelp",helpOff);helpHide();render();toast(helpOff?"按钮说明关了":"按钮说明开了：鼠标停在卡片按钮上就会解释");}},"按钮说明："+(helpOff?"关":"开")),
     DESK?h("button",{class:"btn"+(petOn()?" gold":" ghost"),type:"button",onclick:()=>onCmd({cmd:"pet"})},"桌宠："+(petOn()?"在桌面上":"收着")):null),
     DESK?h("p",{class:"note"},"桌宠是口袋精，戴着你角色的帽子。它只演真发生的事：进卡会吃、碎卡会抖、引擎在跑会拿放大镜、有卡快碎或任务能领头上冒「!」、引擎暂停就睡觉。单击弹快捷菜单，双击打开口袋，按住拖走，把图片拖到它身上就是喂进口袋（和 ⌃⌘A 截图一样建石卡）。"):null));}
 /* ---------- 快捷菜单与桌宠（0025）：主窗口是唯一写状态的地方，另外两个窗口只收摘要、发命令 ---------- */
