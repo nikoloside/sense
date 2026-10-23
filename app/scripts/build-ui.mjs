@@ -34,7 +34,7 @@ for (const name of ["menu.html", "pet.html"]) {
   out(name, `<!doctype html><html lang="zh"><head><meta charset="utf-8">${src.replace("/*__THEMES__*/", themes[1])}</html>`);
 }
 // 角色图（docs/art/characters.md）：桌宠用 256 的那份。
-for (const id of ["claude", "deepseek", "pouch", "charm"]) {
+for (const id of ["claude", "deepseek", "pouch", "claude-m", "deepseek-m", "pouch-m", "charm"]) {
   const from = resolve(root, "assets/characters", id, "256");
   if (!existsSync(from)) continue;
   const to = resolve(here, "../ui/characters", id);

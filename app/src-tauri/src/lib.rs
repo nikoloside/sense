@@ -199,10 +199,7 @@ fn snap(app: AppHandle) {
                 trace(format!("snap clipboard-after-1.5s ours={:?}", rx.recv_timeout(std::time::Duration::from_secs(3)).ok()));
             });
         }
-        if let Some(w) = app.get_webview_window("main") {
-            let _ = w.show();
-            let _ = w.set_focus();
-        }
+        // 截图就是截图：不把口袋窗口拉到前面，进卡由桌宠的气泡告诉你。
         let _ = app.emit(
             "sense://clip",
             Clip { b64: base64::engine::general_purpose::STANDARD.encode(bytes), mime: "image/png", source_app, copied },

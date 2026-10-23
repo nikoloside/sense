@@ -34,11 +34,11 @@ const $=s=>document.querySelector(s);const cv=$("#pet");
 const RM=matchMedia("(prefers-reduced-motion: reduce)");
 /* 每个状态用哪一帧；眨眼、口型在同一姿势的帧之间切。 */
 const FRAMES=["idle","idle_blink","idle_talk_a","idle_talk_b","busy","busy_blink","eat","cheer","crack","alert","sleep","wave"];
-const WHO=["claude","deepseek","pouch"];const src=(w,f)=>"characters/"+w+"/"+f+".png";
+const WHO=["claude","deepseek","pouch","claude-m","deepseek-m","pouch-m"];const src=(w,f)=>"characters/"+w+"/"+f+".png";
 WHO.forEach(w=>FRAMES.forEach(f=>{const i=new Image();i.src=src(w,f);}));
 let S=null,mood="wave",moodUntil=Date.now()+2500,blinkAt=Date.now()+3000,lastEv=null,dragOver=false,talk=null;
 /* 桌上站谁只由作者手动选（快捷菜单 → 桌上是谁），不跟着引擎或通话自己换。 */
-function who(){return S&&S.petWho||"pouch";}
+function who(){return (S&&S.petWho||"pouch")+(S&&S.petMale?"-m":"");}
 function draw(){const now=Date.now();const m=dragOver?"eat":mood;
   const blink=now>blinkAt&&now<blinkAt+160;if(now>blinkAt+160)blinkAt=now+2500+Math.random()*3500;
   let f={idle:"idle",busy:"busy",eat:"eat",cheer:"cheer",crack:"crack",alert:"alert",sleep:"sleep",wave:"wave"}[m]||"idle";

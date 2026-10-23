@@ -104,7 +104,8 @@ function render(){const p=$("#panel");p.innerHTML="";
     act("draw","抽一手","答完会写进属性",()=>go("go","draw")),
     act("clip","剪贴板",S.clipOn?"在记 · 点一下停":"没在记 · 点一下开",()=>cmd("clip",null,true),S.clipOn),
     act("pet","桌宠",S.petOn?"在桌面上 · 点一下收":"收着 · 点一下放出来",()=>cmd("pet",null,true),S.petOn),
-    S.petOn?act("pet","桌上是谁",(S.petWho||"pouch")==="pouch"?"口袋精 · 点一下换成 Claude":"Claude · 点一下换成口袋精",()=>cmd("petwho",null,true),false):null,
+    S.petOn?act("pet","桌上是谁",{pouch:"口袋精",claude:"Claude",deepseek:"DeepSeek"}[S.petWho||"pouch"]+" · 点一下换下一位",()=>cmd("petwho",null,true),false):null,
+    S.petOn?act("pet","女版 / 男版",S.petMale?"男版 · 点一下换女版":"女版 · 点一下换男版",()=>cmd("petmale",null,true),false):null,
     act("engine","引擎",E.off?"暂停了 · 点一下继续":"在转 · 点一下暂停",()=>cmd("engine",null,true),!E.off),
     act("taste","整理品味",E.taste?"整理中…":S.tasteAt?"上次 "+S.tasteAt:"还没整理过",()=>cmd("taste",null,true),false,!!E.taste)));
   p.append(h("div",{class:"themes",role:"group","aria-label":"配色"},THEMES.map(([k,c])=>h("button",{type:"button",class:(S.theme||"cream")===k?"on":null,title:k,"aria-label":"配色 "+k,onclick:()=>cmd("theme",k,true)},h("i",{style:"background:"+c[0]}),h("i",{style:"background:"+c[1]})))));

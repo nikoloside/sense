@@ -1702,12 +1702,12 @@ async function askImg(p){try{const bin=atob(p.b64);const u=new Uint8Array(bin.le
   const{thumb}=await thumbOf(new Blob([u],{type:p.mime}));const at=Date.now();imgAsk={p,thumb,at};
   setTimeout(()=>{if(imgAsk&&imgAsk.at===at){imgAsk=null;showImgAsk();pushSummary(true);}},180e3);showImgAsk();pushSummary(true);}catch(e){}}
 function takeImg(yes){const a=imgAsk;imgAsk=null;showImgAsk();pushSummary(true);
-  if(a&&yes){clipQ.push(Object.assign({},a.p,{where:"截图 · 剪贴板里收的"+(a.p.source_app?"（当时在 "+a.p.source_app+"）":"")}));drainClips();if(DESK)invoke("show_main");}}
+  if(a&&yes){clipQ.push(Object.assign({},a.p,{where:"截图 · 剪贴板里收的"+(a.p.source_app?"（当时在 "+a.p.source_app+"）":"")}));drainClips();}}
 function showImgAsk(){const old=$("#imgask");if(old)old.remove();if(!imgAsk)return;
   document.body.append(h("div",{id:"imgask",class:"imgask",role:"dialog","aria-label":"剪贴板里的新图"},h("img",{src:imgAsk.thumb,alt:""}),h("span",{},h("b",{},"剪贴板里有一张新图"),h("small",{},"放进口袋？不放就什么都不留")),
     h("button",{class:"btn",type:"button",onclick:()=>takeImg(true)},"放进口袋"),h("button",{class:"btn ghost",type:"button",onclick:()=>takeImg(false)},"不要")));}
 async function drainClips(){if(clipBusy||!clipQ.length)return;const p=clipQ.shift();const bin=atob(p.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
-  clipQuiet=p.source_app==="桌宠";if(!clipQuiet){tab="pocket";render();}try{await intakeImage(new Blob([u],{type:p.mime}),null,p.where);}finally{clipQuiet=false;}setTimeout(drainClips,50);}
+  clipQuiet=p.source_app==="桌宠"||"copied" in p;if(!clipQuiet){tab="pocket";render();}try{await intakeImage(new Blob([u],{type:p.mime}),null,p.where);}finally{clipQuiet=false;}setTimeout(drainClips,50);}
 const petOn=()=>!S.pet||S.pet.on!==false;
 function petHear(a,id,d){try{petHear_(a,id,d);}catch(e){}}
 function petHear_(a,id,d){const c=id?card(id):null;const t=c?"「"+String(c.title).slice(0,16)+"」":"";
@@ -1720,7 +1720,7 @@ function summary(){const live=liveCards();const L=lvl();const by={};live.forEach
     nNew:live.filter(c=>c.isNew).length,crumble:live.filter(c=>c.crumble!=null).sort((a,b)=>a.crumble-b.crumble).map(c=>({id:c.id,title:c.title,left:c.crumble})),
     qReady:QUESTS.filter(q=>!(S.qclaimed||{})[q.id]&&q.cur()>=q.n).map(q=>({t:q.t,xp:q.xp})),
     engine:{model:engineModel(),working:agentRun>0,off:!!S.engineOff,busy:trackBusy?refName(trackBusy):null,taste:tasteBusy||null,next:nx?{name:refName(nx.ref),when:rel(nx.next)}:null},
-    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
+    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",petMale:!!S.petMale,newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
 let sumT=null;
 function pushSummary(now){if(!DESK)return;clearTimeout(sumT);sumT=setTimeout(()=>{try{TAURI.event.emit("sense://summary",summary());}catch(e){}},now?0:250);}
 function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-tab",k)}catch(e){};};
@@ -1732,7 +1732,8 @@ function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-t
     case"card":goTab("pocket");render();openCard(arg);return;
     case"clip":S.clipOn=!S.clipOn;invoke("clip_watch",{on:S.clipOn});persist();break;
     case"call":startCall();return;
-    case"petwho":S.petWho=(S.petWho||"pouch")==="pouch"?"claude":"pouch";persist();pushSummary(true);render();return;
+    case"petmale":S.petMale=!S.petMale;persist();pushSummary(true);render();return;
+    case"petwho":{const R=["pouch","claude","deepseek"];S.petWho=R[(R.indexOf(S.petWho||"pouch")+1)%R.length];}persist();pushSummary(true);render();return;
     case"imgtake":takeImg(true);return;
     case"imgskip":takeImg(false);return;
     case"pet":S.pet=Object.assign(S.pet||{},{on:!petOn()});invoke("pet_show",{on:S.pet.on,x:S.pet.x??null,y:S.pet.y??null});log("pet",null,{on:S.pet.on});persist();break;
