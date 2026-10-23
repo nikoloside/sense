@@ -130,8 +130,16 @@ fn snap(app: AppHandle) {
             Err(_) => return,
         };
         let _ = fs::remove_file(&path); // 原图不留在磁盘上
+        // AppKit 的剪贴板放在主线程写；后台线程写过一次，⌘V 贴不出来。
         #[cfg(target_os = "macos")]
-        let copied = clipboard::put_png(&bytes);
+        let copied = {
+            let (tx, rx) = std::sync::mpsc::channel();
+            let png = bytes.clone();
+            let _ = app.run_on_main_thread(move || {
+                let _ = tx.send(clipboard::put_png(&png));
+            });
+            rx.recv_timeout(std::time::Duration::from_secs(3)).unwrap_or(false)
+        };
         #[cfg(not(target_os = "macos"))]
         let copied = false;
         if let Some(w) = app.get_webview_window("main") {
