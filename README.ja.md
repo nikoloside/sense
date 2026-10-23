@@ -23,12 +23,12 @@ Sense は、あなたが見たもの、聴いたもの、スクショしたも�
 
 - **インストーラ**：[GitHub Releases](https://github.com/nikoloside/sense/releases/latest) の `.dmg`。Apple シリコンの macOS のみ。Apple の公証を受けていないので、初回起動がブロックされたら システム設定 › プライバシーとセキュリティ ›「このまま開く」。
 - **必要なもの**：インストール済みでログインした [Claude Code](https://claude.com/claude-code)。エージェントの呼び出しはすべてローカルの `claude -p` で、あなた自身のアカウントです。YouTube Music / Spotify のページを読むには Claude in Chrome 拡張が必要です。
-- **権限**：⌃⌘A のスクショには「画面収録」、Chrome 履歴を読むには「フルディスクアクセス」（任意）。
+- **権限**：⌃⇧⌘A のスクショには「画面収録」、Chrome 履歴を読むには「フルディスクアクセス」（任意）。
 - **ソースからビルド**：[app/README.md](app/README.md) を参照（Rust、`cargo install tauri-cli`、Node）。`APPLE_SIGNING_IDENTITY` で署名を渡すと、ビルドし直しても macOS の権限が消えません。
 
 ## データの出どころ
 
-- ⌃⌘A のスクショ（クリップボードにもコピー）、オンにしたときだけのクリップボード記録、デスクトップペットへの画像ドロップ。
+- ⌃⇧⌘A のスクショ（クリップボードにもコピー）、オンにしたときだけのクリップボード記録、デスクトップペットへの画像ドロップ。
 - あなた自身の Chrome 履歴と YouTube 視聴履歴。一時コピーをローカルで読み、すぐ削除します。他人の Chrome プロフィールは `~/Library/Application Support/Sense/config.json` の `exclude_profiles` に書き、開きません。
 - ログイン中の YouTube Music / Spotify のページ。Claude in Chrome を読み取り専用のツールと固定の許可リストで使い、曲名とアーティストだけを残します。
 - Claude Code との会話であなたが述べた判断。

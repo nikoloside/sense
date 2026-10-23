@@ -79,7 +79,7 @@ main a{color:var(--ac-2)}
   <section>
     <h2 data-i="h_src">数据从哪来</h2>
     <ul>
-      <li data-i="src0">⌃⌘A 截一块屏幕、开着的剪贴板记录、把图片拖给桌宠。</li>
+      <li data-i="src0">⌃⇧⌘A 截一块屏幕（或收剪贴板里别的工具截的图）、开着的剪贴板记录、把图片拖给桌宠。</li>
       <li data-i="src1">你自己的 Chrome 履历和 YouTube 观看记录，在本机读，读完即删副本。</li>
       <li data-i="src2">你登录着的 YouTube Music / Spotify 页面：Claude 只读白名单里的几页，只记歌名和歌手。</li>
       <li data-i="src3">你和 Claude Code 的会话日志里，你说过的判断。</li>
@@ -103,13 +103,13 @@ const T={
 en:{title:"Sense · Download",tag:"Knows your taste. Finds the next thing worth loving.",dl:"Download for macOS",dl_s:".dmg · Apple silicon",gh:"Source on GitHub",demo:"Live demo",demo_s:"The author's own pocket, right in your browser",
 h_what:"What it does",what:"Sense turns what you watch, listen to, screenshot and talk about with AI into cards in a pocket. As you keep, drop and answer quick draws, it learns what you actually care about, then goes looking for new things for you. No scores, no percentages — every card traces back to its evidence.",
 t_stone:"Stone",d_stone:"Just arrived, not handled yet. Ignore it for 7 days and it shatters, leaving only a note that it was found.",t_bronze:"Bronze",d_bronze:"You kept it — you care a little.",t_silver:"Silver",d_silver:"Followed: it tells you when there is a new episode, new work or new paper.",t_gold:"Gold",d_gold:"A taste: two silver cards that share the same reason fuse into gold, which recommends outward.",
-h_src:"Where the data comes from",src0:"⌃⌘A to grab part of the screen, clipboard capture when you turn it on, or images dropped onto the desktop pet.",src1:"Your own Chrome history and YouTube watch history, read locally; the temporary copy is deleted right after.",src2:"Your signed-in YouTube Music / Spotify pages: Claude reads only a short allowlist of pages and keeps just titles and artists.",src3:"Judgments you stated in your Claude Code sessions.",
+h_src:"Where the data comes from",src0:"⌃⇧⌘A to grab part of the screen (or pick up a screenshot another tool put on the clipboard), clipboard capture when you turn it on, or images dropped onto the desktop pet.",src1:"Your own Chrome history and YouTube watch history, read locally; the temporary copy is deleted right after.",src2:"Your signed-in YouTube Music / Spotify pages: Claude reads only a short allowlist of pages and keeps just titles and artists.",src3:"Judgments you stated in your Claude Code sessions.",
 local:"Everything stays on your Mac and is never uploaded. Every agent call is your local Claude Code, on your own account.",
 h_before:"Before you install",b0:"macOS on Apple silicon only. Requires <a href=\"https://claude.com/claude-code\">Claude Code</a>, installed and signed in. Reading listening pages also needs the Claude in Chrome extension.",b1:"The app is not notarized by Apple. If the first launch is blocked, open System Settings › Privacy & Security and click “Open Anyway”.",b2:"To read Chrome history, turn on “Sense 口袋” under Full Disk Access. It still works without it — just with one fewer source.",docs:"Design docs"},
 ja:{title:"Sense · ダウンロード",tag:"あなたの好みを理解し、次の「好き」を見つける。",dl:"macOS 版をダウンロード",dl_s:".dmg · Apple シリコン",gh:"GitHub のソースコード",demo:"オンラインデモ",demo_s:"作者本人のポケットをブラウザでそのまま",
 h_what:"何をするのか",what:"見たもの、聴いたもの、スクショしたもの、AI と話したことから、Sense がカードを作ってポケットに入れます。残す・捨てる・カードを引いて答える、を繰り返すうちに、あなたが本当に大事にしているものを覚え、新しいものを探しに行きます。点数もパーセントもなし。どのカードも根拠までたどれます。",
 t_stone:"石",d_stone:"入ったばかりで未処理。7 日放っておくと砕けて、「見つけた」という記録だけが残ります。",t_bronze:"銅",d_bronze:"残したカード。少しは気になっている。",t_silver:"銀",d_silver:"フォロー中。新しい話数、新作、新しい論文が出たら知らせます。",t_gold:"金",d_gold:"好みそのもの。同じ「なぜ」を語れる銀カード 2 枚が融合して金になり、外へ向けておすすめします。",
-h_src:"データの出どころ",src0:"⌃⌘A で画面の一部を切り取る、オンにしたときのクリップボード記録、デスクトップペットへの画像ドロップ。",src1:"あなた自身の Chrome 履歴と YouTube 視聴履歴をローカルで読み、コピーは読み終えたらすぐ削除。",src2:"ログイン中の YouTube Music / Spotify のページ。Claude は許可リストの数ページだけを読み、曲名とアーティストだけを残します。",src3:"Claude Code との会話であなたが述べた判断。",
+h_src:"データの出どころ",src0:"⌃⇧⌘A で画面の一部を切り取る（ほかのツールがクリップボードに置いたスクショも取り込める）、オンにしたときのクリップボード記録、デスクトップペットへの画像ドロップ。",src1:"あなた自身の Chrome 履歴と YouTube 視聴履歴をローカルで読み、コピーは読み終えたらすぐ削除。",src2:"ログイン中の YouTube Music / Spotify のページ。Claude は許可リストの数ページだけを読み、曲名とアーティストだけを残します。",src3:"Claude Code との会話であなたが述べた判断。",
 local:"すべてあなたの Mac に保存され、アップロードはしません。エージェントの呼び出しはすべてローカルの Claude Code で、あなた自身のアカウントです。",
 h_before:"インストールの前に",b0:"Apple シリコンの macOS のみ。インストール済みでログインした <a href=\"https://claude.com/claude-code\">Claude Code</a> が必要です。聴いた曲のページを読むには Claude in Chrome 拡張も必要です。",b1:"Apple の公証を受けていません。初回起動がブロックされたら、システム設定 › プライバシーとセキュリティ で「このまま開く」を押してください。",b2:"Chrome 履歴を読むには「フルディスクアクセス」で「Sense 口袋」をオンに。オフでも使えます（情報源が一つ減るだけ）。",docs:"設計ドキュメント"}};
 const ZH={};document.querySelectorAll("[data-i]").forEach(e=>ZH[e.dataset.i]=e.innerHTML);ZH.title=document.title;

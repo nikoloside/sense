@@ -27,6 +27,9 @@ body{font-family:var(--f-body);font-size:13px;line-height:1.45;color:var(--ink)}
 .tile.zero{opacity:.55}
 h4{font-family:var(--f-pixel);font-weight:400;font-size:12px;letter-spacing:.06em;color:var(--chalk-2);margin:10px 12px 4px}
 .rows{display:flex;flex-direction:column;padding:0 6px}
+.ask{display:flex;align-items:center;gap:8px;margin:2px 8px 8px;padding:8px;border:2px solid var(--accent);border-radius:8px}
+.ask img{width:40px;height:40px;object-fit:cover;border-radius:4px}.ask span{flex:1;min-width:0;display:flex;flex-direction:column}.ask small{color:var(--chalk-2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ask button{all:unset;cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;border:2px solid var(--line,currentColor)}.ask button.main{background:var(--accent);color:#fff;border-color:var(--accent)}
 .row{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:8px;align-items:center;padding:5px 6px;border-radius:6px}
 .row:hover,.row:focus-visible{background:var(--sink)}
 .row span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--chalk)}
@@ -89,10 +92,12 @@ function render(){const p=$("#panel");p.innerHTML="";
     h("button",{class:"tile"+(S.nNew?"":" zero"),type:"button",onclick:()=>go("new")},h("b",{},S.nNew),h("small",{},"NEW 新卡")),
     h("button",{class:"tile"+(nc?" hot":" zero"),type:"button",onclick:()=>go("new")},h("b",{},nc),h("small",{},"快碎了")),
     h("button",{class:"tile"+(S.qReady.length?" ready":" zero"),type:"button",onclick:()=>go("go","settings")},h("b",{},S.qReady.length),h("small",{},"任务可领"))));
+  if(S.imgAsk){p.append(h("div",{class:"ask"},h("img",{src:S.imgAsk.thumb,alt:""}),h("span",{},h("b",{},"剪贴板里有一张新图"),h("small",{},S.imgAsk.src?"当时在 "+S.imgAsk.src:"放进口袋？")),
+    h("button",{type:"button",class:"main",onclick:()=>cmd("imgtake")},"放进"),h("button",{type:"button",onclick:()=>cmd("imgskip",null,true)},"不要")));}
   if(nc){p.append(h("h4",{},"快碎了 · 点开处理"),h("div",{class:"rows"},S.crumble.slice(0,3).map(c=>h("button",{class:"row",type:"button",onclick:()=>go("card",c.id)},h("i",{class:"crack"}),h("span",{},c.title),h("em",{},days(c.left))))));}
   const act=(k,b,s,fn,on,dis)=>h("button",{class:"act"+(on?" on":""),type:"button",disabled:dis||null,onclick:fn},icon(k),h("span",{},h("b",{},b),h("small",{},s)));
   p.append(h("h4",{},"快捷"),h("div",{class:"acts"},
-    act("snap","截图进口袋","⌃⌘A 框一块屏幕",()=>{invoke("menu_hide");setTimeout(()=>invoke("snap_now"),180);}),
+    act("snap","截图进口袋",(S.snapKey||"")+" 框一块屏幕",()=>{invoke("menu_hide");setTimeout(()=>invoke("snap_now"),180);}),
     act("draw","抽一手","答完会写进属性",()=>go("go","draw")),
     act("clip","剪贴板",S.clipOn?"在记 · 点一下停":"没在记 · 点一下开",()=>cmd("clip",null,true),S.clipOn),
     act("pet","桌宠",S.petOn?"在桌面上 · 点一下收":"收着 · 点一下放出来",()=>cmd("pet",null,true),S.petOn),

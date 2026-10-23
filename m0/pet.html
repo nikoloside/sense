@@ -51,7 +51,7 @@ function draw(){g.clearRect(0,0,cv.width,cv.height);
   if(m==="busy"){const L=cssv("--chalk")||"#3a2416";[[14,10],[15,10],[16,10],[13,11],[17,11],[13,12],[17,12],[14,13],[15,13],[16,13],[17,14],[18,15]].forEach(([x,y])=>{if(x<18)px(x-1,y+dy,L);});}
 }
 setInterval(()=>{frame++;if(mood!=="idle"&&moodUntil&&Date.now()>moodUntil){moodUntil=0;mood=base();}draw();},RM.matches?1000:300);
-function base(){if(!S)return"idle";const E=S.engine||{};if(E.busy||E.taste)return"busy";if(E.off)return"sleep";if(S.crumble.length||S.qReady.length)return"alert";return"idle";}
+function base(){if(!S)return"idle";const E=S.engine||{};if(E.busy||E.taste)return"busy";if(E.off)return"sleep";if(S.imgAsk||S.crumble.length||S.qReady.length)return"alert";return"idle";}
 function setMood(m,ms){mood=m;moodUntil=ms?Date.now()+ms:0;marks();draw();}
 function marks(){const k=$("#mark");const m=mood;k.className="mark";if(m==="alert"){k.textContent="!";k.classList.add("show");}else if(m==="sleep"){k.textContent="z";k.classList.add("show","z");}}
 let bubT=null;
@@ -59,7 +59,9 @@ function say(t,ms){if(!t)return;$("#bubt").textContent=t;$("#bub").classList.add
 function sparks(){if(RM.matches)return;for(let i=0;i<8;i++){const s=document.createElement("i");s.className="spark";s.style.left=(70+Math.random()*28)+"px";s.style.bottom=(70+Math.random()*30)+"px";s.style.setProperty("--dx",(Math.random()-.5)*80+"px");s.style.setProperty("--dy",-(20+Math.random()*50)+"px");document.body.append(s);setTimeout(()=>s.remove(),900);}}
 function react(e){const K={eat:["eat",2400],crack:["crack",1500],cheer:["cheer",2000],find:["cheer",1800],gold:["cheer",2600]}[e.kind]||["idle",0];
   setMood(K[0],K[1]);say(e.text,6000);if(e.kind==="cheer"||e.kind==="gold")sparks();}
+let lastAsk=null;
 ev.listen("sense://summary",e=>{const first=!S;S=e.payload;document.documentElement.dataset.theme=S.theme||"cream";
+  if(S.imgAsk&&S.imgAsk.at!==lastAsk){lastAsk=S.imgAsk.at;say("剪贴板里有张新图，点我收",9000);}
   if(S.ev&&(first?false:(!lastEv||S.ev.at>lastEv)))react(S.ev);if(S.ev)lastEv=Math.max(lastEv||0,S.ev.at);
   if(!moodUntil){const was=mood;mood=base();if(mood==="busy"&&was!=="busy")say(S.engine.taste?"在整理你的品味…":"在查「"+S.engine.busy+"」…",5000);}
   marks();draw();});

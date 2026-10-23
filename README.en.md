@@ -23,12 +23,12 @@ Sense learns your taste from what you watch, listen to, screenshot and talk abou
 
 - **Installer**: the `.dmg` in [GitHub Releases](https://github.com/nikoloside/sense/releases/latest). macOS on Apple silicon only. It is not notarized; if the first launch is blocked, use System Settings › Privacy & Security › "Open Anyway".
 - **Requires** [Claude Code](https://claude.com/claude-code), installed and signed in. Every agent call is a local `claude -p` on your own account. Reading YouTube Music / Spotify pages needs the Claude in Chrome extension.
-- **Permissions**: Screen Recording for ⌃⌘A screenshots; Full Disk Access to read Chrome history (optional).
+- **Permissions**: Screen Recording for ⌃⇧⌘A screenshots; Full Disk Access to read Chrome history (optional).
 - **Build from source**: see [app/README.md](app/README.md) (Rust, `cargo install tauri-cli`, Node). Pass a signing identity with `APPLE_SIGNING_IDENTITY` so macOS permissions survive rebuilds.
 
 ## Where the data comes from
 
-- ⌃⌘A screenshots (also copied to the clipboard), opt-in clipboard capture, images dropped onto the desktop pet.
+- ⌃⇧⌘A screenshots (also copied to the clipboard; the key can be changed in Settings), opt-in pickup of screenshots other tools put on the clipboard, opt-in clipboard capture, images dropped onto the desktop pet.
 - Your own Chrome history and YouTube watch history, read locally from a temporary copy that is deleted right after. Other people's Chrome profiles are listed in `~/Library/Application Support/Sense/config.json` (`exclude_profiles`) and never opened.
 - Your signed-in YouTube Music / Spotify pages, read through Claude in Chrome with read-only tools and a fixed allowlist; only titles and artists are kept.
 - Judgments you stated in your Claude Code sessions.

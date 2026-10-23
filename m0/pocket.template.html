@@ -218,6 +218,8 @@ select.attr{font:inherit;font-size:12px;background:var(--felt-2);color:var(--cha
 .lin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
 .lin-chip{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;background:var(--paper);color:var(--ink);border:2px solid var(--tier);border-left:6px solid var(--kc);border-radius:4px;padding:6px 8px}
 .lin-chip b{font-size:13px;font-weight:600}.lin-chip span{font-family:var(--f-pixel);font-size:11px;opacity:.65}.lin-chip:focus-visible{outline:2px solid var(--accent)}
+.imgask{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);background:var(--felt-2);color:var(--chalk);border:3px solid var(--accent);border-radius:8px;padding:10px;box-shadow:0 6px 0 var(--shadow)}
+.imgask img{width:56px;height:56px;object-fit:cover;border-radius:4px;border:2px solid var(--felt-line)}.imgask span{display:flex;flex-direction:column;gap:2px;min-width:0}.imgask small{color:var(--chalk-2);font-size:12px}
 .sheet .acts{display:flex;gap:8px;flex-wrap:wrap}
 .sheet a{color:var(--accent)}
 .sheet .close{margin-left:auto;background:none;border:none;color:var(--chalk-2);font-family:var(--f-pixel);cursor:pointer;font-size:14px}
@@ -567,6 +569,7 @@ function confirmAttrs(ids){(ids||[]).forEach(id=>{if(!ATTR.has(id))return;(S.att
 /* Tiers (0022): stone = just in, bronze = some care, silver = follow the thing itself, gold = a taste that keeps recommending.
    Bronze -> silver by an explicit 跟 or by enough touches (threshold tuned by the author's actions). Gold only by fusing silvers. */
 const OPENED=new Set();
+const SNAP_DEFAULT="ctrl+shift+super+KeyA";let imgAsk=null,keyRec=null;
 function touch(id){const s=cs(id);s.used=true;s.touch=(s.touch||0)+1;s.lastTouch=Date.now();return true;}
 /* Archive rules (7.5.4): stone untouched 7 days (screenshots 30), bronze untouched 60 days. The clock starts when this pocket first saw the card. */
 /* 石卡一次都没处理过（没打开、没留下、没跟、没放上追踪台），到期就碎：进仓库的碎卡堆。
@@ -636,11 +639,11 @@ async function thumbOf(blob){const url=URL.createObjectURL(blob);try{const img=a
   const W=240,sc=Math.min(1,W/img.width);const cv=document.createElement("canvas");cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
   const small=await new Promise(r=>{const cv2=document.createElement("canvas");const s2=Math.min(1,1280/img.width);cv2.width=Math.round(img.width*s2);cv2.height=Math.round(img.height*s2);cv2.getContext("2d").drawImage(img,0,0,cv2.width,cv2.height);cv2.toBlob(r,"image/jpeg",.82);});
   return{thumb:cv.toDataURL("image/jpeg",.6),send:small};}finally{URL.revokeObjectURL(url);}}
-async function intakeImage(blob,fromRect){
+async function intakeImage(blob,fromRect,where){
   if(clipBusy)return;clipBusy=true;render();
   try{const{thumb,send}=await thumbOf(blob);
     const id="S"+Date.now().toString(36);const now=new Date();
-    let c={id,kind:"collection",subkind:"screenshot",tier:"stone",title:"截图 · "+now.toLocaleString(),body:"",attribute_ids:[],thumb,evidence:[{when:now.toISOString().slice(0,10),where:"截图 · 粘贴进口袋",what:"你截下来的一块屏幕"}],tier_reason:"刚进来，还没被你留下"};
+    let c={id,kind:"collection",subkind:"screenshot",tier:"stone",title:"截图 · "+now.toLocaleString(),body:"",attribute_ids:[],thumb,evidence:[{when:now.toISOString().slice(0,10),where:where||"截图 · 粘贴进口袋",what:"你截下来的一块屏幕"}],tier_reason:"刚进来，还没被你留下"};
     if(DESK||(sampleFn&&sampleImages&&send)){
       const attrs=DATA.attributes.map(a=>`${a.id}=「${a.text}」`).join("；");
       const cards=allCards().map(x=>card(x.id)).filter(x=>x&&!x.archived&&(x.kind==="follow"||x.kind==="person"||x.kind==="interest")).map(x=>`${x.id}=${KIND[x.kind]}「${x.title}」`).join("；");
@@ -1019,7 +1022,9 @@ function sources(){const m=$("#main");
   const clips=(S.clips||[]).slice(-8).reverse();
   const tog=h("button",{class:"btn"+(S.clipOn?" gold":""),type:"button",disabled:!DESK||null,onclick:()=>{S.clipOn=!S.clipOn;invoke&&invoke("clip_watch",{on:S.clipOn});persist();render();toast(S.clipOn?"开始记剪贴板":"不记了");}},S.clipOn?"在记 · 点一下停":"开始记剪贴板");
   m.append(h("div",{class:"srcs"},
-    box("⌃⌘A","截图","在任何地方按 ⌃⌘A 框选，截完自动飞进口袋，Claude 认出它是什么、挂哪条属性。原图不留在磁盘上。",h("div",{class:"btnrow"},DESK?h("button",{class:"btn",type:"button",onclick:()=>invoke("snap_now")},"现在截一张"):h("span",{class:"note"},"网页版：截到剪贴板后回来按 ⌘V。"))),
+    box(keyLabel(),"截图","在任何地方按 "+keyLabel()+" 框选，截完飞进口袋，同时复制到剪贴板，别处 ⌘V 能贴。Claude 认出它是什么、挂哪条属性。原图不留在磁盘上。也可以照旧用微信 ⌃⌘A 或系统 ⌃⇧⌘4 截图：打开「收剪贴板里的截图」，剪贴板里一出现新图就问你要不要放进口袋，不点就什么都不留。",
+      DESK?h("div",{class:"btnrow"},h("button",{class:"btn",type:"button",onclick:()=>invoke("snap_now")},"现在截一张"),h("button",{class:"btn ghost",type:"button",onclick:recordKey},"换截图键"),
+        h("button",{class:"btn"+(S.clipImgOn?" gold":" ghost"),type:"button",onclick:()=>{S.clipImgOn=!S.clipImgOn;invoke("clip_img_watch",{on:!!S.clipImgOn});persist();render();toast(S.clipImgOn?"剪贴板里出现新图会问你":"不看剪贴板里的图了");}},S.clipImgOn?"在收剪贴板里的截图 · 点一下停":"收剪贴板里的截图")):h("div",{class:"btnrow"},h("span",{class:"note"},"网页版：截到剪贴板后回来按 ⌘V。"))),
     box("⌘C","剪贴板","记从哪复制、之后切到哪。粘进笔记，或一周复制两次的，成石卡；粘进 agent 的，记成会话上下文。密码管理器、聊天和邮件里复制的、像密钥或电话的，整条不记。只留 14 天。",h("div",{class:"btnrow"},tog),
       clips.length?h("ul",{class:"cliplist"},clips.map(k=>h("li",{},h("span",{class:"w"},new Date(k.at).toLocaleTimeString()+" · "+(k.from||"?")+(k.to?" → "+k.to:"")+(k.ctx?" · 给 agent 的":"")+(k.carded?" · 成卡了":"")),h("span",{class:"tx"},k.text.slice(0,120)),k.carded?null:h("button",{class:"rm",type:"button",onclick:()=>clipCard(k,"你从剪贴板里挑出来的。")},"做成卡")))):null),
     box("◎","浏览器履历与书签","全部扫一遍你自己的 Chrome profile（别人的 profile 不读），丢掉登录、支付、银行、医疗、签证、邮件、后台类页面。跨 3 周以上、来过 5 次以上的才算候选。只出关注、收藏、兴趣，不出判断卡。",h("div",{class:"btnrow"},h("button",{class:"btn",type:"button",disabled:!DESK||busy("browser")||null,onclick:scanBrowser},busy("browser")?"在扫…":"全部扫一遍"))),
@@ -1226,12 +1231,12 @@ function pocket(){
   const fileIn=h("input",{type:"file",id:"clipFile",accept:"image/*"});
   fileIn.addEventListener("change",()=>{const f=fileIn.files&&fileIn.files[0];if(f)intakeImage(f,zone.getBoundingClientRect());fileIn.value="";});
   const zone=h("section",{class:"clipzone",id:"clipzone"},
-    DESK?h("p",{},"在任何地方按 ",h("kbd",{},"⌃⌘A")," 框选，截完自动飞进口袋。也可以把图片拖进来或按 ",h("kbd",{},"⌘V"),"。",clipBusy?h("span",{class:"clipping"}," 正在认这张图…"):null):h("p",{},"截一张图放进口袋：按 ",h("kbd",{},"⌃⌘A")," 框选，截图进剪贴板，回到这里按 ",h("kbd",{},"⌘V"),"，它会飞进口袋。也可以把图片拖进来。",clipBusy?h("span",{class:"clipping"}," 正在认这张图…"):null,
-      h("details",{style:"margin-top:6px"},h("summary",{style:"cursor:pointer;color:var(--chalk-2);font-size:12px"},"⌃⌘A 怎么设置（一次）"),
+    DESK?h("p",{},"在任何地方按 ",h("kbd",{},keyLabel())," 框选，截完自动飞进口袋。也可以把图片拖进来或按 ",h("kbd",{},"⌘V"),"。",clipBusy?h("span",{class:"clipping"}," 正在认这张图…"):null):h("p",{},"截一张图放进口袋：按 ",h("kbd",{},"⌃⇧⌘4")," 框选，截图进剪贴板，回到这里按 ",h("kbd",{},"⌘V"),"，它会飞进口袋。也可以把图片拖进来。",clipBusy?h("span",{class:"clipping"}," 正在认这张图…"):null,
+      h("details",{style:"margin-top:6px"},h("summary",{style:"cursor:pointer;color:var(--chalk-2);font-size:12px"},"想换成别的键（一次）"),
         h("ol",{style:"margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--chalk-2)"},
           h("li",{},"打开 macOS 的「快捷指令」app，新建一个快捷指令，叫「Sense 截图」。"),
           h("li",{},"加一个「运行 Shell 脚本」动作，内容填：screencapture -i -c"),
-          h("li",{},"在快捷指令详情里「添加键盘快捷键」，按 ⌃⌘A。微信 Mac 版默认也用 ⌃⌘A 截图，二选一或改掉微信的。"),
+          h("li",{},"在快捷指令详情里「添加键盘快捷键」，按一个没被占用的组合。别用 ⌃⌘A，那是微信的截图键。"),
           h("li",{},"没设置之前，系统自带的 ⌃⇧⌘4 也是截到剪贴板，效果一样。")))),
     h("label",{class:"btn ghost",for:"clipFile"},"选一张图"),fileIn);
   zone.addEventListener("dragover",e=>{e.preventDefault();zone.classList.add("over");});
@@ -1501,7 +1506,7 @@ const QUESTS=[
   {id:"track",t:"放上转盘",d:"手动放一张卡到追踪",xp:30,cur:()=>cnt("track_put"),n:1},
   {id:"run",t:"转起来",d:"追踪跑满 5 次",xp:40,cur:()=>cnt("track_run"),n:5},
   {id:"draw",t:"手气",d:"抽卡答 3 手",xp:40,cur:()=>cnt("survey"),n:3},
-  {id:"snap",t:"随手一截",d:"按 ⌃⌘A 截一张图进口袋",xp:30,cur:()=>cnt("clip_in"),n:1},
+  {id:"snap",t:"随手一截",d:"截一张图进口袋",xp:30,cur:()=>cnt("clip_in"),n:1},
   {id:"full",t:"口袋渐满",d:"口袋里有 80 张卡",xp:40,cur:()=>liveCards().length,n:80},
   {id:"gold",t:"第一张金卡",d:"把两张能说出同一个为什么的银卡融合",xp:100,cur:()=>cnt("fuse"),n:1},
   {id:"days",t:"常来看看",d:"在 5 个不同的日子打开口袋",xp:50,cur:()=>new Set(S.log.map(l=>l.at.slice(0,10))).size,n:5},
@@ -1537,7 +1542,7 @@ const ENGINE_JOBS=[
   ["石卡/铜卡（手动放上）","按座位节奏","不调 agent","—","排进抽卡问你还在不在意"],
   ["用例","手动或放上追踪台","WebSearch, WebFetch","16","按用例跑一遍的结果"],
   ["委托","每周，全部完成或过期后","不给工具","4","新的 3 张委托"],
-  ["截图进口袋","⌃⌘A 截完","Read（只读那张临时图，读完即删）","16","一张石卡"],
+  ["截图进口袋","截图键截完，或收剪贴板里的截图","Read（只读那张临时图，读完即删）","16","一张石卡"],
   ["挖日志","入口页手动","Read, Glob, Grep ＋ 会话日志目录","40","候选卡"],
   ["牌桌出一手","手动","WebSearch, WebFetch","16","推荐，留下的进口袋"]];
 function lastOf(pred){const l=S.log.filter(pred).slice(-1)[0];return l?new Date(l.at).toLocaleString()+(l.detail&&l.detail.err?" · 出错："+String(l.detail.err).slice(0,60):""):"还没跑过";}
@@ -1580,8 +1585,26 @@ function settings(){const m=$("#main");
     DESK?h("p",{class:"note"},"桌宠是口袋精，戴着你角色的帽子。它只演真发生的事：进卡会吃、碎卡会抖、引擎在跑会拿放大镜、有卡快碎或任务能领头上冒「!」、引擎暂停就睡觉。单击弹快捷菜单，双击打开口袋，按住拖走，把图片拖到它身上就是喂进口袋（和 ⌃⌘A 截图一样建石卡）。"):null));}
 /* ---------- 快捷菜单与桌宠（0025）：主窗口是唯一写状态的地方，另外两个窗口只收摘要、发命令 ---------- */
 let clipQ=[],clipQuiet=false,petLast=null;
+/* Screenshot key and clipboard images (0029). ⌃⌘A belongs to WeChat; macOS lets both apps register it and the first one wins silently. */
+function keyLabel(a){const p=String(a||S.snapKey||SNAP_DEFAULT).split("+");const M={ctrl:"⌃",control:"⌃",alt:"⌥",option:"⌥",shift:"⇧",super:"⌘",cmd:"⌘",command:"⌘"};
+  const mods=p.slice(0,-1).map(x=>M[x.toLowerCase()]||"").sort((x,y)=>"⌃⌥⇧⌘".indexOf(x)-"⌃⌥⇧⌘".indexOf(y)).join("");return mods+p[p.length-1].replace(/^Key|^Digit/,"").toUpperCase();}
+function recordKey(){if(keyRec)return;toast("按下新的截图键组合（Esc 取消）");
+  keyRec=e=>{e.preventDefault();e.stopPropagation();if(e.key==="Escape"){stop();toast("没换");return;}if(/^(Shift|Control|Alt|Meta)/.test(e.code))return;
+    const mods=[e.ctrlKey&&"ctrl",e.altKey&&"alt",e.shiftKey&&"shift",e.metaKey&&"super"].filter(Boolean);
+    if(mods.length<2||!(e.ctrlKey||e.metaKey||e.altKey)){toast("至少两个修饰键，比如 ⌃⇧⌘ 加一个字母");return;}
+    const accel=mods.concat(e.code).join("+");stop();
+    invoke("set_snap_key",{accel}).then(()=>{S.snapKey=accel;persist();render();pushSummary(true);toast("截图键换成了 "+keyLabel(accel));}).catch(err=>toast(keyLabel(accel)+" 用不了："+err));};
+  const stop=()=>{removeEventListener("keydown",keyRec,true);keyRec=null;};addEventListener("keydown",keyRec,true);}
+async function askImg(p){try{const bin=atob(p.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  const{thumb}=await thumbOf(new Blob([u],{type:p.mime}));const at=Date.now();imgAsk={p,thumb,at};
+  setTimeout(()=>{if(imgAsk&&imgAsk.at===at){imgAsk=null;showImgAsk();pushSummary(true);}},180e3);showImgAsk();pushSummary(true);}catch(e){}}
+function takeImg(yes){const a=imgAsk;imgAsk=null;showImgAsk();pushSummary(true);
+  if(a&&yes){clipQ.push(Object.assign({},a.p,{where:"截图 · 剪贴板里收的"+(a.p.source_app?"（当时在 "+a.p.source_app+"）":"")}));drainClips();if(DESK)invoke("show_main");}}
+function showImgAsk(){const old=$("#imgask");if(old)old.remove();if(!imgAsk)return;
+  document.body.append(h("div",{id:"imgask",class:"imgask",role:"dialog","aria-label":"剪贴板里的新图"},h("img",{src:imgAsk.thumb,alt:""}),h("span",{},h("b",{},"剪贴板里有一张新图"),h("small",{},"放进口袋？不放就什么都不留")),
+    h("button",{class:"btn",type:"button",onclick:()=>takeImg(true)},"放进口袋"),h("button",{class:"btn ghost",type:"button",onclick:()=>takeImg(false)},"不要")));}
 async function drainClips(){if(clipBusy||!clipQ.length)return;const p=clipQ.shift();const bin=atob(p.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
-  clipQuiet=p.source_app==="桌宠";if(!clipQuiet){tab="pocket";render();}try{await intakeImage(new Blob([u],{type:p.mime}),null);}finally{clipQuiet=false;}setTimeout(drainClips,50);}
+  clipQuiet=p.source_app==="桌宠";if(!clipQuiet){tab="pocket";render();}try{await intakeImage(new Blob([u],{type:p.mime}),null,p.where);}finally{clipQuiet=false;}setTimeout(drainClips,50);}
 const petOn=()=>!S.pet||S.pet.on!==false;
 function petHear(a,id,d){try{petHear_(a,id,d);}catch(e){}}
 function petHear_(a,id,d){const c=id?card(id):null;const t=c?"「"+String(c.title).slice(0,16)+"」":"";
@@ -1594,7 +1617,7 @@ function summary(){const live=liveCards();const L=lvl();const by={};live.forEach
     nNew:live.filter(c=>c.isNew).length,crumble:live.filter(c=>c.crumble!=null).sort((a,b)=>a.crumble-b.crumble).map(c=>({id:c.id,title:c.title,left:c.crumble})),
     qReady:QUESTS.filter(q=>!(S.qclaimed||{})[q.id]&&q.cur()>=q.n).map(q=>({t:q.t,xp:q.xp})),
     engine:{off:!!S.engineOff,busy:trackBusy?refName(trackBusy):null,taste:tasteBusy||null,next:nx?{name:refName(nx.ref),when:rel(nx.next)}:null},
-    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast};}
+    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
 let sumT=null;
 function pushSummary(now){if(!DESK)return;clearTimeout(sumT);sumT=setTimeout(()=>{try{TAURI.event.emit("sense://summary",summary());}catch(e){}},now?0:250);}
 function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-tab",k)}catch(e){};};
@@ -1605,6 +1628,8 @@ function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-t
     case"new":goTab("pocket");fNew=true;break;
     case"card":goTab("pocket");render();openCard(arg);return;
     case"clip":S.clipOn=!S.clipOn;invoke("clip_watch",{on:S.clipOn});persist();break;
+    case"imgtake":takeImg(true);return;
+    case"imgskip":takeImg(false);return;
     case"pet":S.pet=Object.assign(S.pet||{},{on:!petOn()});invoke("pet_show",{on:S.pet.on,x:S.pet.x??null,y:S.pet.y??null});log("pet",null,{on:S.pet.on});persist();break;
     case"petpos":S.pet=Object.assign(S.pet||{on:true},{x:arg.x,y:arg.y});clearTimeout(onCmd.pt);onCmd.pt=setTimeout(persist,1500);return;
     case"engine":S.engineOff=!S.engineOff;log("engine",null,{off:S.engineOff});persist();break;
@@ -1647,7 +1672,10 @@ if(DESK){(async()=>{try{const raw=await invoke("load_state");if(raw&&!dirty){con
     if(!S.engineOff){if(listenDue())setTimeout(()=>listenScan(true),1500);else if(!S.taste||!("ytm" in S.taste.src)||Date.now()-S.taste.at>7*864e5)setTimeout(()=>buildTaste(true),1500);}
     setInterval(()=>{if(S.engineOff)return;if(listenDue())listenScan(true);else if(S.taste&&Date.now()-S.taste.at>7*864e5)buildTaste(true);},36e5);setStatus("桌面版 · 状态存在 ~/Library/Application Support/Sense，Claude Code 能读到");}catch(e){}
   if(S.clipOn)invoke("clip_watch",{on:true});
+  if(S.clipImgOn)invoke("clip_img_watch",{on:true});
+  if(S.snapKey&&S.snapKey!==SNAP_DEFAULT)invoke("set_snap_key",{accel:S.snapKey}).catch(e=>toast("截图键 "+keyLabel()+" 没注册上，先用 "+keyLabel(SNAP_DEFAULT)+"："+e));
   const ev=TAURI.event;
+  ev.listen("sense://clipimg",e=>askImg(e.payload));
   ev.listen("sense://clip",e=>{clipQ.push(e.payload);drainClips();if(e.payload.copied)toast("截图进口袋了，也复制到了剪贴板：⌘V 可以贴到别处");});
   ev.listen("sense://cmd",e=>onCmd(e.payload||{}));pushSummary(true);
   $("#pouchwrap").addEventListener("click",()=>{const r=$("#pouch").getBoundingClientRect();invoke("menu_toggle",{x:r.left-4,y:r.top-2,w:r.width+20,h:r.height+4});});

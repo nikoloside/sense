@@ -150,7 +150,7 @@ Sense 是**住在你机器上的一个程序**。v1.2 起主面是口袋 app（�
 
 | 面 | 是什么 | 给谁 |
 |---|---|---|
-| **口袋 app（macOS，Tauri v2，决策 0020）** | 卡与收藏：Sense 页、口袋、检索、⌃⌘A 截图即建卡、剪贴板、七种卡面、agent 卡槽、融合、委托、抽卡 survey（7.5）；Rust 薄壳负责热键、截图、菜单栏、读本机浏览器履历；口袋状态写到 `~/Library/Application Support/Sense/pocket-state.json` | 用户本人，每天用 |
+| **口袋 app（macOS，Tauri v2，决策 0020）** | 卡与收藏：Sense 页、口袋、检索、截图即建卡（截图键默认 ⌃⇧⌘A，或收剪贴板里的截图，0029）、剪贴板、七种卡面、agent 卡槽、融合、委托、抽卡 survey（7.5）；Rust 薄壳负责热键、截图、菜单栏、读本机浏览器履历；口袋状态写到 `~/Library/Application Support/Sense/pocket-state.json` | 用户本人，每天用 |
 | **iOS** | v1 只走分享菜单，把文字、截图、链接送进口袋；原生 app 在 v2 | 用户本人 |
 | **`sense` CLI** | 引擎与调试面：扫描、整理、出一手、导出。`ask` 与 G 环内部跑 agent 循环 | 用户本人、开发 |
 | **`sense mcp`** | stdio MCP server，v1.1，进入条件见决策 0013 | 用户正在用的 Claude Code / Codex |

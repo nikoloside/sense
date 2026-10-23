@@ -1,7 +1,7 @@
 //! Sense 口袋的 Rust 薄壳。
 //!
 //! 只做网页做不到的事：
-//! - ⌃⌘A 全局热键 → 系统框选截图 → 把图片交给口袋页面，页面自己建卡、播放进口袋的特效；同一张图也放进系统剪贴板，⌘V 能贴。
+//! - 截图全局热键（默认 ⌃⇧⌘A，可在设置里改；0029）→ 系统框选截图 → 把图片交给口袋页面，页面自己建卡、播放进口袋的特效；同一张图也放进系统剪贴板，⌘V 能贴。
 //! - 菜单栏图标：左键弹快捷菜单，右键是原生菜单。桌宠：一个透明小窗，拖图片给它就是喂进口袋。
 //! - 口袋状态读写到 ~/Library/Application Support/Sense/pocket-state.json，Claude Code 能读回。
 //! - 读本机 Chrome 履历与书签，按频次规则出候选。只读作者本人的 profile，副本读完即删，
@@ -19,7 +19,7 @@ use std::process::Command;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 /// 不是你本人的 Chrome profile：显示名含这些字的整份跳过，从不打开。
 /// 名单只放在本机 ~/Library/Application Support/Sense/config.json 的 `exclude_profiles` 里，不进仓库。
@@ -614,6 +614,35 @@ async fn scan_context() -> Result<ContextScan, String> {
 }
 
 #[tauri::command]
+fn clip_img_watch(on: bool) {
+    #[cfg(target_os = "macos")]
+    clipboard::IMG_WATCH.store(on, std::sync::atomic::Ordering::Relaxed);
+    let _ = on;
+}
+
+/// 截图键（0029）。默认 ⌃⇧⌘A：⌃⌘A 是微信的截图键，两个 app 都注册时系统不报错，按键却会被先注册的那个吃掉。
+const DEFAULT_SNAP_KEY: &str = "ctrl+shift+super+KeyA";
+static SNAP_KEY: std::sync::Mutex<Option<Shortcut>> = std::sync::Mutex::new(None);
+
+/// 换截图键：先注册新的，成功了再放掉旧的；新的注册不上就保留旧的，把原因交回页面。
+#[tauri::command]
+fn set_snap_key(app: AppHandle, accel: String) -> Result<String, String> {
+    let accel = if accel.is_empty() { DEFAULT_SNAP_KEY.to_string() } else { accel };
+    let key: Shortcut = accel.parse().map_err(|e| format!("认不出这个组合：{e}"))?;
+    let gs = app.global_shortcut();
+    let mut cur = SNAP_KEY.lock().map_err(|e| e.to_string())?;
+    if cur.as_ref() == Some(&key) {
+        return Ok(accel);
+    }
+    gs.register(key).map_err(|e| format!("注册不上：{e}"))?;
+    if let Some(old) = cur.take() {
+        let _ = gs.unregister(old);
+    }
+    *cur = Some(key);
+    Ok(accel)
+}
+
+#[tauri::command]
 fn clip_watch(on: bool) {
     #[cfg(target_os = "macos")]
     clipboard::WATCH.store(on, std::sync::atomic::Ordering::Relaxed);
@@ -887,7 +916,7 @@ fn pet_drag(app: AppHandle) {
     }
 }
 
-/// 把图片拖到桌宠身上 = 喂给口袋，和 ⌃⌘A 截图走同一条路。只收图片，最多 5 张，每张 20MB 以内。
+/// 把图片拖到桌宠身上 = 喂给口袋，和截图走同一条路。只收图片，最多 5 张，每张 20MB 以内。
 fn feed(app: &AppHandle, paths: &[PathBuf]) -> usize {
     let mut n = 0;
     for p in paths.iter().take(5) {
@@ -933,28 +962,29 @@ pub fn run() {
         scan_check();
         return;
     }
-    let snap_key = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SUPER), Code::KeyA);
     tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, sc, ev| {
-                    if sc == &snap_key && ev.state() == ShortcutState::Pressed {
+                    let mine = SNAP_KEY.lock().map(|k| k.as_ref() == Some(sc)).unwrap_or(false);
+                    if mine && ev.state() == ShortcutState::Pressed {
                         snap(app.clone());
                     }
                 })
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            load_state, save_state, snap_now, scan_history, run_claude, scan_context, clip_watch, save_png, open_url, scan_youtube,
+            load_state, save_state, snap_now, scan_history, run_claude, scan_context, clip_watch, clip_img_watch, set_snap_key, save_png, open_url, scan_youtube,
             menu_toggle, menu_hide, menu_fit, show_main, quit_app, pet_show, pet_drag, trace
         ])
         .setup(move |app| {
-            if let Err(e) = app.global_shortcut().register(snap_key) {
-                eprintln!("⌃⌘A 没注册上（可能被微信等占用）：{e}");
+            // 页面读到自己存的键后会再调一次 set_snap_key；这里先把默认键挂上。
+            if let Err(e) = set_snap_key(app.handle().clone(), String::new()) {
+                eprintln!("截图键没注册上：{e}");
             }
             // 右键还是原生菜单，左键弹快捷菜单。
             let show = MenuItem::with_id(app, "show", "打开口袋", true, None::<&str>)?;
-            let shot = MenuItem::with_id(app, "snap", "截图进口袋（⌃⌘A）", true, None::<&str>)?;
+            let shot = MenuItem::with_id(app, "snap", "截图进口袋", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &shot, &quit])?;
             let mut tray = TrayIconBuilder::with_id("sense")
