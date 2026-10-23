@@ -9,6 +9,7 @@
 
 #[cfg(target_os = "macos")]
 mod clipboard;
+mod voice;
 
 use base64::Engine;
 use serde::Serialize;
@@ -23,6 +24,38 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 /// 不是你本人的 Chrome profile：显示名含这些字的整份跳过，从不打开。
 /// 名单只放在本机 ~/Library/Application Support/Sense/config.json 的 `exclude_profiles` 里，不进仓库。
+/// 本机的 config.json（权限 600，不进仓库）：exclude_profiles、deepseek_api_key 等。
+fn config() -> serde_json::Value {
+    fs::read_to_string(data_dir().join("config.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or(serde_json::Value::Null)
+}
+
+/// 作者自己填的 DeepSeek key（0030）。Sense 不去别处找 key。
+fn deepseek_key() -> Option<String> {
+    config().get("deepseek_api_key").and_then(|k| k.as_str()).map(|k| k.trim().to_string()).filter(|k| !k.is_empty())
+}
+
+/// 设置页要知道 DeepSeek 能不能选：只回有没有填，不回 key 本身。
+#[tauri::command]
+fn engine_models() -> serde_json::Value {
+    serde_json::json!({ "deepseek": deepseek_key().is_some() })
+}
+
+/// 引擎用 DeepSeek 时，仍然跑同一个 claude，只是指到 DeepSeek 的 Anthropic 兼容接口（0030）。
+/// WebSearch 由 DeepSeek 服务端执行；Read、WebFetch、Chrome 这些工具照旧在本机跑。
+fn use_deepseek(cmd: &mut Command, key: &str) {
+    for k in ["ANTHROPIC_API_KEY", "ANTHROPIC_SMALL_FAST_MODEL"] {
+        cmd.env_remove(k);
+    }
+    cmd.env("ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic")
+        .env("ANTHROPIC_AUTH_TOKEN", key)
+        .env("ANTHROPIC_MODEL", "deepseek-flash")
+        .env("ANTHROPIC_DEFAULT_OPUS_MODEL", "deepseek-flash")
+        .env("ANTHROPIC_DEFAULT_SONNET_MODEL", "deepseek-flash")
+        .env("ANTHROPIC_DEFAULT_HAIKU_MODEL", "deepseek-flash")
+        .env("CLAUDE_CODE_SUBAGENT_MODEL", "deepseek-flash")
+        .env("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1");
+}
+
 fn other_people() -> Vec<String> {
     fs::read_to_string(data_dir().join("config.json"))
         .ok()
@@ -121,8 +154,19 @@ fn snap(app: AppHandle) {
         let path = std::env::temp_dir().join(format!("sense-snap-{}.png", std::process::id()));
         let _ = fs::remove_file(&path);
         // -i 交互框选，-x 不出快门声。用户按 Esc 取消时不会生成文件。
-        let ok = Command::new("screencapture").args(["-i", "-x"]).arg(&path).status().map(|s| s.success()).unwrap_or(false);
+        trace(format!("snap start from={source_app}"));
+        let out = Command::new("screencapture").args(["-i", "-x"]).arg(&path).output();
+        let ok = out.as_ref().map(|o| o.status.success()).unwrap_or(false);
         if !ok || !path.exists() {
+            let why = match &out {
+                Ok(o) => format!("code={:?} {}", o.status.code(), String::from_utf8_lossy(&o.stderr).trim().chars().take(160).collect::<String>()),
+                Err(e) => e.to_string(),
+            };
+            trace(format!("snap no-image {why}"));
+            // Esc 取消也走这里（code=1、没有 stderr），不打扰；有报错才告诉页面。
+            if out.as_ref().map(|o| !o.stderr.is_empty()).unwrap_or(true) {
+                let _ = app.emit("sense://snap-fail", why);
+            }
             return;
         }
         let bytes = match fs::read(&path) {
@@ -142,6 +186,19 @@ fn snap(app: AppHandle) {
         };
         #[cfg(not(target_os = "macos"))]
         let copied = false;
+        trace(format!("snap image bytes={} copied={copied}", bytes.len()));
+        #[cfg(target_os = "macos")]
+        {
+            let app2 = app.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(1500));
+                let (tx, rx) = std::sync::mpsc::channel();
+                let _ = app2.run_on_main_thread(move || {
+                    let _ = tx.send(clipboard::png_still_ours());
+                });
+                trace(format!("snap clipboard-after-1.5s ours={:?}", rx.recv_timeout(std::time::Duration::from_secs(3)).ok()));
+            });
+        }
         if let Some(w) = app.get_webview_window("main") {
             let _ = w.show();
             let _ = w.set_focus();
@@ -441,9 +498,12 @@ const CHROME_READ: [&str; 6] = [
 ];
 
 #[tauri::command]
-async fn run_claude(prompt: String, web: Option<bool>, chrome: Option<bool>, images: Option<Vec<String>>, read_dirs: Option<Vec<String>>, max_turns: Option<u32>) -> Result<String, String> {
+async fn run_claude(prompt: String, web: Option<bool>, chrome: Option<bool>, images: Option<Vec<String>>, read_dirs: Option<Vec<String>>, max_turns: Option<u32>, model: Option<String>) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let bin = claude_bin().ok_or("没找到 claude 命令。先装 Claude Code 并登录一次。")?;
+        let deepseek = model.as_deref() == Some("deepseek");
+        let ds_key = if deepseek { Some(deepseek_key().ok_or("引擎选了 DeepSeek，但还没填 key：在 ~/Library/Application Support/Sense/config.json 里加 \"deepseek_api_key\"。")?) } else { None };
+        let t0 = std::time::Instant::now();
         let work = data_dir().join("agent");
         let _ = fs::create_dir_all(&work);
         let mut tools: Vec<&str> = vec![];
@@ -476,6 +536,9 @@ async fn run_claude(prompt: String, web: Option<bool>, chrome: Option<bool>, ima
         if chrome {
             cmd.arg("--chrome");
         }
+        if let Some(k) = &ds_key {
+            use_deepseek(&mut cmd, k);
+        }
         if !tools.is_empty() {
             cmd.arg("--allowedTools").arg(tools.join(","));
         }
@@ -500,6 +563,8 @@ async fn run_claude(prompt: String, web: Option<bool>, chrome: Option<bool>, ima
             format!("claude 没有返回结果：{}", err.chars().take(300).collect::<String>())
         })?;
         let result = v.get("result").and_then(|r| r.as_str()).unwrap_or("").to_string();
+        trace(format!("agent model={} web={} ms={} err={}", if deepseek { "deepseek" } else { "claude" }, web.unwrap_or(false), t0.elapsed().as_millis(),
+            v.get("is_error").and_then(|e| e.as_bool()).unwrap_or(false)));
         if v.get("is_error").and_then(|e| e.as_bool()).unwrap_or(false) {
             return Err(result);
         }
@@ -785,8 +850,8 @@ async fn scan_youtube(days: Option<i64>) -> Result<WatchScan, String> {
 // 状态只有主窗口一个写入方。
 
 const MENU_W: f64 = 300.0;
-const PET_W: f64 = 168.0;
-const PET_H: f64 = 184.0;
+const PET_W: f64 = 184.0;
+const PET_H: f64 = 236.0;
 
 /// 菜单失焦收起的时刻。点图标本身也会先让菜单失焦，紧接着的那次点击不该再把它打开。
 static MENU_HIDDEN_AT: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
@@ -968,13 +1033,14 @@ pub fn run() {
                 .with_handler(move |app, sc, ev| {
                     let mine = SNAP_KEY.lock().map(|k| k.as_ref() == Some(sc)).unwrap_or(false);
                     if mine && ev.state() == ShortcutState::Pressed {
+                        trace("snap key pressed".into());
                         snap(app.clone());
                     }
                 })
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            load_state, save_state, snap_now, scan_history, run_claude, scan_context, clip_watch, clip_img_watch, set_snap_key, save_png, open_url, scan_youtube,
+            load_state, save_state, snap_now, scan_history, run_claude, scan_context, clip_watch, clip_img_watch, set_snap_key, engine_models, voice::voice_start, voice::voice_say, voice::voice_stop, save_png, open_url, scan_youtube,
             menu_toggle, menu_hide, menu_fit, show_main, quit_app, pet_show, pet_drag, trace
         ])
         .setup(move |app| {

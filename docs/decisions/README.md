@@ -33,4 +33,4 @@
 | 0027 | 开源为 nikoloside/sense（MIT）；下载页 ludics.space；展示卡加二维码；第三方信息不进仓库 | 2026-10-23 |
 | 0028 | 卡片谱系图：详情里以这张卡为中心，画来自 / 融合 / 推荐 / 更新 / 留下 / 像 / 同属性（折叠）；只画已记下的关系 | 2026-10-23 |
 | 0029 | 截图键默认 ⌃⇧⌘A、可改（⌃⌘A 是微信的，系统不报冲突）；可选「收剪贴板里的截图」，点了才收 | 2026-10-23 |
-| 0030 | （草案）引擎可选 Claude / DeepSeek（走 Anthropic 兼容接口），桌上站当前模型的角色；语音对话：Sense 当 voice-live 的 relay 大脑 | 2026-10-23 |
+| 0030 | 引擎可选 Claude / DeepSeek（同一个 claude 命令换 Anthropic 兼容接口，WebSearch 由 DeepSeek 服务端执行）；桌上站谁由作者手动选（口袋精 / Claude，各有男版）；语音对话：Sense 当 voice-live 的 relay 大脑，通话带 log=meta 不留逐字稿 | 2026-10-23 |

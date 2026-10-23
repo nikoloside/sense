@@ -25,6 +25,14 @@ pub fn put_png(bytes: &[u8]) -> bool {
     ok
 }
 
+/// 截图放进剪贴板后，过一会儿看它还在不在（诊断用：是不是被别的 app 覆盖了）。
+pub fn png_still_ours() -> (bool, bool) {
+    let pb = NSPasteboard::generalPasteboard();
+    let same = pb.changeCount() == OWN_CC.load(Ordering::Relaxed);
+    let has_png = unsafe { pb.dataForType(NSPasteboardTypePNG) }.is_some();
+    (same, has_png)
+}
+
 /// 收剪贴板里的截图（0029）：别的工具（微信、系统 ⌃⇧⌘4、飞书）截完放进剪贴板的图，
 /// 交给页面问一句要不要放进口袋。默认关；不点就什么都不留。
 pub static IMG_WATCH: AtomicBool = AtomicBool::new(false);

@@ -92,7 +92,61 @@ She holds a small fan of four cards colored stone grey, bronze, silver and gold.
 
 合计：3 个角色 × 13 张 = 39 张，加上挂饰 2 张、头像 1 张、图标 1 张。
 
+## 男版（每个角色一个，作者手动选）
+
+每个角色再出一个男版，人设一样，只换性别。桌上站谁、用女版还是男版，都由作者在快捷菜单里自己选，app 不会自己换。
+
+- **规则、规格、通用风格提示词、13 帧的清单，都和上面的女版一样。**
+- 男版另出一张自己的 `ref.png`，后面的帧都用男版的 ref 当参考，**不要拿女版的 ref 去改性别**，否则脸会在两版之间漂。
+- 帧表里写 she / her 的地方，男版改成 he / his。
+- 身高和女版一样，也是二头身，脚底 y=980。口袋精男版也比另外两个小一圈。
+- 少年感，不要成年男性，不要肌肉；和女版站在一起要像同一套角色。
+- 交付目录：`assets/characters/claude-m/`、`deepseek-m/`、`pouch-m/`，同样每张缩一份 256 放进 `256/`。
+
+### claude-m — 大少爷
+```
+An elegant, proud little young master (rich boy), a boyish counterpart of the orange-haired ojou-sama.
+Orange hair (#E8762C) with soft amber highlights, neat and slightly wavy, the back gathered into a short low ponytail
+tied with a dark-brown satin ribbon; one curl falls over his forehead.
+Warm amber eyes, a confident, slightly smug smile, chin a little raised.
+Dark chocolate-brown tailcoat with orange piping, a cream-white ruffled cravat pinned with a small gold brooch,
+a cream waistcoat, dark-brown shorts with knee socks, polished brown shoes.
+He holds a small gold lorgnette in one hand; a thick leather-bound ledger book with gold corners
+is tucked under his other arm.
+A small orange drawstring pouch charm with a round gold clasp (#E3A72F) hangs from his belt on a short cord.
+```
+帧的差异：
+- `busy`：`reading his open ledger book through his gold lorgnette, focused and dignified`
+- `cheer`：`laughing proudly with one hand on his hip, the other raising the lorgnette like a toast`
+- `sleep`：`dozing elegantly in a sitting pose, the ledger open on his lap`
+
+### deepseek-m — 大肥鱼（男）
+```
+A big, round, chubby whale boy — soft and plump like a dumpling, much rounder than the others.
+He wears a royal-blue (#3F63D4) whale costume hoodie: the hood is a whale head with little eyes on top
+and a white belly stripe down the front, sleeves end in small flippers, a big round whale tail behind him.
+Short messy blue hair peeks out from the hood, sleepy half-lidded blue eyes, round blushing cheeks, a lazy content smile.
+Blue shorts, chunky white sneakers. He hugs a small fish-shaped snack. Unbothered, slow, cozy.
+A small orange drawstring pouch charm with a round gold clasp (#E3A72F) hangs from his waist on a short cord.
+```
+帧的差异：和女版一样（busy 拿小灯笼游着找吃的，cheer 鳍举起来、肚子一颤，sleep 团成一颗蓝色麻薯）。
+
+### pouch-m — 小可爱（男）
+```
+The pouch itself personified as a tiny, extra-cute baby-like boy, noticeably smaller than the other two
+(about 80% of their height), very big head, huge sparkly orange eyes, round rosy cheeks, tiny hands.
+Orange-dominant (#E8762C) with cream and gold (#E3A72F) accents.
+He wears a hood shaped like a drawstring pouch: the two top corners stick up like little ears,
+a scalloped flap over the forehead fastened by a round gold clasp.
+Short fluffy peach-blonde hair with a little cowlick peeks out under the hood.
+Orange tunic over a cream shirt, orange shorts, drawstring cords with gold tassels on the chest, small brown boots.
+He holds a small fan of four cards colored stone grey, bronze, silver and gold.
+```
+帧的差异：和女版一样（busy 理那四张卡，cheer 两只小手举起来，sleep 缩进自己的兜帽里睡）。
+
+男版合计：3 × 13 = 39 张，不用另出挂饰和图标。
+
 ## 出完之后（Claude 这边接）
-- 桌宠窗口按新尺寸重排，状态到帧的对应关系沿用现在的 moods：idle、busy、sleep、alert、eat、crack、cheer。
-- 谁在干活谁出场：引擎用 Claude 时站 Claude；语音说话时站 DeepSeek；都闲着时站口袋精。
+- 桌宠按状态换帧：idle、busy、sleep、alert、eat、crack、cheer、wave。
+- 桌上站谁由作者在快捷菜单「桌上是谁」里手动选，app 不会跟着引擎或通话自己换人。
 - 说话时按 TTS 音量在 `idle_talk_a` 和 `idle_talk_b` 之间切换。

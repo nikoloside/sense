@@ -27,6 +27,7 @@ body{font-family:var(--f-body);font-size:13px;line-height:1.45;color:var(--ink)}
 .tile.zero{opacity:.55}
 h4{font-family:var(--f-pixel);font-weight:400;font-size:12px;letter-spacing:.06em;color:var(--chalk-2);margin:10px 12px 4px}
 .rows{display:flex;flex-direction:column;padding:0 6px}
+.callbtn{all:unset;box-sizing:border-box;cursor:pointer;display:block;margin:6px 10px 2px;padding:8px 10px;border-radius:8px;border:2px solid var(--accent);color:var(--accent);text-align:center;font-size:13px}.callbtn:hover,.callbtn:focus-visible{background:color-mix(in srgb,var(--accent) 12%,transparent)}.callbtn.on{background:var(--accent);color:#fff}
 .ask{display:flex;align-items:center;gap:8px;margin:2px 8px 8px;padding:8px;border:2px solid var(--accent);border-radius:8px}
 .ask img{width:40px;height:40px;object-fit:cover;border-radius:4px}.ask span{flex:1;min-width:0;display:flex;flex-direction:column}.ask small{color:var(--chalk-2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ask button{all:unset;cursor:pointer;font-size:12px;padding:4px 8px;border-radius:6px;border:2px solid var(--line,currentColor)}.ask button.main{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -87,6 +88,8 @@ function render(){const p=$("#panel");p.innerHTML="";
   const E=S.engine||{};const busy=E.busy||E.taste;
   p.append(h("div",{class:"top"},pouch(),h("div",{class:"who"},h("b",{},"Lv."+S.lv+" "+S.title),h("small",{},S.cls+" · "+S.live+" 张卡 · 金 "+S.counts.gold+" 银 "+S.counts.silver),h("div",{class:"xp"},h("i",{style:"width:"+S.into+"%"})))));
   p.append(h("div",{class:"eng"+(E.off?" off":busy?" busy":"")},h("i",{class:"dot"}),h("span",{},E.off?"引擎暂停了 · 手动按钮照常能用":E.taste?"正在整理品味 · "+E.taste:E.busy?"正在查「"+E.busy+"」":E.next?"在转 · 下一个「"+E.next.name+"」"+E.next.when:"在转 · 追踪台上没有座位")));
+  const who=(S.call&&S.call.who)||(S.engine&&S.engine.model)||"claude";const nm=who==="deepseek"?"DeepSeek":"Claude";
+  p.append(h("button",{class:"callbtn"+(S.call?" on":""),type:"button",onclick:()=>cmd("call",null,true)},S.call?(S.call.state==="speaking"?nm+" 在说… · 点一下挂断":S.call.state==="thinking"?nm+" 在想… · 点一下挂断":"通话中 · 点一下挂断"):"和 "+nm+" 说话"));
   const nc=S.crumble.length;
   p.append(h("div",{class:"tiles"},
     h("button",{class:"tile"+(S.nNew?"":" zero"),type:"button",onclick:()=>go("new")},h("b",{},S.nNew),h("small",{},"NEW 新卡")),
@@ -101,6 +104,7 @@ function render(){const p=$("#panel");p.innerHTML="";
     act("draw","抽一手","答完会写进属性",()=>go("go","draw")),
     act("clip","剪贴板",S.clipOn?"在记 · 点一下停":"没在记 · 点一下开",()=>cmd("clip",null,true),S.clipOn),
     act("pet","桌宠",S.petOn?"在桌面上 · 点一下收":"收着 · 点一下放出来",()=>cmd("pet",null,true),S.petOn),
+    S.petOn?act("pet","桌上是谁",(S.petWho||"pouch")==="pouch"?"口袋精 · 点一下换成 Claude":"Claude · 点一下换成口袋精",()=>cmd("petwho",null,true),false):null,
     act("engine","引擎",E.off?"暂停了 · 点一下继续":"在转 · 点一下暂停",()=>cmd("engine",null,true),!E.off),
     act("taste","整理品味",E.taste?"整理中…":S.tasteAt?"上次 "+S.tasteAt:"还没整理过",()=>cmd("taste",null,true),false,!!E.taste)));
   p.append(h("div",{class:"themes",role:"group","aria-label":"配色"},THEMES.map(([k,c])=>h("button",{type:"button",class:(S.theme||"cream")===k?"on":null,title:k,"aria-label":"配色 "+k,onclick:()=>cmd("theme",k,true)},h("i",{style:"background:"+c[0]}),h("i",{style:"background:"+c[1]})))));

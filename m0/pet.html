@@ -1,70 +1,70 @@
 <title>Sense 桌宠</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
 <style>
-/* 桌宠：口袋精。它的每个动作都对应口袋里真发生的事（进卡、碎卡、引擎在跑、任务能领），不演假的。 */
+/* 桌宠（0030）：谁在干活谁站在桌上——引擎用 Claude 就是 Claude，用 DeepSeek 就是 DeepSeek，通话时是接电话的那位；都闲着是口袋精。
+   每个动作都对应口袋里真发生的事（进卡、碎卡、引擎在跑、任务能领），不演假的。图在 assets/characters（docs/art/characters.md）。 */
 /*__THEMES__*/
 html,body{margin:0;height:100%;background:transparent;overflow:hidden;-webkit-user-select:none;user-select:none;cursor:default}
 body{font-family:var(--f-pixel);position:relative}
-#pet{position:absolute;left:50%;bottom:4px;width:108px;height:120px;transform:translateX(-50%);image-rendering:pixelated;cursor:grab}
-.bubble{position:absolute;left:6px;right:6px;bottom:128px;display:flex;justify-content:center;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s}
+#pet{position:absolute;left:50%;bottom:0;width:164px;height:164px;transform:translateX(-50%);cursor:grab;-webkit-user-drag:none}
+#pet.bob{animation:bob 1.6s ease-in-out infinite}#pet.hop{animation:hop .5s ease-in-out infinite}#pet.shake{animation:shk .12s linear infinite}
+@keyframes bob{50%{transform:translateX(-50%) translateY(-3px)}}@keyframes hop{50%{transform:translateX(-50%) translateY(-8px)}}@keyframes shk{50%{transform:translateX(calc(-50% + 3px))}}
+.bubble{position:absolute;left:6px;right:6px;bottom:166px;display:flex;justify-content:center;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s}
 .bubble.show{opacity:1;transform:none}
-.bubble span{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:8px;padding:4px 8px;font-size:12px;line-height:1.35;max-width:150px;text-align:center;box-shadow:0 2px 0 var(--ink);position:relative;word-break:break-all}
+.bubble.go span{pointer-events:auto;cursor:pointer}.bubble.go span:hover{background:var(--gold)}
+.bubble span{background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:8px;padding:4px 8px;font-size:12px;line-height:1.35;max-width:160px;text-align:center;box-shadow:0 2px 0 var(--ink);position:relative;word-break:break-all}
 .bubble span::after{content:"";position:absolute;left:50%;bottom:-7px;width:8px;height:8px;background:var(--paper);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:translateX(-50%) rotate(45deg)}
-.mark{position:absolute;left:calc(50% + 34px);bottom:104px;font-size:18px;color:var(--danger);text-shadow:0 2px 0 var(--paper);pointer-events:none;display:none}
+.mark{position:absolute;left:calc(50% + 40px);bottom:140px;font-size:20px;color:var(--danger);text-shadow:0 2px 0 var(--paper);pointer-events:none;display:none}
 .mark.show{display:block;animation:mk 1s steps(2) infinite}
-.mark.z{color:var(--chalk-2);font-size:14px;animation:zz 2.4s linear infinite}
+.mark.z{color:var(--chalk-2);font-size:15px;animation:zz 2.4s linear infinite}
 @keyframes mk{50%{transform:translateY(-3px)}}
 @keyframes zz{0%{transform:translate(0,0);opacity:0}20%{opacity:1}100%{transform:translate(10px,-22px);opacity:0}}
 .spark{position:absolute;width:6px;height:6px;background:var(--gold);pointer-events:none;animation:sp .8s ease-out forwards}
 @keyframes sp{to{transform:translate(var(--dx),var(--dy));opacity:0}}
-@media (prefers-reduced-motion:reduce){.mark.show,.mark.z{animation:none}.spark{display:none}}
+@media (prefers-reduced-motion:reduce){.mark.show,.mark.z,#pet.bob,#pet.hop,#pet.shake{animation:none}.spark{display:none}}
 </style>
 <body>
 <div class="bubble" id="bub"><span id="bubt"></span></div>
 <div class="mark" id="mark">!</div>
-<canvas id="pet" width="108" height="120" aria-label="桌宠"></canvas>
+<img id="pet" alt="桌宠" draggable="false">
 <script>
 (function(){
 const T=window.__TAURI__;const invoke=T.core.invoke;const ev=T.event;
-const $=s=>document.querySelector(s);const cv=$("#pet");const g=cv.getContext("2d");
+const $=s=>document.querySelector(s);const cv=$("#pet");
 const RM=matchMedia("(prefers-reduced-motion: reduce)");
-const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-/* 18×20 格，每格 6px。帽子在 1–3 行，身体从第 3 行起。 */
-const P=6;
-const BODY=["................",".....oooooo.....","....okkkkkko....",".....obbbbo.....","....obBBBBbo....","...oBBBBBBBBo...","..oBBBBBBBBBBo..",".oBBBBBBBBBBBBo.",".oBBeeBBBBeeBBo.",".oBBeeBBBBeeBBo.",".oBcBBBBBBBBcBo.",".oBBBBBmmBBBBBo.",".oBBBBBBBBBBBbo.","..obBBBBBBBBbo..","...oobbbbbboo...","....oo....oo...."];
-let S=null,mood="idle",moodUntil=0,frame=0,blinkAt=Date.now()+3000,lastEv=null,dragOver=false;
-function px(x,y,c){g.fillStyle=c;g.fillRect(x*P,y*P,P,P);}
-function draw(){g.clearRect(0,0,cv.width,cv.height);
-  const col={o:"#2b1d14",k:cssv("--paper")||"#fff",B:cssv("--accent")||"#e8762c",b:cssv("--accent-2")||"#b4561c",e:"#2b1d14",c:"rgba(255,255,255,.55)",m:"#2b1d14"};
-  const now=Date.now();const m=dragOver?"gape":mood;
-  let dy=0;if(!RM.matches){if(m==="eat"||m==="cheer")dy=frame%2?-2:0;else if(m==="busy")dy=frame%2;else if(m==="idle"||m==="alert")dy=(frame>>1)%2;}
-  const shake=m==="crack"&&!RM.matches?(frame%2?1:-1):0;
-  const blink=m==="sleep"||(now>blinkAt&&now<blinkAt+160);if(now>blinkAt+160)blinkAt=now+2500+Math.random()*3500;
-  const hat=S&&S.hat;const hc=cssv("--chalk")||"#3a2416";
-  if(hat)hat.forEach((r,y)=>[...r].forEach((ch,x)=>{if(ch==="h")px(x+3+shake,y+1+dy,hc);}));
-  BODY.forEach((r,y)=>[...r].forEach((ch,x)=>{let c=col[ch];if(!c)return;
-    if(ch==="e"){if(blink){if(y===9)c=col.o;else return;}else if(m==="busy"&&y===9)return;}
-    if(ch==="m"&&(m==="eat"||m==="gape"))return;
-    px(x+1+shake,y+3+dy,c);}));
-  if(m==="busy")[5,6,11,12].forEach(x=>px(x+shake,10+dy,col.e));/* 眼睛往上看：整体上移一行 */
-  if(m==="eat"||m==="gape"){const w=m==="gape"?4:2;for(let x=0;x<w;x++)for(let y=0;y<(m==="gape"?2:1+frame%2);y++)px(8+x-(w>2?1:0)+shake,14+y+dy,col.m);}
-  if(m==="busy"){const L=cssv("--chalk")||"#3a2416";[[14,10],[15,10],[16,10],[13,11],[17,11],[13,12],[17,12],[14,13],[15,13],[16,13],[17,14],[18,15]].forEach(([x,y])=>{if(x<18)px(x-1,y+dy,L);});}
-}
-setInterval(()=>{frame++;if(mood!=="idle"&&moodUntil&&Date.now()>moodUntil){moodUntil=0;mood=base();}draw();},RM.matches?1000:300);
-function base(){if(!S)return"idle";const E=S.engine||{};if(E.busy||E.taste)return"busy";if(E.off)return"sleep";if(S.imgAsk||S.crumble.length||S.qReady.length)return"alert";return"idle";}
+/* 每个状态用哪一帧；眨眼、口型在同一姿势的帧之间切。 */
+const FRAMES=["idle","idle_blink","idle_talk_a","idle_talk_b","busy","busy_blink","eat","cheer","crack","alert","sleep","wave"];
+const WHO=["claude","deepseek","pouch"];const src=(w,f)=>"characters/"+w+"/"+f+".png";
+WHO.forEach(w=>FRAMES.forEach(f=>{const i=new Image();i.src=src(w,f);}));
+let S=null,mood="wave",moodUntil=Date.now()+2500,blinkAt=Date.now()+3000,lastEv=null,dragOver=false,talk=null;
+/* 桌上站谁只由作者手动选（快捷菜单 → 桌上是谁），不跟着引擎或通话自己换。 */
+function who(){return S&&S.petWho||"pouch";}
+function draw(){const now=Date.now();const m=dragOver?"eat":mood;
+  const blink=now>blinkAt&&now<blinkAt+160;if(now>blinkAt+160)blinkAt=now+2500+Math.random()*3500;
+  let f={idle:"idle",busy:"busy",eat:"eat",cheer:"cheer",crack:"crack",alert:"alert",sleep:"sleep",wave:"wave"}[m]||"idle";
+  if(talk&&talk.level>0.04&&(m==="idle"||m==="alert"))f=talk.level>0.18?"idle_talk_b":"idle_talk_a";
+  else if(blink&&(f==="idle"||f==="busy"))f+="_blink";
+  const want=src(who(),f);if(cv.getAttribute("src")!==want)cv.setAttribute("src",want);
+  cv.className=RM.matches?"":m==="cheer"||m==="eat"?"hop":m==="crack"?"shake":m==="sleep"||talk?"":"bob";}
+setInterval(()=>{if(moodUntil&&Date.now()>moodUntil){moodUntil=0;mood=base();marks();}draw();},120);
+function base(){if(!S)return"idle";const E=S.engine||{};if(E.working||E.busy||E.taste)return"busy";if(E.off)return"sleep";if(S.imgAsk||S.crumble.length||S.qReady.length)return"alert";return"idle";}
 function setMood(m,ms){mood=m;moodUntil=ms?Date.now()+ms:0;marks();draw();}
 function marks(){const k=$("#mark");const m=mood;k.className="mark";if(m==="alert"){k.textContent="!";k.classList.add("show");}else if(m==="sleep"){k.textContent="z";k.classList.add("show","z");}}
 let bubT=null;
-function say(t,ms){if(!t)return;$("#bubt").textContent=t;$("#bub").classList.add("show");clearTimeout(bubT);bubT=setTimeout(()=>{$("#bub").classList.remove("show");},ms||6000);}
-function sparks(){if(RM.matches)return;for(let i=0;i<8;i++){const s=document.createElement("i");s.className="spark";s.style.left=(70+Math.random()*28)+"px";s.style.bottom=(70+Math.random()*30)+"px";s.style.setProperty("--dx",(Math.random()-.5)*80+"px");s.style.setProperty("--dy",-(20+Math.random()*50)+"px");document.body.append(s);setTimeout(()=>s.remove(),900);}}
+/* 气泡说的是某张卡（吃到一张新卡、有 NEW）时可以点，点了打开那张卡。 */
+let bubCard=null;
+function say(t,ms,id){if(!t)return;$("#bubt").textContent=t+(id?" ›":"");bubCard=id||null;$("#bub").classList.toggle("go",!!id);$("#bub").classList.add("show");clearTimeout(bubT);bubT=setTimeout(()=>{$("#bub").classList.remove("show","go");bubCard=null;},ms||6000);}
+function sparks(){if(RM.matches)return;for(let i=0;i<8;i++){const s=document.createElement("i");s.className="spark";s.style.left=(60+Math.random()*60)+"px";s.style.bottom=(90+Math.random()*40)+"px";s.style.setProperty("--dx",(Math.random()-.5)*80+"px");s.style.setProperty("--dy",-(20+Math.random()*50)+"px");document.body.append(s);setTimeout(()=>s.remove(),900);}}
 function react(e){const K={eat:["eat",2400],crack:["crack",1500],cheer:["cheer",2000],find:["cheer",1800],gold:["cheer",2600]}[e.kind]||["idle",0];
-  setMood(K[0],K[1]);say(e.text,6000);if(e.kind==="cheer"||e.kind==="gold")sparks();}
+  setMood(K[0],K[1]);say(e.text,e.id?9000:6000,e.id);if(e.kind==="cheer"||e.kind==="gold")sparks();}
 let lastAsk=null;
 ev.listen("sense://summary",e=>{const first=!S;S=e.payload;document.documentElement.dataset.theme=S.theme||"cream";
   if(S.imgAsk&&S.imgAsk.at!==lastAsk){lastAsk=S.imgAsk.at;say("剪贴板里有张新图，点我收",9000);}
   if(S.ev&&(first?false:(!lastEv||S.ev.at>lastEv)))react(S.ev);if(S.ev)lastEv=Math.max(lastEv||0,S.ev.at);
-  if(!moodUntil){const was=mood;mood=base();if(mood==="busy"&&was!=="busy")say(S.engine.taste?"在整理你的品味…":"在查「"+S.engine.busy+"」…",5000);}
+  if(!moodUntil){const was=mood;mood=base();if(mood==="busy"&&was!=="busy"&&(S.engine.taste||S.engine.busy))say(S.engine.taste?"在整理你的品味…":"在查「"+S.engine.busy+"」…",5000);}
   marks();draw();});
+/* 通话时主窗口按播放音量推口型（0030） */
+ev.listen("sense://talk",e=>{talk=e.payload&&e.payload.who?e.payload:null;});
 ev.listen("sense://pet-drag",e=>{const k=e.payload.kind;if(k==="enter"){dragOver=true;say("给我吧",3000);}else if(k==="leave"){dragOver=false;}else{dragOver=false;
   if(e.payload.n){setMood("eat",2400);say("收到 "+e.payload.n+" 张，正在认…",5000);}else say("只吃图片（png / jpg / gif / webp）",4000);}draw();});
 /* 拖动、单击、双击 */
@@ -76,10 +76,11 @@ addEventListener("mouseup",e=>{if(!down)return;down=null;if(moved)return;
   clickT=setTimeout(()=>{clickT=null;const r=cv.getBoundingClientRect();invoke("menu_toggle",{x:r.left,y:r.top,w:r.width,h:r.height});},230);});
 addEventListener("blur",()=>{down=null;});
 cv.addEventListener("contextmenu",e=>{e.preventDefault();const r=cv.getBoundingClientRect();invoke("menu_toggle",{x:r.left,y:r.top,w:r.width,h:r.height});});
-cv.addEventListener("mouseenter",()=>{if(!S||$("#bub").classList.contains("show"))return;const bits=[S.nNew?"NEW "+S.nNew:"",S.crumble.length?S.crumble.length+" 张快碎了":"",S.qReady.length?S.qReady.length+" 个任务能领":""].filter(Boolean);say(bits.length?bits.join(" · "):"口袋里 "+S.live+" 张卡",2500);});
+cv.addEventListener("mouseenter",()=>{if(!S||$("#bub").classList.contains("show"))return;const bits=[S.nNew?"NEW "+S.nNew:"",S.crumble.length?S.crumble.length+" 张快碎了":"",S.qReady.length?S.qReady.length+" 个任务能领":""].filter(Boolean);say(bits.length?bits.join(" · "):"口袋里 "+S.live+" 张卡",S.nNew&&S.newId?5000:2500,S.nNew?S.newId:null);});
+$("#bubt").addEventListener("click",e=>{e.stopPropagation();if(!bubCard)return;const id=bubCard;$("#bub").classList.remove("show","go");bubCard=null;invoke("show_main");ev.emitTo("main","sense://cmd",{cmd:"card",arg:id});});
 /* 有卡快碎时，隔一阵提一句 */
 setInterval(()=>{if(S&&S.crumble.length&&!moodUntil){const c=S.crumble[0];say("「"+c.title.slice(0,14)+"」"+(c.left<1?"今天就碎了":"还剩 "+Math.ceil(c.left)+" 天就碎了"),7000);}},40*60e3);
-ev.emitTo("main","sense://cmd",{cmd:"need",arg:null});draw();
+ev.emitTo("main","sense://cmd",{cmd:"need",arg:null});marks();draw();
 })();
 </script>
 </body>
