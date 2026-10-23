@@ -1,6 +1,6 @@
 <p align="center"><a href="https://ludics.space"><img src="docs/media/banner-en.png" alt="Sense: knows your taste, finds the next thing worth loving."></a></p>
 
-<p align="center"><b>Your personal taste agent.</b> · <a href="README.md">中文</a> · English · <a href="README.ja.md">日本語</a></p>
+<p align="center"><b>Your personal taste agent.</b> An agent behavior layer built from your taste.<br><a href="README.md">中文</a> · English · <a href="README.ja.md">日本語</a></p>
 
 <p align="center">
 <a href="https://ludics.space"><b>Website · Download</b></a> · <a href="https://ludics.space/demo/">Live demo</a> · <a href="docs/SENSE.md">Design doc (Chinese)</a>
@@ -12,18 +12,27 @@
 ![engine](https://img.shields.io/badge/engine-Claude%20Code%20%7C%20DeepSeek-8a6a4e)
 [![license](https://img.shields.io/github/license/nikoloside/sense?color=9fb0bf)](LICENSE)
 
-Sense is a set of agents that work for you. What they remember and what they go do is decided by the cards in your pocket: judgments you told your AI, and things you watched, heard or grabbed, become cards backed by evidence; as you keep, drop and follow them, the agents go check for updates, look for new things, and check in on your progress.
+**Sense is an agent behavior layer**: it abstracts your everyday behavior, interests and preferences into *taste*, then fixes that taste into a set of agent behaviors that run on their own.
 
-## Core ideas
+## How it works
 
-| | Idea | What it means |
+| | Step | What it means |
 |---|---|---|
-| 1 | **Memory becomes cards** | Judgments and material become cards, each traceable to its evidence (which file, which session, which page). Cards are the agents' memory: visible, editable, portable. No scores, no percentages. |
-| 2 | **Tiers are the rules** | Stone → bronze → silver → gold. A stone card ignored for 7 days shatters; keep it and it's bronze, follow it and it's silver, and two silvers sharing one reason fuse into gold. Every click rewrites the agents' rules. |
-| 3 | **Follow something, and an agent goes** | Silver checks for its own new episodes, works and papers; gold looks outward in that taste; use-case cards go do what you wrote (find people, check updates, draft a letter). |
-| 4 | **Checks in on your progress** | Decisions you made and projects you're running can go on the tracker: on schedule it checks once and asks how far you've got. |
-| 5 | **Show your sense** | The Sense page lays out your current taste as a showcase card you can save as an image, with a QR code back to the website. |
-| 6 | **Custom agents, as a game** (planned) | Levels, commissions, quests and XP are in. Next: configure your own agents — which cards go in each slot, how often they run, how they play a hand — like building a deck. |
+| 1 | **Watch what you do** | Screenshots, what you watch and listen to, what you save, judgments you told your AI — all of it is behavior. Read only on your Mac. |
+| 2 | **Abstract it into taste** | Behavior is distilled into individual tastes, each traceable to its evidence (which file, which session, which page). In the pocket, one taste is one card. No scores, no percentages. |
+| 3 | **Fix taste into behavior** | A taste can become an **action** (do something for you), a **follow** (check how it changes, on a schedule) or **news** (tell you when something new turns up). |
+| 4 | **You tune the rules** | Stone → bronze → silver → gold: a stone card ignored for 7 days shatters, keep it and it's bronze, follow it and it's silver, two silvers sharing one reason fuse into gold. Every click decides whether these behaviors run and how often. |
+| 5 | **Show your sense** | The Sense page lays out your current taste as a showcase card you can save and share. |
+
+## What it looks like
+
+| Starting point | The behavior Sense fixes in place |
+|---|---|
+| **A person**: you want to cold-email a friend | Drafts the email, then keeps following how they change and where your relationship stands |
+| **A goal** | Checks your habits on a schedule: are you moving toward it? |
+| **An interest**: an idol, a film | Keeps watching for its news and what's next |
+
+Today it's a macOS desktop app. Later it can be a phone, or grow a whole set of new behaviors: you customize your own habit behaviors, as a game (levels, commissions, building your agents like a deck). That part is planned.
 
 Cross-domain guesses (e.g. from the music you play to the anime you watch) are only ever asked as questions; they count once you confirm.
 

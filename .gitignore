@@ -12,3 +12,5 @@ data/evidence/
 # Tauri 构建产物；app/ui 由 app/scripts/build-ui.mjs 从 m0/ 生成
 app/src-tauri/target/
 app/ui/
+site/media/*.mp4
+site/media/*.webm

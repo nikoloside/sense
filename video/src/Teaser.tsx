@@ -16,6 +16,7 @@ export type TeaserProps = { lang: Lang; male: boolean };
 const TX = {
   zh: {
     tag: "懂你的品味，帮你发现值得喜欢的东西。",
+    sub: "把日常抽象成品味，让品味变成会自己运行的 agent 行为",
     items: [["一张截图", "截图"], ["常听的那首歌", "音乐"], ["追到一半的番", "动画"], ["和 AI 聊过的判断", "对话"]],
     intake: "看过、听过、截过、聊过的，变成一张张卡",
     tiers: ["石 · 刚进来", "铜 · 你留下了", "银 · 在关注，有新的就告诉你", "金 · 两张银卡说得出同一个为什么"],
@@ -30,6 +31,7 @@ const TX = {
   },
   en: {
     tag: "Knows your taste. Finds the next thing worth loving.",
+    sub: "AN AGENT BEHAVIOR LAYER BUILT FROM YOUR TASTE",
     items: [["A screenshot", "SHOT"], ["That song on repeat", "MUSIC"], ["A show half-watched", "ANIME"], ["What you told the AI", "CHAT"]],
     intake: "What you watch, hear, grab and say becomes cards",
     tiers: ["Stone · just arrived", "Bronze · you kept it", "Silver · followed, news comes to you", "Gold · two silvers share one reason"],
@@ -44,6 +46,7 @@ const TX = {
   },
   ja: {
     tag: "あなたの好みを理解し、次の「好き」を見つける。",
+    sub: "日常を好みに、好みを自分で動くエージェントの行動に",
     items: [["一枚のスクショ", "スクショ"], ["ずっと聴いてる曲", "音楽"], ["途中まで観たアニメ", "アニメ"], ["AI に話した判断", "会話"]],
     intake: "見た・聴いた・撮った・話したものが、カードになる",
     tiers: ["石 · 入ったばかり", "銅 · 残した", "銀 · フォロー中、新しいのが出たら知らせる", "金 · 同じ「なぜ」を持つ銀 2 枚"],
@@ -123,7 +126,7 @@ const Intro: React.FC = () => {
       <div style={{ position: "absolute", left: 380, top: 190, opacity: t, transform: `translateX(${(1 - t) * -30}px)` }}>
         <div style={{ fontFamily: PIXEL, fontSize: 92, color: C.ink, letterSpacing: 4 }}>Sense 口袋</div>
         <div style={{ fontFamily: BODY, fontSize: 32, color: C.ac2, marginTop: 4, fontWeight: 700, maxWidth: 560 }}>{T.tag}</div>
-        <div style={{ fontFamily: PIXEL, fontSize: 22, color: C.ink2, marginTop: 10, letterSpacing: 3 }}>YOUR PERSONAL TASTE AGENT</div>
+        <div style={{ fontFamily: PIXEL, fontSize: 20, color: C.ink2, marginTop: 10, letterSpacing: 2, maxWidth: 600 }}>{T.sub}</div>
       </div>
       <Char who="pouch" pose="wave" size={330} style={{ right: 40, bottom: -20, transform: `translateY(${(1 - p) * 300}px)` }} />
     </AbsoluteFill>

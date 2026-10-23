@@ -6,9 +6,9 @@ import type { Lang } from "./Teaser";
 const { fontFamily: PIXEL } = loadFont();
 const BODY = '"PingFang SC","Hiragino Sans GB","Noto Sans SC",sans-serif';
 const TAG: Record<Lang, [string, string]> = {
-  zh: ["懂你的品味，帮你发现值得喜欢的东西。", "把记忆变成卡 · 按兴趣派 agent · 本机运行"],
-  en: ["Knows your taste. Finds the next thing worth loving.", "Memory as cards · agents that follow your interests · runs locally"],
-  ja: ["あなたの好みを理解し、次の「好き」を見つける。", "記憶をカードに · 興味でエージェントが動く · ローカルで動く"],
+  zh: ["懂你的品味，帮你发现值得喜欢的东西。", "把日常抽象成品味，让品味变成会自己运行的 agent 行为"],
+  en: ["Knows your taste. Finds the next thing worth loving.", "An agent behavior layer built from your taste"],
+  ja: ["あなたの好みを理解し、次の「好き」を見つける。", "日常を好みに、好みを自分で動くエージェントの行動に"],
 };
 
 export const Banner: React.FC<{ lang: Lang; male: boolean }> = ({ lang, male }) => {
