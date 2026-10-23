@@ -34,6 +34,13 @@ main{max-width:880px;margin:0 auto;padding:32px 16px 64px;display:flex;flex-dire
 .btn.main{background:var(--ac);border-color:var(--ac-2);color:#fff;box-shadow:0 3px 0 var(--ac-2)}.btn.main small{color:#ffe7d2}
 h2{font-family:var(--px);font-weight:400;font-size:20px;margin:0 0 10px;color:var(--ac-2);letter-spacing:.06em}
 @media (prefers-color-scheme:dark){h2{color:var(--ac)}}
+.core{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;counter-reset:core}
+.cpt{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:12px 14px 14px;position:relative;counter-increment:core}
+.cpt::before{content:counter(core);position:absolute;right:12px;top:8px;font-family:var(--px);font-size:26px;color:var(--line)}
+.cpt h3{margin:0 0 4px;font-size:15.5px;padding-right:26px}
+.cpt p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.cpt.plan{border-style:dashed}
+.lead{font-size:16px;margin:0 0 12px}
 .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
 .tier{background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:12px 14px}
 .tier b{font-family:var(--px);font-weight:400;font-size:18px;display:flex;align-items:center;gap:8px}
@@ -45,8 +52,9 @@ code{overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:.92em;b
 footer{max-width:880px;margin:0 auto;padding:0 16px 40px;font-size:12.5px;color:var(--ink-2);display:flex;gap:14px;flex-wrap:wrap}
 footer a{color:inherit}
 main a{color:var(--ac-2)}
-.lang{margin-left:auto;display:flex;gap:6px;align-self:flex-start}
+.lang{margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;align-self:flex-start}
 .lang button{all:unset;cursor:pointer;font-family:var(--px);font-size:13px;padding:4px 10px;border-radius:6px;border:2px solid rgba(255,255,255,.55);color:#fff}
+.lang .sep{width:1px;background:rgba(255,255,255,.5);margin:2px 4px}
 .lang button[aria-pressed="true"]{background:#fff;color:var(--ac-2);border-color:#fff}
 .lang button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
@@ -82,7 +90,7 @@ main a{color:var(--ac-2)}
   <img src="icon.png" alt="Sense 口袋图标">
   <div><h1>Sense 口袋</h1><p data-i="tag">懂你的品味，帮你发现值得喜欢的东西。</p><div class="en">YOUR PERSONAL TASTE AGENT · OPEN SOURCE</div>
     <div class="badges"><span class="badge on">macOS</span><span class="badge" data-i="bg_local">本机运行</span><span class="badge" data-i="bg_noup">不上传</span><span class="badge">MIT</span><span class="badge">Claude · DeepSeek</span><span class="badge" data-i="bg_lang">中 / 日 / 英</span><span class="badge" data-i="bg_noscore">不打分</span></div></div>
-  <nav class="lang" aria-label="Language"><button type="button" data-l="zh">中文</button><button type="button" data-l="en">EN</button><button type="button" data-l="ja">日本語</button></nav>
+  <nav class="lang" aria-label="Language"><button type="button" class="g" data-g="f" data-i="g_f">女版</button><button type="button" class="g" data-g="m" data-i="g_m">男版</button><span class="sep" aria-hidden="true"></span><button type="button" data-l="zh">中文</button><button type="button" data-l="en">EN</button><button type="button" data-l="ja">日本語</button></nav>
 </div></div>
 <main>
   <div class="cta">
@@ -91,7 +99,7 @@ main a{color:var(--ac-2)}
     <a class="btn" href="demo/"><b data-i="demo">在线 Demo</b><small data-i="demo_s">作者本人的口袋，直接在浏览器里玩</small></a>
   </div>
 
-  <div class="reel"><video autoplay muted loop playsinline preload="metadata" poster="media/poster.webp" aria-label="Sense 口袋 20 秒介绍动画"><source src="media/teaser.webm" type="video/webm"><source src="media/teaser.mp4" type="video/mp4"></video></div>
+  <div class="reel"><video id="reel" autoplay muted loop playsinline preload="metadata" poster="media/poster-zh.webp" aria-label="Sense 口袋 23 秒介绍动画"><source src="media/teaser-zh.webm" type="video/webm"><source src="media/teaser-zh.mp4" type="video/mp4"></video></div>
 
   <section>
     <h2 data-i="h_what">它在做什么</h2>
@@ -105,24 +113,37 @@ main a{color:var(--ac-2)}
   </section>
 
   <section>
+    <h2 data-i="h_core">Sense 是怎么转起来的</h2>
+    <p class="lead" data-i="core_lead">Sense 是一组替你干活的 agent。它们记得什么、去做什么，都由你口袋里的卡决定。</p>
+    <div class="core">
+      <div class="cpt"><h3 data-i="c1">记忆变成卡</h3><p data-i="c1d">你和 AI 聊过的判断、看过听过截过的东西，被整理成一张张卡，每张都能追到证据。卡就是 agent 的记忆：你看得见、改得了、带得走。</p></div>
+      <div class="cpt"><h3 data-i="c2">规则就是品级</h3><p data-i="c2d">石 → 铜 → 银 → 金。7 天没理会的石卡会碎；留下变铜，跟了变银，两张银卡说得出同一个为什么就融合成金。你点的每一下，都在改 agent 的规则。</p></div>
+      <div class="cpt"><h3 data-i="c3">关注什么，就派什么 agent</h3><p data-i="c3d">银卡：定期查它自己的新一话、新作、新论文。金卡：按这种口味往外找新东西。用例卡：按你写的去做一件事，比如找人、查更新、起草一封信。</p></div>
+      <div class="cpt"><h3 data-i="c4">定期回头看进度</h3><p data-i="c4d">你立下的决定、在做的项目也能放上追踪台：到点了它去查一次、问一句做到哪了，不用你自己记着。</p></div>
+      <div class="cpt"><h3 data-i="c5">展示你的 sense</h3><p data-i="c5d">Sense 页把你现在的口味排成一张展示卡：每个领域你停下来的是哪几样、为什么。能存成图片分享，扫码就到这里。</p></div>
+      <div class="cpt plan"><h3><span data-i="c6">自定义 agent，做成游戏</span><span class="tag" data-i="plan">计划中</span></h3><p data-i="c6d">现在已经有等级、委托、任务和 XP。接下来想让你自己配 agent：卡槽里放哪些卡、多久跑一次、出一手怎么出，像组卡组一样调你的 agent。</p></div>
+    </div>
+  </section>
+
+  <section>
     <h2 data-i="h_cast">桌上的伙伴</h2>
     <p data-i="cast">口袋会站在你的桌面上。谁站在那儿由你自己选，它只演口袋里真发生的事，不演假的。</p>
     <div class="cast">
-      <div class="mate"><img src="characters/pouch-wave.webp" alt="口袋精" loading="lazy" width="170" height="170"><b data-i="n_pouch">口袋精</b><span class="role" data-i="r_pouch">小可爱 · 口袋本身</span><p data-i="d_pouch">个子最小，抱着石、铜、银、金四张卡。进卡会吃，碎卡会抖，有事会举手。</p></div>
-      <div class="mate"><img src="characters/claude-idle.webp" alt="Claude" loading="lazy" width="170" height="170"><b>Claude</b><span class="role" data-i="r_claude">大小姐 · 引擎用 Claude 时</span><p data-i="d_claude">自称「本小姐」，骄傲但从不马虎：查到什么都记进账本，查不到就直说。</p></div>
-      <div class="mate"><img src="characters/deepseek-idle.webp" alt="DeepSeek" loading="lazy" width="170" height="170"><b>DeepSeek</b><span class="role" data-i="r_ds">大肥鱼 · 引擎用 DeepSeek 时</span><p data-i="d_ds">圆滚滚、慢吞吞，什么都拿吃的打比方。联网搜索它自己在服务端跑。</p></div>
+      <div class="mate"><img data-c="pouch-wave" src="characters/pouch-wave.webp" alt="口袋精" loading="lazy" width="170" height="170"><b data-i="n_pouch">口袋精</b><span class="role" data-i="r_pouch">小可爱 · 口袋本身</span><p data-i="d_pouch">个子最小，抱着石、铜、银、金四张卡。进卡会吃，碎卡会抖，有事会举手。</p></div>
+      <div class="mate"><img data-c="claude-idle" src="characters/claude-idle.webp" alt="Claude" loading="lazy" width="170" height="170"><b>Claude</b><span class="role" data-i="r_claude" data-im="r_claude_m">大小姐 · 引擎用 Claude 时</span><p data-i="d_claude" data-im="d_claude_m">自称「本小姐」，骄傲但从不马虎：查到什么都记进账本，查不到就直说。</p></div>
+      <div class="mate"><img data-c="deepseek-idle" src="characters/deepseek-idle.webp" alt="DeepSeek" loading="lazy" width="170" height="170"><b>DeepSeek</b><span class="role" data-i="r_ds">大肥鱼 · 引擎用 DeepSeek 时</span><p data-i="d_ds">圆滚滚、慢吞吞，什么都拿吃的打比方。联网搜索它自己在服务端跑。</p></div>
     </div>
-    <p class="note" data-i="cast_note">角色桌宠从下一版开始（现在的 0.1.0 是像素口袋）。每个角色之后还会有男版，也由你手动选。</p>
+    <p class="note" data-i="cast_note">角色桌宠从下一版开始（现在的 0.1.0 是像素口袋）。每个角色都有女版和男版，在快捷菜单里手动选；右上角可以切换这页看哪一版。</p>
   </section>
 
   <section>
     <h2 data-i="h_moves">它只演真发生的事</h2>
     <div class="moves">
-      <div class="move"><img src="characters/pouch-eat.webp" alt="" loading="lazy"><b data-i="m_eat">进了一张卡</b><span data-i="m_eat_d">截图、拖图、整理品味</span></div>
-      <div class="move"><img src="characters/pouch-crack.webp" alt="" loading="lazy"><b data-i="m_crack">碎了一张</b><span data-i="m_crack_d">7 天没理会的石卡</span></div>
-      <div class="move"><img src="characters/claude-busy.webp" alt="" loading="lazy"><b data-i="m_busy">引擎在查</b><span data-i="m_busy_d">追踪台、用例、出牌</span></div>
-      <div class="move"><img src="characters/pouch-cheer.webp" alt="" loading="lazy"><b data-i="m_cheer">开始关注</b><span data-i="m_cheer_d">升银、融合、领任务</span></div>
-      <div class="move"><img src="characters/deepseek-sleep.webp" alt="" loading="lazy"><b data-i="m_sleep">引擎暂停</b><span data-i="m_sleep_d">你按了暂停，它就睡</span></div>
+      <div class="move"><img data-c="pouch-eat" src="characters/pouch-eat.webp" alt="" loading="lazy"><b data-i="m_eat">进了一张卡</b><span data-i="m_eat_d">截图、拖图、整理品味</span></div>
+      <div class="move"><img data-c="pouch-crack" src="characters/pouch-crack.webp" alt="" loading="lazy"><b data-i="m_crack">碎了一张</b><span data-i="m_crack_d">7 天没理会的石卡</span></div>
+      <div class="move"><img data-c="claude-busy" src="characters/claude-busy.webp" alt="" loading="lazy"><b data-i="m_busy">引擎在查</b><span data-i="m_busy_d">追踪台、用例、出牌</span></div>
+      <div class="move"><img data-c="pouch-cheer" src="characters/pouch-cheer.webp" alt="" loading="lazy"><b data-i="m_cheer">开始关注</b><span data-i="m_cheer_d">升银、融合、领任务</span></div>
+      <div class="move"><img data-c="deepseek-sleep" src="characters/deepseek-sleep.webp" alt="" loading="lazy"><b data-i="m_sleep">引擎暂停</b><span data-i="m_sleep_d">你按了暂停，它就睡</span></div>
     </div>
     <p class="note" data-i="moves_note">点一下桌宠弹快捷菜单，双击打开口袋，把图片拖到它身上就是喂进口袋。气泡说到哪张卡，点气泡就跳过去。</p>
   </section>
@@ -131,10 +152,10 @@ main a{color:var(--ac-2)}
     <h2 data-i="h_new">下一版会有的</h2>
     <p class="note" data-i="new_note">下面这些源码里已经有了；.dmg 安装包在下一版发布。现在能下载的 0.1.0 还是像素口袋桌宠。</p>
     <div class="two">
-      <div class="feat"><div class="txt"><h3><span data-i="f_eng">引擎可选 Claude / DeepSeek</span></h3><p data-i="f_eng_d">同一套只读工具和规矩，换一个模型跑。用 DeepSeek 时把自己的 key 写进本机配置，联网搜索由 DeepSeek 执行。</p></div><img src="characters/deepseek-busy.webp" alt="" loading="lazy"></div>
-      <div class="feat"><div class="txt"><h3><span data-i="f_voice">和桌上那位打电话</span><span class="tag" data-i="exp">实验中</span></h3><p data-i="f_voice_d">中文、日语、英语。问它口袋里有什么、哪张快碎了，用嘴回答「要问你的」是非题，它复述一遍你说「对」才记。录音和逐字稿都不留。</p></div><img src="characters/claude-idle_talk_a.webp" alt="" loading="lazy"></div>
-      <div class="feat"><div class="txt"><h3 data-i="f_snap">截图键 ⌃⇧⌘A，可以改</h3><p data-i="f_snap_d">截完同时放进剪贴板，⌘V 就能贴。也可以打开「收剪贴板里的截图」，别的工具截的图会问一句要不要。</p></div><img src="characters/pouch-eat.webp" alt="" loading="lazy"></div>
-      <div class="feat"><div class="txt"><h3 data-i="f_lin">每张卡都有谱系</h3><p data-i="f_lin_d">点开一张卡，能看到它从哪来、推出了什么：哪张金卡推荐的、哪次追踪查到的，一路点过去。</p></div><img src="characters/claude-cheer.webp" alt="" loading="lazy"></div>
+      <div class="feat"><div class="txt"><h3><span data-i="f_eng">引擎可选 Claude / DeepSeek</span></h3><p data-i="f_eng_d">同一套只读工具和规矩，换一个模型跑。用 DeepSeek 时把自己的 key 写进本机配置，联网搜索由 DeepSeek 执行。</p></div><img data-c="deepseek-busy" src="characters/deepseek-busy.webp" alt="" loading="lazy"></div>
+      <div class="feat"><div class="txt"><h3><span data-i="f_voice">和桌上那位打电话</span><span class="tag" data-i="exp">实验中</span></h3><p data-i="f_voice_d">中文、日语、英语。问它口袋里有什么、哪张快碎了，用嘴回答「要问你的」是非题，它复述一遍你说「对」才记。录音和逐字稿都不留。</p></div><img data-c="claude-idle_talk_a" src="characters/claude-idle_talk_a.webp" alt="" loading="lazy"></div>
+      <div class="feat"><div class="txt"><h3 data-i="f_snap">截图键 ⌃⇧⌘A，可以改</h3><p data-i="f_snap_d">截完同时放进剪贴板，⌘V 就能贴。也可以打开「收剪贴板里的截图」，别的工具截的图会问一句要不要。</p></div><img data-c="pouch-eat" src="characters/pouch-eat.webp" alt="" loading="lazy"></div>
+      <div class="feat"><div class="txt"><h3 data-i="f_lin">每张卡都有谱系</h3><p data-i="f_lin_d">点开一张卡，能看到它从哪来、推出了什么：哪张金卡推荐的、哪次追踪查到的，一路点过去。</p></div><img data-c="claude-cheer" src="characters/claude-cheer.webp" alt="" loading="lazy"></div>
     </div>
   </section>
 
@@ -160,6 +181,7 @@ main a{color:var(--ac-2)}
     </ul>
   </section>
 </main>
+<template id="zh-m"><span data-k="r_claude_m">大少爷 · 引擎用 Claude 时</span><span data-k="d_claude_m">自称「本少爷」，骄傲但从不马虎：查到什么都记进账本，查不到就直说。</span></template>
 <footer><span>MIT License · by <a href="https://github.com/nikoloside">nikoloside</a></span><a href="https://ludics.space">ludics.space</a><a href="https://github.com/nikoloside/sense/tree/main/docs" data-i="docs">设计文档</a></footer>
 <script>
 /* 三语：中文写在 HTML 里（没有脚本也能读），英文和日文在这里。?lang= 优先，其次上次选的，再次浏览器语言。 */
@@ -169,7 +191,8 @@ h_what:"What it does",what:"Sense turns what you watch, listen to, screenshot an
 t_stone:"Stone",d_stone:"Just arrived, not handled yet. Ignore it for 7 days and it shatters, leaving only a note that it was found.",t_bronze:"Bronze",d_bronze:"You kept it — you care a little.",t_silver:"Silver",d_silver:"Followed: it tells you when there is a new episode, new work or new paper.",t_gold:"Gold",d_gold:"A taste: two silver cards that share the same reason fuse into gold, which recommends outward.",
 h_src:"Where the data comes from",src0:"⌃⇧⌘A to grab part of the screen (or pick up a screenshot another tool put on the clipboard), clipboard capture when you turn it on, or images dropped onto the desktop pet.",src1:"Your own Chrome history and YouTube watch history, read locally; the temporary copy is deleted right after.",src2:"Your signed-in YouTube Music / Spotify pages: Claude reads only a short allowlist of pages and keeps just titles and artists.",src3:"Judgments you stated in your Claude Code sessions.",
 local:"Everything stays on your Mac and is never uploaded. Every agent call is your local Claude Code, on your own account.",
-h_cast:"Your desk companions",cast:"The pocket can stand on your desktop. You choose who stands there, and it only acts out what really happens in your pocket.",n_pouch:"Pouchling",r_pouch:"The little one · the pocket itself",d_pouch:"The smallest, hugging four cards — stone, bronze, silver, gold. She munches when a card comes in, flinches when one shatters, raises a hand when something needs you.",r_claude:"The young lady · when the engine runs Claude",d_claude:"Proud but never sloppy: whatever she finds goes into her ledger, and if she can't find it, she says so.",r_ds:"The chubby whale · when the engine runs DeepSeek",d_ds:"Round, slow, and explains everything in terms of food. Web search runs on DeepSeek's side.",cast_note:"Character pets arrive in the next version (0.1.0 has the pixel pouch). Male versions of every character are coming too — also your choice.",
+h_core:"How Sense works",core_lead:"Sense is a set of agents that work for you. What they remember and what they go do is decided by the cards in your pocket.",c1:"Memory becomes cards",c1d:"Judgments you told your AI, and things you watched, heard or grabbed, become cards — each traceable to its evidence. Cards are the agents' memory: you can see them, edit them, take them with you.",c2:"Tiers are the rules",c2d:"Stone → bronze → silver → gold. A stone card ignored for 7 days shatters; keep it and it turns bronze, follow it and it turns silver, and two silvers that share one reason fuse into gold. Every click rewrites the agents' rules.",c3:"Follow something, and an agent goes",c3d:"Silver: checks for its own new episodes, works and papers. Gold: looks outward for new things in that taste. Use-case cards: go do what you wrote — find people, check updates, draft a letter.",c4:"Checks in on your progress",c4d:"Decisions you made and projects you're running can go on the tracker too: on schedule it checks once and asks how far you've got, so you don't have to remember.",c5:"Show your sense",c5d:"The Sense page lays out your current taste as a showcase card — where you stopped in each field, and why. Save it as an image to share; the QR code leads here.",c6:"Custom agents, as a game",plan:"planned",c6d:"Levels, commissions, quests and XP are already in. Next: configure your own agents — which cards go in each slot, how often they run, how they play a hand — like building a deck.",
+h_cast:"Your desk companions",cast:"The pocket can stand on your desktop. You choose who stands there, and it only acts out what really happens in your pocket.",n_pouch:"Pouchling",r_pouch:"The little one · the pocket itself",d_pouch:"The smallest, hugging four cards — stone, bronze, silver, gold. She munches when a card comes in, flinches when one shatters, raises a hand when something needs you.",r_claude:"The young lady · when the engine runs Claude",d_claude:"Proud but never sloppy: whatever she finds goes into her ledger, and if she can't find it, she says so.",r_ds:"The chubby whale · when the engine runs DeepSeek",d_ds:"Round, slow, and explains everything in terms of food. Web search runs on DeepSeek's side.",cast_note:"Character pets arrive in the next version (0.1.0 has the pixel pouch). Every character comes in a female and a male version, picked by hand in the quick menu; switch this page with the toggle at the top.",g_f:"Female",g_m:"Male",r_claude_m:"The young master · when the engine runs Claude",d_claude_m:"Proud but never sloppy: whatever he finds goes into his ledger, and if he can't find it, he says so.",
 h_moves:"It only acts out what really happened",m_eat:"A card came in",m_eat_d:"screenshot, drop, taste pass",m_crack:"A card shattered",m_crack_d:"a stone card ignored for 7 days",m_busy:"The engine is looking",m_busy_d:"tracker, use cases, draws",m_cheer:"Now following",m_cheer_d:"silver, fusion, quests",m_sleep:"Engine paused",m_sleep_d:"you paused it, so it naps",moves_note:"Click the pet for the quick menu, double-click to open the pocket, drop an image on it to feed it. When a bubble mentions a card, click the bubble to jump there.",
 h_new:"Coming in the next version",new_note:"These are already in the source; the .dmg ships with the next release. Today's 0.1.0 still has the pixel-pouch pet.",f_eng:"Engine: Claude or DeepSeek",f_eng_d:"Same read-only tools and rules, different model. For DeepSeek, put your own key in the local config; web search runs on DeepSeek.",f_voice:"Call the one on your desk",exp:"experimental",f_voice_d:"Chinese, Japanese, English. Ask what's in your pocket or what's about to shatter, answer its yes/no questions out loud — it repeats your answer and records it only after you say yes. No audio or transcript is kept.",f_snap:"Screenshot key ⌃⇧⌘A, rebindable",f_snap_d:"The capture also lands on your clipboard, ready for ⌘V. Turn on clipboard pickup and screenshots from other tools get a quick “keep it?”.",f_lin:"Every card has a lineage",f_lin_d:"Open a card to see where it came from and what it led to — which gold card recommended it, which tracker run found it — and click along the chain.",
 b3:"DeepSeek as the engine is optional: add your own <code>deepseek_api_key</code> to <code>~/Library/Application Support/Sense/config.json</code>. The key stays on your Mac.",b4:"Voice calls are experimental: they need a separate local voice service, and macOS asks for microphone access on the first call.",
@@ -180,7 +203,8 @@ h_what:"何をするのか",what:"見たもの、聴いたもの、スクショ�
 t_stone:"石",d_stone:"入ったばかりで未処理。7 日放っておくと砕けて、「見つけた」という記録だけが残ります。",t_bronze:"銅",d_bronze:"残したカード。少しは気になっている。",t_silver:"銀",d_silver:"フォロー中。新しい話数、新作、新しい論文が出たら知らせます。",t_gold:"金",d_gold:"好みそのもの。同じ「なぜ」を語れる銀カード 2 枚が融合して金になり、外へ向けておすすめします。",
 h_src:"データの出どころ",src0:"⌃⇧⌘A で画面の一部を切り取る（ほかのツールがクリップボードに置いたスクショも取り込める）、オンにしたときのクリップボード記録、デスクトップペットへの画像ドロップ。",src1:"あなた自身の Chrome 履歴と YouTube 視聴履歴をローカルで読み、コピーは読み終えたらすぐ削除。",src2:"ログイン中の YouTube Music / Spotify のページ。Claude は許可リストの数ページだけを読み、曲名とアーティストだけを残します。",src3:"Claude Code との会話であなたが述べた判断。",
 local:"すべてあなたの Mac に保存され、アップロードはしません。エージェントの呼び出しはすべてローカルの Claude Code で、あなた自身のアカウントです。",
-h_cast:"デスクの相棒",cast:"ポケットはデスクトップに立ちます。誰が立つかはあなたが選び、ポケットで本当に起きたことだけを演じます。",n_pouch:"ポケット精",r_pouch:"ちびっこ · ポケットそのもの",d_pouch:"いちばん小さくて、石・銅・銀・金の 4 枚を抱えています。カードが入ると食べ、砕けるとびくっとし、用があると手を挙げます。",r_claude:"お嬢様 · エンジンが Claude のとき",d_claude:"一人称は「わたくし」。誇り高いけれど手は抜かない。見つけたものは帳簿へ、見つからなければそう言います。",r_ds:"まんまるクジラ · エンジンが DeepSeek のとき",d_ds:"まるくて、のんびり、なんでも食べ物にたとえます。ウェブ検索は DeepSeek 側で動きます。",cast_note:"キャラのペットは次のバージョンから（0.1.0 はドット絵のポケット）。どのキャラにも男の子版を用意中。こちらも手動で選べます。",
+h_core:"Sense のしくみ",core_lead:"Sense はあなたのために働くエージェントの集まりです。何を覚え、何をしに行くかは、ポケットのカードで決まります。",c1:"記憶がカードになる",c1d:"AI に話した判断、見た・聴いた・撮ったものがカードになり、どれも根拠までたどれます。カードはエージェントの記憶。見えて、直せて、持ち出せます。",c2:"ランクがルール",c2d:"石 → 銅 → 銀 → 金。7 日放っておいた石は砕け、残せば銅、フォローすれば銀、同じ「なぜ」を語れる銀 2 枚は融合して金に。あなたのクリックがエージェントのルールを書き換えます。",c3:"気になるものに、エージェントが向かう",c3d:"銀カード：新しい話数・新作・新しい論文を定期的に確認。金カード：その好みで外へ新しいものを探す。用例カード：書いたとおりに動く（人を探す、更新を確かめる、手紙の下書き）。",c4:"進み具合を定期的に確認",c4d:"自分で決めたことや進行中のプロジェクトもトラッカーへ。時間が来たら一度調べて「どこまで進んだ？」と聞きます。覚えておく必要はありません。",c5:"あなたの sense を見せる",c5d:"Sense ページは今の好みを一枚のショーケースに。分野ごとにどこで立ち止まったか、なぜか。画像で保存して共有でき、QR コードでここへ。",c6:"エージェントを自分で組む、ゲームとして",plan:"計画中",c6d:"レベル、依頼、クエスト、XP はもうあります。次は自分でエージェントを設定：スロットに入れるカード、動く頻度、一手の出し方。デッキを組むようにエージェントを調整できるように。",
+h_cast:"デスクの相棒",cast:"ポケットはデスクトップに立ちます。誰が立つかはあなたが選び、ポケットで本当に起きたことだけを演じます。",n_pouch:"ポケット精",r_pouch:"ちびっこ · ポケットそのもの",d_pouch:"いちばん小さくて、石・銅・銀・金の 4 枚を抱えています。カードが入ると食べ、砕けるとびくっとし、用があると手を挙げます。",r_claude:"お嬢様 · エンジンが Claude のとき",d_claude:"一人称は「わたくし」。誇り高いけれど手は抜かない。見つけたものは帳簿へ、見つからなければそう言います。",r_ds:"まんまるクジラ · エンジンが DeepSeek のとき",d_ds:"まるくて、のんびり、なんでも食べ物にたとえます。ウェブ検索は DeepSeek 側で動きます。",cast_note:"キャラのペットは次のバージョンから（0.1.0 はドット絵のポケット）。どのキャラにも女の子版と男の子版があり、クイックメニューで手動で選べます。このページは右上で切り替え。",g_f:"女の子",g_m:"男の子",r_claude_m:"お坊ちゃま · エンジンが Claude のとき",d_claude_m:"一人称は「僕」。誇り高いけれど手は抜かない。見つけたものは帳簿へ、見つからなければそう言います。",
 h_moves:"本当に起きたことだけを演じる",m_eat:"カードが入った",m_eat_d:"スクショ・ドロップ・好みの整理",m_crack:"カードが砕けた",m_crack_d:"7 日放置した石カード",m_busy:"エンジンが調査中",m_busy_d:"トラッカー・用例・カード",m_cheer:"フォロー開始",m_cheer_d:"銀・融合・クエスト",m_sleep:"エンジン一時停止",m_sleep_d:"止めたらお昼寝",moves_note:"ペットをクリックでクイックメニュー、ダブルクリックでポケットを開く、画像をドロップでポケットへ。吹き出しがカードの話なら、クリックでそのカードへ。",
 h_new:"次のバージョンで",new_note:"以下はソースコードにはもう入っています。.dmg は次のリリースで。いまの 0.1.0 はドット絵のポケットのペットです。",f_eng:"エンジンは Claude / DeepSeek",f_eng_d:"同じ読み取り専用ツールとルールで、モデルだけ替えます。DeepSeek を使うときは自分のキーをローカル設定に。ウェブ検索は DeepSeek 側で実行。",f_voice:"デスクの相棒と通話",exp:"実験中",f_voice_d:"中国語・日本語・英語。ポケットの中身や砕けそうなカードを聞いたり、「聞きたいこと」の はい/いいえ に声で答えたり。復唱して「うん」と言ってから記録します。録音も書き起こしも残しません。",f_snap:"スクショキー ⌃⇧⌘A、変更可",f_snap_d:"撮った画像はクリップボードにも入るので ⌘V で貼れます。クリップボード取り込みをオンにすると、ほかのツールのスクショも「入れる？」と聞きます。",f_lin:"どのカードにも系譜",f_lin_d:"カードを開くと、どこから来て何につながったか（どの金カードのおすすめか、どの追跡で見つかったか）をたどれます。",
 b3:"DeepSeek をエンジンにするのは任意です。<code>~/Library/Application Support/Sense/config.json</code> に自分の <code>deepseek_api_key</code> を書いてください。キーは Mac の中だけに残ります。",b4:"音声通話は実験中です。ローカルで別の音声サービスを動かす必要があり、最初の通話でマイクの許可を求められます。",
@@ -189,11 +213,18 @@ h_before:"インストールの前に",b0:"Apple シリコンの macOS のみ。
 const ZH={};document.querySelectorAll("[data-i]").forEach(e=>ZH[e.dataset.i]=e.innerHTML);ZH.title=document.title;
 function pick(){const q=new URLSearchParams(location.search).get("lang");if(q&&(q==="zh"||T[q]))return q;try{const s=localStorage.getItem("sense-site-lang");if(s)return s;}catch(e){}
   const n=(navigator.language||"").toLowerCase();return n.startsWith("ja")?"ja":n.startsWith("zh")?"zh":"en";}
-function setLang(l){const D=l==="zh"?ZH:T[l];document.documentElement.lang=l;document.title=D.title;
-  document.querySelectorAll("[data-i]").forEach(e=>{const v=D[e.dataset.i];if(v!=null)e.innerHTML=v;});
-  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===l)));}
-document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{setLang(b.dataset.l);try{localStorage.setItem("sense-site-lang",b.dataset.l)}catch(e){}});
-setLang(pick());
+document.querySelectorAll("#zh-m span").forEach(e=>ZH[e.dataset.k]=e.innerHTML);document.querySelector("#zh-m")&&(ZH.g_f="女版",ZH.g_m="男版");
+let LANG="zh",G="f";try{if(localStorage.getItem("sense-site-g")==="m")G="m";}catch(e){}
+function setReel(){const v=document.getElementById("reel");if(!v)return;const n=LANG+(G==="m"?"-m":"");const [w,m]=v.querySelectorAll("source");
+  if(w.getAttribute("src")==="media/teaser-"+n+".webm")return;v.poster="media/poster-"+n+".webp";w.src="media/teaser-"+n+".webm";m.src="media/teaser-"+n+".mp4";v.load();const p=v.play();p&&p.catch(()=>{});}
+function setGender(g){G=g;document.querySelectorAll("img[data-c]").forEach(i=>{const [w,...f]=i.dataset.c.split("-");i.src="characters/"+w+(g==="m"?"-m":"")+"-"+f.join("-")+".webp";});
+  document.querySelectorAll(".lang .g").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.g===g)));setLang(LANG);}
+function setLang(l){LANG=l;const D=l==="zh"?ZH:T[l];document.documentElement.lang=l;document.title=D.title;
+  document.querySelectorAll("[data-i]").forEach(e=>{const k=G==="m"&&e.dataset.im?e.dataset.im:e.dataset.i;const v=D[k];if(v!=null)e.innerHTML=v;});setReel();
+  document.querySelectorAll(".lang button[data-l]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===l)));}
+document.querySelectorAll(".lang button[data-l]").forEach(b=>b.onclick=()=>{setLang(b.dataset.l);try{localStorage.setItem("sense-site-lang",b.dataset.l)}catch(e){}});
+document.querySelectorAll(".lang .g").forEach(b=>b.onclick=()=>{setGender(b.dataset.g);try{localStorage.setItem("sense-site-g",b.dataset.g)}catch(e){}});
+LANG=pick();setGender(G);
 </script>
 </body>
 </html>
