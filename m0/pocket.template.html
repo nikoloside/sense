@@ -205,6 +205,19 @@ select.attr{font:inherit;font-size:12px;background:var(--felt-2);color:var(--cha
 .sheet .achip{display:flex;flex-direction:column;gap:2px;background:var(--felt);border:2px solid var(--felt-line);border-radius:4px;padding:8px}
 .sheet .achip b{font-size:14px}
 .sheet .achip span{font-size:12px;color:var(--chalk-2)}
+.lin{display:flex;flex-direction:column;gap:6px}
+.lin-h{display:flex;align-items:center;gap:10px}.lin-h .rm{margin-left:auto}
+.lin-scroll{overflow-x:auto;background:var(--felt);border:2px solid var(--felt-line);border-radius:6px;padding:4px}
+.lin-svg{display:block;width:100%;min-width:480px;height:auto;font-family:var(--f-pixel)}
+.lin-e{fill:none;stroke:var(--chalk-2);stroke-width:2}.lin-e.src,.lin-e.side{stroke-dasharray:5 4;stroke:var(--felt-line)}
+.lin-lb{fill:var(--felt)}.lin-lt{fill:var(--chalk-2);font-size:11px}
+.lin-n rect:first-of-type{fill:var(--paper);stroke-width:3}.lin-n .t{fill:var(--ink);font-size:12px}.lin-n .s{fill:var(--ink);opacity:.65;font-size:10px}
+.lin-n[role=button]{cursor:pointer}.lin-n[role=button]:hover rect:first-of-type,.lin-n[role=button]:focus-visible rect:first-of-type{stroke:var(--accent)!important}.lin-n:focus{outline:none}
+.lin-n.me rect:first-of-type{stroke-width:4;filter:drop-shadow(0 0 6px var(--accent))}.lin-n.gone{opacity:.45}
+.lin-n.src rect{fill:transparent;stroke:var(--felt-line);stroke-width:2;stroke-dasharray:5 4}.lin-n.src .t{fill:var(--chalk-2);font-size:11px}
+.lin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.lin-chip{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;background:var(--paper);color:var(--ink);border:2px solid var(--tier);border-left:6px solid var(--kc);border-radius:4px;padding:6px 8px}
+.lin-chip b{font-size:13px;font-weight:600}.lin-chip span{font-family:var(--f-pixel);font-size:11px;opacity:.65}.lin-chip:focus-visible{outline:2px solid var(--accent)}
 .sheet .acts{display:flex;gap:8px;flex-wrap:wrap}
 .sheet a{color:var(--accent)}
 .sheet .close{margin-left:auto;background:none;border:none;color:var(--chalk-2);font-family:var(--f-pixel);cursor:pointer;font-size:14px}
@@ -691,8 +704,8 @@ function sheet(tierVar,...kids){closeSheet();const sh=h("div",{class:"sheet",rol
   sheetEl=h("div",{class:"scrim",onclick:e=>{if(e.target===sheetEl)closeSheet();}},sh);document.body.append(sheetEl);
   const f=sh.querySelector("button,textarea,input");f&&f.focus();return sh;}
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();});
-function openCard(id){
-  const c=card(id);if(!c)return;if(!OPENED.has(id)){OPENED.add(id);touch(id);log("open",id);promote();persist();}
+function openCard(id,o){
+  const c=card(id);if(!c)return;if(!(o&&o.lin))LIN_TRAIL=[];if(!OPENED.has(id)){OPENED.add(id);touch(id);log("open",id);promote();persist();}
   const c2=card(id);
   const acts=h("div",{class:"acts"});
   const rr=()=>{const el=document.querySelector(".sheet .card");return el?el.getBoundingClientRect():null;};
@@ -720,11 +733,71 @@ function openCard(id){
     c2.item&&c2.item.url&&/^https:\/\//.test(c2.item.url)?h("p",{},h("a",{href:c2.item.url,target:"_blank",rel:"noopener"},c2.item.name||c2.item.url)):null,
     c2.watch?h("p",{class:"meta"},"跟踪："+c2.watch.query+(cs(c2.id).last_seen||c2.watch.last_seen?" · 上次看到 "+(cs(c2.id).last_seen||c2.watch.last_seen):"")+(seats()[c2.id]?" · 在追踪台上，"+CAD[seats()[c2.id].cadence][0]:"")):null,
     attrs.length?h("div",{style:"display:flex;flex-direction:column;gap:6px"},h("div",{class:"meta"},"背后的属性"),...attrs):null,
+    linBlock(id),
     c2.kind==="decision"?h("textarea",{id:"editTa",placeholder:"想改成怎么说？写一句再点「改一句」","aria-label":"改一句"}):null,
     acts,
     st.length?h("div",{},h("div",{class:"meta"},"叠在下面的原卡"),h("div",{class:"picker"},st.map(x=>face(card(x.id),{onClick:()=>openCard(x.id)})))):null,
     c2.evidence&&c2.evidence.length?h("details",{},h("summary",{class:"meta"},"证据 "+c2.evidence.length+" 条"),h("ul",{class:"ev"},c2.evidence.map(e=>h("li",{},h("span",{class:"w"},e.when+" · "+e.where),e.what)))):null);
 }
+
+/* ---------- lineage (0028): only relations the pocket already recorded, centred on one card ---------- */
+let LIN_TRAIL=[];const LIN_OPEN=new Set();
+function parentsOf(c){const out=[];if(!c)return out;
+  (c.fused_from||[]).forEach(p=>out.push({id:p,rel:"融合"}));
+  if(c.from_gold)out.push({id:c.from_gold,rel:"推荐"});
+  if(c.attached_to)out.push({id:c.attached_to,rel:c.subkind==="update"?"更新":"挂上"});
+  if(c.from_track)out.push({id:c.from_track,rel:"留下"});
+  if(c.like_id&&c.like_id!==c.from_gold)out.push({id:c.like_id,rel:"像"});
+  return out;}
+function childrenOf(id){const out=[];allCards().forEach(x=>parentsOf(x).forEach(p=>{if(p.id===id)out.push({id:x.id,rel:p.rel});}));return out;}
+function linSources(c){const seen=[];(c.evidence||[]).forEach(e=>{const w=String(e.where||"").split(" · ").slice(0,2).join(" · ");if(w&&!seen.includes(w))seen.push(w);});return seen.slice(0,2);}
+function linGraph(id){const c=card(id);const rows={"-2":[],"-1":[],"0":[],"1":[],"2":[]};const placed=new Set([id]);const edges=[];const more={};
+  const put=(r,n)=>{if(placed.has(n.id))return true;if(rows[r].length>=5){more[r]=(more[r]||0)+1;return false;}placed.add(n.id);rows[r].push(n);return true;};
+  const node=(nid)=>{const x=card(nid);if(x)return{id:nid,card:x};const u=useCases().find(u=>u.id===nid);return{id:nid,src:u?"用例 · "+u.title:nid};};
+  parentsOf(c).forEach(p=>{if(put("-1",node(p.id)))edges.push([p.id,id,p.rel]);});
+  rows["-1"].slice().forEach(n=>{if(!n.card)return;parentsOf(n.card).forEach(p=>{if(put("-2",node(p.id)))edges.push([p.id,n.id,p.rel]);});});
+  const kin=rows["-1"].length+childrenOf(id).length;
+  linSources(c).forEach((w,i)=>{const sid="src:"+i;if(put("-1",{id:sid,src:w}))edges.push([sid,id,"来自"]);});
+  childrenOf(id).forEach(k=>{if(put("1",node(k.id)))edges.push([id,k.id,k.rel]);});
+  rows["1"].slice().forEach(n=>childrenOf(n.id).forEach(k=>{if(put("2",node(k.id)))edges.push([n.id,k.id,k.rel]);}));
+  const aids=c.attribute_ids||[];const sides=liveCards().filter(x=>!placed.has(x.id)&&(x.attribute_ids||[]).some(a=>aids.includes(a))).map(x=>({id:x.id,card:x}));
+  return{c,rows,edges,more,sides,kin:kin+sides.length};}
+function svgEl(tag,attrs,...kids){const e=document.createElementNS("http://www.w3.org/2000/svg",tag);Object.entries(attrs||{}).forEach(([k,v])=>{if(v!=null)e.setAttribute(k,v);});kids.flat().forEach(k=>{if(k!=null)e.append(k);});return e;}
+function linClip(t,n){let w=0,o="";for(const ch of String(t)){w+=/[\u0000-ÿ]/.test(ch)?.55:1;if(w>n)return o+"…";o+=ch;}return o;}
+function linGo(from,to){LIN_TRAIL.push(from);openCard(to,{lin:1});}
+function linBlock(id){const g=linGraph(id);if(!g.kin)return null;
+  const W=640,NW=104,NH=44,RH=84;const open=LIN_OPEN.has(id);
+  const keys=["-2","-1","0","1","2"].filter(r=>r==="0"||g.rows[r].length||g.more[r]);const top=keys.indexOf("0");
+  const pos={};const yOf=r=>30+keys.indexOf(r)*RH;
+  keys.forEach(r=>{const list=g.rows[r];if(r==="0")return;const n=list.length+(g.more[r]?1:0);list.forEach((nd,i)=>{pos[nd.id]=[W*(i+1)/(n+1),yOf(r)];});if(g.more[r])pos["more:"+r]=[W*n/(n+1),yOf(r)];});
+  pos[id]=[W/2,yOf("0")];
+  const shown=open?[]:g.sides.slice(0,4);const sideX=[200,80,440,560];shown.forEach((nd,i)=>{pos[nd.id]=[sideX[i],yOf("0")];});
+  const H=yOf(keys[keys.length-1])+NH/2+(keys[keys.length-1]==="0"&&!open&&g.sides.length?24:8);
+  const svg=svgEl("svg",{viewBox:`0 0 ${W} ${H}`,class:"lin-svg",role:"group","aria-label":"谱系图"});
+  const lines=svgEl("g",{});const labels=svgEl("g",{});svg.append(lines);
+  g.edges.forEach(([a,b,rel])=>{const p=pos[a],q=pos[b];if(!p||!q)return;const y1=p[1]+NH/2,y2=q[1]-NH/2,my=(y1+y2)/2;
+    lines.append(svgEl("path",{d:`M${p[0]} ${y1} C${p[0]} ${my},${q[0]} ${my},${q[0]} ${y2}`,class:"lin-e"+(rel==="来自"?" src":"")}));
+    const lx=(p[0]+q[0])/2,ly=my;labels.append(svgEl("rect",{x:lx-rel.length*6-4,y:ly-8,width:rel.length*12+8,height:16,rx:3,class:"lin-lb"}),svgEl("text",{x:lx,y:ly+4,class:"lin-lt","text-anchor":"middle"},rel));});
+  shown.forEach(nd=>{const p=pos[nd.id];const cx=pos[id][0];const right=p[0]>cx;
+    lines.append(svgEl("line",{x1:right?p[0]-NW/2:p[0]+NW/2,y1:p[1],x2:right?cx+NW/2:cx-NW/2,y2:p[1],class:"lin-e side"}));});
+  if(shown.length)labels.append(svgEl("text",{x:140,y:yOf("0")+NH/2+15,class:"lin-lt","text-anchor":"middle"},"虚线：同一条属性"));
+  svg.append(labels);
+  const draw=(nd,center)=>{const p=pos[nd.id];if(!p)return;const x=p[0]-NW/2,y=p[1]-NH/2;
+    if(nd.src){svg.append(svgEl("g",{class:"lin-n src"},svgEl("title",{},nd.src),svgEl("rect",{x,y,width:NW,height:NH,rx:4}),...(()=>{const [a,b]=nd.src.split(" · ");return b?[svgEl("text",{x:p[0],y:p[1]-3,"text-anchor":"middle",class:"t"},linClip(a,8)),svgEl("text",{x:p[0],y:p[1]+13,"text-anchor":"middle",class:"t"},linClip(b,8))]:[svgEl("text",{x:p[0],y:p[1]+4,"text-anchor":"middle",class:"t"},linClip(a,8))];})()));return;}
+    const c=nd.card;const gr=svgEl("g",{class:"lin-n"+(center?" me":"")+(c.archived||c.shattered?" gone":""),tabindex:center?null:"0",role:center?null:"button","aria-label":center?null:"以「"+c.title+"」为中心"},
+      svgEl("title",{},c.title),svgEl("rect",{x,y,width:NW,height:NH,rx:4,style:"stroke:"+tc(c.tier)}),svgEl("rect",{x:x+3,y:y+3,width:5,height:NH-6,style:"fill:"+kc(c.kind)}),
+      svgEl("text",{x:x+14,y:y+19,class:"t"},linClip(c.title,7)),svgEl("text",{x:x+14,y:y+35,class:"s"},TIER[c.tier]+" · "+KIND[c.kind]+(c.shattered?" · 碎了":c.archived?" · 归档":"")));
+    if(!center){const go=()=>linGo(id,nd.id);gr.addEventListener("click",go);gr.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}});}
+    svg.append(gr);};
+  keys.forEach(r=>g.rows[r].forEach(nd=>draw(nd)));shown.forEach(nd=>draw(nd));draw({id,card:g.c},true);
+  keys.forEach(r=>{if(!g.more[r])return;const p=pos["more:"+r];svg.append(svgEl("text",{x:p[0],y:p[1]+4,"text-anchor":"middle",class:"lin-lt"},"还有 "+g.more[r]+" 张"));});
+  const rest=g.sides.length-shown.length;
+  const wrap=h("div",{class:"lin"},h("div",{class:"lin-h"},h("span",{class:"meta"},"谱系"),
+      LIN_TRAIL.length?h("button",{class:"rm",type:"button",onclick:()=>openCard(LIN_TRAIL.pop(),{lin:1})},"← 回到「"+linClip(refName(LIN_TRAIL[LIN_TRAIL.length-1]),10)+"」"):null),
+    h("div",{class:"lin-scroll"},svg));
+  if(g.sides.length&&(rest>0||open))wrap.append(h("button",{class:"rm",type:"button",onclick:()=>{open?LIN_OPEN.delete(id):LIN_OPEN.add(id);wrap.replaceWith(linBlock(id));}},open?"收起同属性的卡":"+"+rest+" 张同属性的卡"));
+  if(open)wrap.append(h("div",{class:"lin-grid"},g.sides.map(nd=>h("button",{class:"lin-chip",type:"button",style:"--tier:"+tc(nd.card.tier)+";--kc:"+kc(nd.card.kind),onclick:()=>linGo(id,nd.id)},h("b",{},nd.card.title),h("span",{},TIER[nd.card.tier]+" · "+KIND[nd.card.kind])))));
+  return wrap;}
 
 /* ---------- fusion ---------- */
 /* ---------- fusion (0022): offers come from the pocket's live state ----------
@@ -999,7 +1072,7 @@ async function runSeat(ref,manual){const st=seats()[ref];if(!st||trackBusy)retur
     else if(job==="gold"){const under=stackOf(ref).map(x=>card(x.id)).filter(Boolean);const taste=(c.attribute_ids||[]).map(id=>attr(id)).filter(Boolean);
       const r=await agent(`用户的一张金卡是一种口味：「${c.title}」。${c.body||""}\n这个口味的理由：${taste.map(a=>"「"+a.text+"」"+(a.reason?"，因为"+a.reason:"")+(a.contrast?"，不要"+a.contrast:"")).join("；")||"见卡面"}\n它由这几张他在关注的卡融合而来：${under.map(x=>KIND[x.kind]+"「"+x.title+"」").join("、")||"无"}。\n用 WebSearch 按这个口味往外找 2 到 3 样他还没有的新东西（作品、书、论文、仓库、人都可以）。必须真实存在、有链接，最好是近期的。每条说清它为什么符合这个口味、像下面哪张卡。他已有的卡：${allCards().map(x=>x.title).slice(0,80).join(" / ")}，不要重复。只输出 JSON：{"items":[{"title":"","kind":"作品|书|论文|仓库|人","body":"一到两句中文","url":"","like":"像哪张原卡的标题"}]}`,{web:true,turns:14});
       let n=0;(r.items||[]).slice(0,3).forEach(it=>{if(hasTitle(it.title))return;n++;add.push({kind:"spawn",title:it.title,body:it.body,url:it.url});
-        S.added.push({id:"G"+Date.now().toString(36)+n,kind:it.kind==="人"?"person":"recommendation",tier:"bronze",title:String(it.title).slice(0,80),body:String(it.body||"").slice(0,240),attribute_ids:(c.attribute_ids||[]).slice(0,2),item:{name:it.title,url:/^https:\/\//.test(it.url||"")?it.url:""},from_gold:ref,evidence:[{when:today(),where:"金卡「"+c.title+"」推荐",what:it.like?"像「"+it.like+"」":it.kind||""}],tier_reason:"金卡按口味推荐出来的，直接是铜"});});
+        S.added.push({id:"G"+Date.now().toString(36)+n,kind:it.kind==="人"?"person":"recommendation",tier:"bronze",title:String(it.title).slice(0,80),body:String(it.body||"").slice(0,240),attribute_ids:(c.attribute_ids||[]).slice(0,2),item:{name:it.title,url:/^https:\/\//.test(it.url||"")?it.url:""},from_gold:ref,like_id:(under.concat(allCards()).find(x=>x.title===it.like)||{}).id,evidence:[{when:today(),where:"金卡「"+c.title+"」推荐",what:it.like?"像「"+it.like+"」":it.kind||""}],tier_reason:"金卡按口味推荐出来的，直接是铜"});});
       if(n){log("gold_spawn",ref,{n});requestAnimationFrame(()=>reward(null,card(ref),"+"+n+" 张铜卡"));}else add.push({kind:"note",title:"这轮没找到新的",body:""});}
     else{S.squeue=S.squeue||[];if(!S.squeue.includes(ref))S.squeue.push(ref);add.push({kind:"note",title:"抽卡里多了一手",body:"下次抽卡先出这张"});}
     st.err=null;}
@@ -1035,7 +1108,7 @@ function track(){syncTracks();const m=$("#main");const T_=seats();const all=Obje
         f.url&&/^https:\/\//.test(f.url)?h("a",{href:f.url,target:"_blank",rel:"noopener"},hostOf(f.url)):null,
         f.kind==="found"?(f.done?h("span",{class:"w"},f.done==="kept"?"留下了":"丢了"):h("div",{class:"btnrow"},h("button",{class:"btn",type:"button",onclick:e=>keepFound(ref,i,true,e.currentTarget)},"留下"),h("button",{class:"btn ghost",type:"button",onclick:()=>keepFound(ref,i,false)},"丢"))):null))):h("p",{class:"note"},"还没跑过。"));})));}
 function keepFound(ref,i,keep,el){const st=seats()[ref];const f=st&&st.feed[i];if(!f||f.done)return;f.done=keep?"kept":"gone";
-  if(keep){const c=card(ref);addCard({kind:"recommendation",tier:"bronze",title:f.title,body:f.body,attribute_ids:c?(c.attribute_ids||[]).slice(0,2):[],item:{name:f.title,url:/^https:\/\//.test(f.url||"")?f.url:""},evidence:[{when:today(),where:"追踪台 · "+refName(ref),what:f.title}],tier_reason:"用例跑出来、你留下的"},el?el.getBoundingClientRect():null,"+1 铜卡");if(c)touch(ref);}
+  if(keep){const c=card(ref);addCard({kind:"recommendation",tier:"bronze",title:f.title,body:f.body,from_track:ref,attribute_ids:c?(c.attribute_ids||[]).slice(0,2):[],item:{name:f.title,url:/^https:\/\//.test(f.url||"")?f.url:""},evidence:[{when:today(),where:"追踪台 · "+refName(ref),what:f.title}],tier_reason:"用例跑出来、你留下的"},el?el.getBoundingClientRect():null,"+1 铜卡");if(c)touch(ref);}
   else{persist();render();}}
 function pickForTrack(){const list=liveCards().filter(c=>(c.tier==="stone"||c.tier==="bronze")&&!seats()[c.id]);const ucs=useCases().filter(u=>!seats()[u.id]);
   sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"放上转盘"),h("h3",{},"放一个用例，或一张石卡、铜卡"),h("p",{class:"note"},"银卡和金卡不用放，它们自己在上面。")),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),

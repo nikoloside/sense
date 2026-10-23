@@ -337,6 +337,7 @@ label 枚举：`right_topic_too_shallow` / `right_genre_wrong_mood` / `right_ide
 | title, body | 卡面文字 |
 | attribute_ids[] | 1–3 条属性（Judgment id） |
 | sources[] | Evidence 或 Clip 的 id；融合卡另有 `fused_from[]` |
+| 谱系 | `fused_from[]`、`from_gold`（金卡推荐）、`attached_to`（更新 / 挂上）、`from_track`（追踪台留下）、`like_id`（推荐时说像哪张）；详情页据此画谱系图（0028） |
 | item_id? | 关注、推荐、收藏卡指向的 Item / Person |
 | watch? | 关注卡、人物卡：{ query, sources, cadence, last_caught_up_at } |
 | last_used_at, created_at, archived_at? | |
