@@ -12,7 +12,7 @@
   --f-body:"Noto Sans SC", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
   --r:6px;
   --k-decision:#d9643a; --k-recommendation:#8a6fd1; --k-person:#d06a8a; --k-follow:#2f9a92;
-  --k-interest:#7f9a33; --k-quote:#4f7bd1; --k-collection:#c08a2a;
+  --k-interest:#7f9a33; --k-quote:#4f7bd1; --k-collection:#c08a2a; --k-work:#3f8fb8;
   --stone:#a39c92; --bronze:#c4773b; --silver:#9fb0bf; --gold:#e3a72f;
   --danger:#d0453a; --ok:#4f9a64;
 }
@@ -263,6 +263,17 @@ html.desk .pouchwrap{cursor:pointer}html.desk .pouchwrap:hover,.pouchwrap:focus-
 .flyer img,.flyer canvas{width:100%;height:100%;object-fit:cover;image-rendering:pixelated;display:block}
 .spark{position:fixed;z-index:71;width:5px;height:5px;pointer-events:none;background:var(--accent)}
 .plusone{position:fixed;z-index:72;pointer-events:none;font-family:var(--f-pixel);color:var(--accent);font-size:14px;text-shadow:0 2px 0 var(--shadow)}
+/* errands and works (0035) */
+.errbox{display:flex;flex-direction:column;gap:8px}
+.errbox .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.errbox .row p{margin:0;flex:1 1 220px;font-size:13px;color:var(--chalk)}
+.errbox ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.errbox li{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;background:var(--felt);border:1px solid var(--felt-line);border-radius:6px;padding:6px 10px}
+.errbox li .what{flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.errbox li.failed{border-color:var(--danger,#c0392b)}
+.work{display:flex;flex-direction:column;gap:8px}
+.work img{max-width:100%;max-height:min(520px,60vh);object-fit:contain;border-radius:6px;align-self:center}
+.worktext{white-space:pre-wrap;font-size:14px;line-height:1.7;max-height:52vh;overflow:auto;background:var(--felt);border:1px solid var(--felt-line);border-radius:6px;padding:12px 14px}
 /* clip zone */
 .clipzone{border:2px dashed var(--accent);border-radius:6px;padding:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:color-mix(in srgb,var(--accent) 6%,transparent)}
 .clipzone.over{background:color-mix(in srgb,var(--accent) 18%,transparent)}
@@ -519,8 +530,8 @@ const h=(tag,attrs={},...kids)=>{const e=document.createElement(tag);
   for(const k of kids.flat()){if(k==null||k===false)continue;e.append(k.nodeType?k:document.createTextNode(String(k)));}return e;};
 
 /* ---------- vocab ---------- */
-const KIND={decision:"判断",recommendation:"推荐",person:"人物",follow:"关注",interest:"兴趣",quote:"金句",collection:"收藏"};
-const KIND_ORDER=["decision","person","follow","interest","quote","collection","recommendation"];
+const KIND={decision:"判断",recommendation:"推荐",person:"人物",follow:"关注",interest:"兴趣",quote:"金句",collection:"收藏",work:"作品"};
+const KIND_ORDER=["decision","person","follow","interest","quote","collection","recommendation","work"];
 const TIER={stone:"石",bronze:"铜",silver:"银",gold:"金"};
 const TIER_RANK={stone:0,bronze:1,silver:2,gold:3};
 const TIER_DO={stone:"石：刚进来",bronze:"铜：有点在意",silver:"银：在关注它本身的动向",gold:"金：一种口味，持续往外推荐"};
@@ -531,7 +542,8 @@ const ICON={
   follow:[".......","..###..",".#...#.","#..#..#",".#...#.","..###..","......."],
   interest:["...#...","...#...","#######",".#####.","..###..",".##.##.","#.....#"],
   quote:["##..##.","##..##.",".#...#.","#...#..",".......",".......","......."],
-  collection:[".#####.",".#####.",".#####.",".#####.",".##.##.",".#...#.","......."]
+  collection:[".#####.",".#####.",".#####.",".#####.",".##.##.",".#...#.","......."],
+  work:["......#",".....#.","....#..","...#...","..##...",".###...","##....."]
 };
 const css=getComputedStyle(document.documentElement);
 const kc=k=>css.getPropertyValue("--k-"+k).trim()||"#888";
@@ -832,9 +844,10 @@ function openCard(id,o){
       const go=()=>{act(c2,code,sign);closeSheet();toast(label+(sign>0?" ✓":""));};go();if(sign>0)capWarn();}},label));});
   if(c2.tier!=="stone"&&!c2.archived)acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();slotPickerFor(c2.id);}},"放进卡槽"));
   if(!c2.archived&&c2.tier==="stone")acts.append(h("button",{class:"btn ghost smash",type:"button",onclick:()=>{const r=rr();closeSheet();shatterNow(c2.id,"你亲手碾碎",r);toast("碎了：「"+c2.title+"」进了碎卡堆，以后不会再塞给你");render();}},"碾碎：不太在意"));
-  if(!c2.archived&&(c2.tier==="stone"||c2.tier==="bronze")&&c2.subkind!=="update")acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();putOnTrack(c2.id);}},seats()[c2.id]?"在追踪台上出题":"放上追踪台出题"));
+  if(c2.kind==="work"&&!c2.archived)acts.append(...workActs(c2).filter(Boolean));
+  if(!c2.archived&&c2.kind!=="work"&&(c2.tier==="stone"||c2.tier==="bronze")&&c2.subkind!=="update")acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();putOnTrack(c2.id);}},seats()[c2.id]?"在追踪台上出题":"放上追踪台出题"));
   if(!c2.archived&&(c2.tier==="silver"||c2.tier==="gold"))acts.append(h("button",{class:"btn",type:"button",disabled:!canAgent()||!!trackBusy||null,onclick:()=>{closeSheet();syncTracks();runSeat(c2.id,true);tab="track";render();}},c2.tier==="gold"?"现在推荐一轮":"现在查一次动向"));
-  if(!c2.archived&&!cs(c2.id).stackedUnder){const fz=fusionsFor(c2.id);acts.append(h("button",{class:"btn gold",type:"button",onclick:()=>{closeSheet();openFusion(fz[0]||{inputs:[c2.id],manual:true});}},fz.length?"融合…（Sense 有建议）":"融合…"));}
+  if(!c2.archived&&c2.kind!=="work"&&!cs(c2.id).stackedUnder){const fz=fusionsFor(c2.id);acts.append(h("button",{class:"btn gold",type:"button",onclick:()=>{closeSheet();openFusion(fz[0]||{inputs:[c2.id],manual:true});}},fz.length?"融合…（Sense 有建议）":"融合…"));}
   const attrs=(c2.attribute_ids||[]).map(aid=>{const a=attr(aid);if(!a)return null;return h("div",{class:"achip"},h("b",{translate:"no"},"「"+a.text+"」"),h("span",{translate:"no"},(a.reason||"")+(a.contrast?" · 反对："+a.contrast:"")),h("span",{},(a.status==="confirmed"?"已确认":"候选")+" · 用了 "+a.uses+" 次"));});
   const st=stackOf(id);
   sheet(c2.tier,
@@ -842,6 +855,7 @@ function openCard(id,o){
       h("div",{class:"meta"},KIND[c2.kind]+"卡 · "+TIER[c2.tier]+(c2.archived?" · 已归档":"")),h("h3",{translate:"no"},c2.title),h("div",{class:"meta"},TIER_DO[c2.tier]+(c2.tier==="bronze"?" · 碰了 "+(cs(c2.id).touch||0)+" / "+S.threshold+" 次，够了自动开始关注":"")),c2.tier_reason?h("div",{class:"meta"},"品级："+c2.tier_reason):null),
       h("button",{class:"close",type:"button",onclick:closeSheet,"aria-label":"关闭"},"关闭")),
     c2.body?h("p",{translate:"no"},c2.body):null,
+    c2.kind==="work"?workBlock(c2):null,
     c2.note?h("p",{class:"meta"},"你改过：",h("span",{translate:"no"},c2.note)):null,
     c2.item&&c2.item.url&&/^https:\/\//.test(c2.item.url)?h("p",{},h("a",{href:c2.item.url,target:"_blank",rel:"noopener"},c2.item.name||c2.item.url)):null,
     c2.watch?h("p",{class:"meta"},"跟踪："+c2.watch.query+(cs(c2.id).last_seen||c2.watch.last_seen?" · 上次看到 "+(cs(c2.id).last_seen||c2.watch.last_seen):"")+(seats()[c2.id]?" · 在追踪台上，"+CAD[seats()[c2.id].cadence][0]:"")):null,
@@ -1108,6 +1122,81 @@ function addCard(c,fromRect,label){c.id=c.id||("N"+Date.now().toString(36)+Math.
   requestAnimationFrame(()=>reward(fromRect||{left:innerWidth/2-50,top:innerHeight/2-70,width:100,height:140},c,label||"+1 张进口袋"));return c;}
 function addAttr(a){if(ATTR.has(a.id))return;DATA.attributes.push(a);ATTR.set(a.id,a);}
 (S.attrsAdded||[]).forEach(addAttr);
+
+/* ---------- errands and works (0035): the character makes something on request; it lands as a stone 作品 card ----------
+   Only produces (write, draw, research, organize): never sends, pays, logs in or touches other files.
+   Works are her output, not his taste: no attributes, not in the profile, unless he marks one "this is me". */
+const ERR_KIND={write:"写",draw:"画",research:"查",organize:"整理"};
+const ERR_BY_NAME={写:"write",画:"draw",查:"research",整理:"organize"};
+const ERR_HOW={write:"短篇、诗、故事续写、邮件草稿（只起草，不发）",draw:"一张图，走出图服务（OpenAI gpt-image-1）",research:"一个题目查透，出一页带出处的小报告",organize:"拿口袋里的卡做清单、时间线、比较表"};
+let imgReady=false;
+function imgDay(){const d=localDay();if(!S.imgDay||S.imgDay.d!==d)S.imgDay={d,n:0};return S.imgDay;}
+const imgCap=()=>S.imgCap||10;
+function errands(){return S.errands=S.errands||[];}
+function whoName(id){const b=String(id||"").replace(/-m$/,"");return(CHAR_NAME[b]||b)+(String(id).endsWith("-m")?"（男版）":"");}
+async function shrinkPng(b64){const im=new Image();im.src="data:image/png;base64,"+b64;await im.decode();const cv=document.createElement("canvas");cv.width=cv.height=256;
+  cv.getContext("2d").drawImage(im,0,0,256,256);return cv.toDataURL("image/jpeg",.72);}
+async function errand(kind,ask,o={}){ask=String(ask||"").trim();if(!ERR_KIND[kind]||!ask)return null;
+  if(!DESK){toast("派活只在桌面版");return null;}
+  if(kind==="draw"){if(!imgReady){toast("还没接出图服务：在 config.json 里填 image_api_key");return null;}if(imgDay().n>=imgCap()){toast("今天的画额度用完了（"+imgCap()+" 张）");return null;}}
+  const who=o.who||memId();const e={id:"e"+Date.now().toString(36),kind,ask:ask.slice(0,600),who,at:Date.now(),state:"doing",via:o.via||"pocket",of:o.of||null};
+  errands().push(e);persist();render();toast(whoName(who)+" 接了："+ERR_KIND[kind]+" · "+ask.slice(0,20));
+  try{const r=await makeWork(e);const ver={at:Date.now(),png:kind==="draw",path:r.path,wid:r.wid,sources:r.sources||[]};
+    let c=e.of?S.added.find(x=>x.id===e.of&&x.work):null;
+    if(c){c.work.ver.push(ver);if(r.thumb)c.thumb=r.thumb;}
+    else c=addCard({kind:"work",tier:"stone",title:r.title,body:r.summary||"",via:"errand",thumb:r.thumb||undefined,
+      work:{type:kind,who,ask:e.ask,via:e.via,ver:[ver]},evidence:[{when:today(),where:"派活 · "+whoName(who),what:e.ask}]},null,"作品做好了");
+    e.state="done";e.card=c.id;log("work_done",c.id,{kind,via:e.via});
+    petLast={kind:"cheer",text:"作品做好了："+String(r.title).slice(0,16),at:Date.now(),id:c.id};}
+  catch(err){e.state="failed";e.err=String(err&&err.message||err).slice(0,200);toast("没做成："+e.err.slice(0,40));}
+  finally{const L=errands();if(L.length>20)L.splice(0,L.length-20);persist();render();pushSummary(true);}
+  return e;}
+async function makeWork(e){const sl=(SOULS[e.who]||SOULS[e.who.replace(/-m$/,"")]||{}).soul||{};
+  const base=`你是 ${whoName(e.who)}。下面是你的人设：做出来的东西可以带一点你的口吻和眼光，但以他要的为准。\n${String(sl.zh||"").slice(0,2500)}\n\n他派你做一件活（${ERR_KIND[e.kind]}）：「${e.ask}」\n只产出：不发任何消息、不登录、不付款、不改他电脑上的文件。不写别人的真名，不复述别人说过的话。\n`;
+  if(e.kind==="draw"){
+    const r=await agent(base+`把它变成一张图。只回 JSON：{"title":"作品名，12 字以内","summary":"一句话说画了什么","prompt":"给出图模型的英文描述，写具体：主体、构图、光线、画风；图里不要文字，不要商标，不要真人肖像"}`,{turns:2});
+    const b64=await invoke("image_gen",{prompt:String(r.prompt||e.ask).slice(0,3000)});imgDay().n++;persist();
+    const title=String(r.title||"一张图").slice(0,60);
+    return{title,summary:String(r.summary||"").slice(0,200),wid:e.id,path:await invoke("work_save",{who:e.who,id:e.id,name:title,text:null,png:b64}),thumb:await shrinkPng(b64)};}
+  const how={write:`写出来。只回 JSON：{"title":"作品名","summary":"一句话简介","text":"全文，Markdown"}`,
+    research:`用 WebSearch / WebFetch 查清楚，出一页小报告：先结论，再要点，每个要点后标出处编号。只回 JSON：{"title":"报告题目","summary":"一句话结论","text":"报告全文，Markdown，出处用 [1] [2] 标","sources":[{"title":"网站或文章名","url":"https://…","date":"YYYY-MM-DD 或空"}]}。查不到的就写没查到，不要编。`,
+    organize:`只用下面这些口袋里的卡来做，不要编卡里没有的东西。只回 JSON：{"title":"标题","summary":"一句话","text":"清单 / 时间线 / 比较表，Markdown"}\n口袋里的卡（编号「标题」类别·品级：正文）：\n`+liveCards().filter(c=>c.kind!=="work").slice(0,150).map(c=>c.id+"「"+c.title+"」"+KIND[c.kind]+"·"+TIER[c.tier]+(c.body?"："+String(c.body).slice(0,80):"")).join("\n")}[e.kind];
+  const r=await agent(base+how,{web:e.kind==="research",turns:e.kind==="research"?14:4});
+  const text=String(r.text||"").trim();if(!text)throw new Error("没写出东西");
+  const srcs=(Array.isArray(r.sources)?r.sources:[]).filter(x=>x&&/^https:\/\//.test(x.url||"")).slice(0,12).map(x=>({title:String(x.title||x.url).slice(0,120),url:x.url,date:String(x.date||"")}));
+  const title=String(r.title||ERR_KIND[e.kind]).slice(0,60);
+  const md="# "+title+"\n\n"+text+(srcs.length?"\n\n## 出处\n"+srcs.map((x,i)=>"["+(i+1)+"] "+x.title+" "+x.url+(x.date?"（"+x.date+"）":"")).join("\n"):"")+"\n";
+  return{title,summary:String(r.summary||"").slice(0,200),sources:srcs,wid:e.id,path:await invoke("work_save",{who:e.who,id:e.id,name:title,text:md,png:null})};}
+function openErrand(kind){kind=kind||"write";const ta=h("textarea",{placeholder:"要做什么？写具体一点：题材、长短、风格、给谁看","aria-label":"要做什么",rows:"4",style:"width:100%"});
+  const note=h("p",{class:"note"}),chips=h("div",{class:"filters"});
+  const draw=()=>{chips.innerHTML="";Object.keys(ERR_KIND).forEach(k=>chips.append(h("button",{class:"chip",type:"button","aria-pressed":String(k===kind),onclick:()=>{kind=k;draw();}},ERR_KIND[k])));
+    note.textContent=ERR_HOW[kind]+(kind==="draw"?(imgReady?" · 今天画了 "+imgDay().n+" / "+imgCap()+" 张":" · 还没接出图服务：在 config.json 里填 image_api_key"):"");};draw();
+  sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"派活 · 交给 "+whoName(memId())),h("h3",{},"让角色做一件东西")),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
+    chips,note,ta,
+    h("p",{class:"note"},"只产出：不发消息、不登录、不付款、不动你电脑上的其他文件。做好了进口袋成一张作品石卡，你留下才成铜。作品不算你的品味，除非你在卡上点「这个像我」。文件另存一份在 ~/Documents/Sense/作品/。"),
+    h("div",{class:"btnrow"},h("button",{class:"btn",type:"button",onclick:()=>{const t=ta.value.trim();if(!t){ta.focus();return;}closeSheet();errand(kind,t);}},"派出去")));
+  setTimeout(()=>ta.focus(),50);}
+function errandBox(){const L=errands().filter(e=>e.state!=="done");
+  return h("section",{class:"errbox"},h("div",{class:"row"},h("p",{},"派活：让 "+whoName(memId())+" 写、画、查、整理。做好了进口袋成一张作品卡。通话里直接说也行。"),
+      h("button",{class:"btn ghost",type:"button",disabled:!DESK||null,onclick:()=>openErrand()},"派活…")),
+    L.length?h("ul",{},L.map(e=>h("li",{class:e.state},h("span",{},e.state==="doing"?"在做":"没做成"),h("span",{class:"what"},ERR_KIND[e.kind]+" · ",h("span",{translate:"no"},e.ask)),
+      e.state==="failed"?h("small",{class:"note",translate:"no"},e.err||""):h("small",{class:"note"},whoName(e.who)),
+      e.state==="failed"?h("button",{class:"btn ghost",type:"button",onclick:()=>{e.state="gone";errand(e.kind,e.ask,{who:e.who,of:e.of});}},"再试"):null,
+      e.state==="failed"?h("button",{class:"btn ghost",type:"button",onclick:()=>{e.state="gone";persist();render();}},"算了"):null))):null);}
+function workBlock(c){const w=c.work;if(!w||!w.ver||!w.ver.length)return null;let i=w.ver.length-1;
+  const body=h("div",{class:"work",translate:"no"}),nav=h("div",{class:"btnrow"});
+  const show=async()=>{const v=w.ver[i];body.innerHTML="";nav.innerHTML="";body.append(h("span",{class:"note"},"读取中…"));
+    if(w.ver.length>1)nav.append(h("button",{class:"btn ghost",type:"button",disabled:i===0||null,onclick:()=>{i--;show();}},"‹"),h("span",{class:"note"},"第 "+(i+1)+" / "+w.ver.length+" 版"),h("button",{class:"btn ghost",type:"button",disabled:i===w.ver.length-1||null,onclick:()=>{i++;show();}},"›"));
+    try{const x=await invoke("work_read",{who:w.who,id:v.wid,png:!!v.png});body.innerHTML="";
+      body.append(v.png?h("img",{src:x,alt:c.title}):h("div",{class:"worktext"},x.replace(/^# .*\n+/,"").replace(/\n## 出处[\s\S]*$/,"").trim()));
+      if(v.sources&&v.sources.length)body.append(h("ol",{class:"note"},v.sources.map(x2=>h("li",{},h("a",{href:x2.url,target:"_blank",rel:"noopener"},x2.title),x2.date?" · "+x2.date:""))));}
+    catch(err){body.innerHTML="";body.append(h("p",{class:"note"},"文件找不到了："+String(err).slice(0,80)));}};
+  if(DESK)show();
+  return h("div",{class:"work"},h("div",{class:"meta"},ERR_KIND[w.type]+" · "+whoName(w.who)+" 做的 · 派活：",h("span",{translate:"no"},"「"+w.ask+"」")),nav,body);}
+function workActs(c2){const raw=S.added.find(x=>x.id===c2.id);const w=c2.work;if(!raw||!w)return[];const v=w.ver[w.ver.length-1];
+  return[h("button",{class:"btn ghost",type:"button",disabled:!DESK||null,onclick:()=>{closeSheet();errand(w.type,w.ask,{who:w.who,of:c2.id});}},"再做一版"),
+    h("button",{class:"btn ghost",type:"button","aria-pressed":String(!!raw.mine),onclick:()=>{raw.mine=!raw.mine;if(raw.mine)raw.domain="make";else delete raw.domain;log("work_mine",c2.id,{on:raw.mine});persist();closeSheet();openCard(c2.id);toast(raw.mine?"记成你的了：算进「创作」":"不算你的了");}},raw.mine?"这个像我 ✓":"这个像我"),
+    v&&v.path?h("button",{class:"btn ghost",type:"button",onclick:()=>invoke("work_reveal",{path:v.path}).catch(()=>{})},"在 Finder 里显示"):null];}
 
 /* ---------- clipboard stream (7.1.1) ---------- */
 const AGENT_APP=/claude|codex|cursor|chatgpt|terminal|iterm|ghostty|warp|windsurf|zed/i;
@@ -1404,6 +1493,7 @@ function pocket(){
   zone.addEventListener("dragleave",()=>zone.classList.remove("over"));
   zone.addEventListener("drop",e=>{e.preventDefault();zone.classList.remove("over");const f=[...(e.dataTransfer&&e.dataTransfer.files||[])].find(x=>x.type.startsWith("image/"));if(f)intakeImage(f,zone.getBoundingClientRect());});
   m.append(zone);
+  m.append(errandBox());
   m.append(h("section",{class:"search"},sIn,kinds,tiers));
   const fz=fusionOffers();
   if(fz.length)m.append(h("section",{style:"display:flex;flex-direction:column;gap:10px"},h("h2",{class:"sec"},"Sense 建议融合",h("em",{},"只是建议，打开可以改；也可以在任何一张卡上点「融合…」自己挑")),
@@ -1758,6 +1848,8 @@ function settings(){const m=$("#main");
     h("button",{class:"btn ghost",type:"button",onclick:()=>{sound=!sound;try{localStorage.setItem(KEY+"-sound",sound?"1":"0")}catch(e){};blip("keep");render();}},"音效："+(sound?"开":"关")),
     h("button",{class:"btn ghost",type:"button",onclick:()=>capAdjust()},(()=>{const C=caps();return"口袋上限：留 "+C.total+" · 跟 "+C.silver;})()),
     h("button",{class:"btn ghost",type:"button",onclick:()=>openMemory()},"她知道的事（角色的成长层）"),
+    DESK?h("button",{class:"btn ghost",type:"button",onclick:()=>{const o=[3,5,10,20];S.imgCap=o[(o.indexOf(imgCap())+1)%o.length];persist();render();}},
+      imgReady?"出图：每天最多 "+imgCap()+" 张（今天 "+imgDay().n+"）":"出图：还没接（config.json 填 image_api_key）"):null,
     h("button",{class:"btn ghost",type:"button",onclick:()=>{helpOff=!helpOff;try{localStorage.setItem(KEY+"-help",helpOff?"0":"1")}catch(e){};document.documentElement.classList.toggle("nohelp",helpOff);helpHide();render();toast(helpOff?"按钮说明关了":"按钮说明开了：鼠标停在卡片按钮上就会解释");}},"按钮说明："+(helpOff?"关":"开")),
     DESK?h("button",{class:"btn"+(petOn()?" gold":" ghost"),type:"button",onclick:()=>onCmd({cmd:"pet"})},"桌宠："+(petOn()?"在桌面上":"收着")):null),
     DESK?h("p",{class:"note"},"桌宠是口袋精，戴着你角色的帽子。它只演真发生的事：进卡会吃、碎卡会抖、引擎在跑会拿放大镜、有卡快碎或任务能领头上冒「!」、引擎暂停就睡觉。单击弹快捷菜单，双击打开口袋，按住拖走，把图片拖到它身上就是喂进口袋（和 ⌃⌘A 截图一样建石卡）。"):null));}
@@ -1787,6 +1879,7 @@ zh:{tier:TIER,kind:KIND,today:"今天碎",left:n=>"还剩 "+n+" 天",
     "你可以用 WebSearch 上网查最新的消息、核对事实。查之前先说半句「我查一下」，查到了用嘴说出自哪个网站，不要写链接或网址；查不到就直说，不要编。一次最多查两次，电话那头在等。",
     "只记他亲口说的。不要从他喜欢 A 推出他也喜欢 B 并记下来；那种想法只能用嘴问他。",
     qs?"他用嘴回答了某道题：先复述一遍，他说「对」之后，在你那句话的末尾写〔记 Q编号=是〕或〔记 Q编号=不是〕。这段标记不会被念出来。没确认就不要写。":"",
+    "他让你做一件东西（写小说或诗、画一张图、把一个题目查透、拿口袋里的卡整理清单）：嘴上应一句，在那句话末尾写〔活 种类|要做什么〕，种类是 写、画、查、整理 之一，要做什么写清楚他的具体要求。不要在电话里当场写出全文；做好了会进他的口袋。一起编故事时他说「画出来」，就用〔活 画|这个场面〕。",
     "每次只说一两句，像打电话那样口语。不要用 markdown、列表、括号注释或表情符号。",
     "用中文回答。"],
   mem:"## 你的成长层（只在这台电脑上；正本之外你经历出来的东西）",him:"你知道的他：",world:"你读到、查到过的：",ask:"你想问他的（找机会自然地问一句，问过就算）：",
@@ -1804,6 +1897,7 @@ en:{tier:{stone:"Stone",bronze:"Bronze",silver:"Silver",gold:"Gold"},kind:{decis
     "You can use WebSearch for recent news and to check facts. Say \"let me check\" first; when you find it, say which site it's from, never a link or URL; if you can't find it, say so, don't make things up. At most two searches at a time, he's waiting on the line.",
     "Only record what he actually said. Don't infer he likes B because he likes A and record that; such guesses may only be asked, out loud.",
     qs?"When he answers one of the questions: repeat it back first; after he says yes, write 〔记 Q<number>=是〕 or 〔记 Q<number>=不是〕 at the end of your line (是 = yes, 不是 = no). Don't write it before he confirms.":"",
+    "When he asks you to make something (a story or poem, a picture, a deep look into a topic, a list built from his pocket cards): say you're on it, and end your line with 〔活 kind|what to make〕, kind being one of 写 (write), 画 (draw), 查 (research), 整理 (organize); spell out his actual request. Don't produce the whole thing on the phone; it will land in his pocket when done. If he says \"draw that\" while you're making up a story, use 〔活 画|that scene〕.",
     "One or two sentences at a time, casual like a phone call. No markdown, lists, parenthetical notes or emoji.",
     "Speak English only, every line, even if parts of this prompt or his pocket are in Chinese. If he switches language, you may follow him."],
   mem:"## Your growth layer (only on this computer; what you've lived beyond your canon)",him:"What you know about him:",world:"What you've read or looked up:",ask:"Things you want to ask him (find a natural moment, once is enough):",
@@ -1821,6 +1915,7 @@ ja:{tier:{stone:"石",bronze:"銅",silver:"銀",gold:"金"},kind:{decision:"判�
     "WebSearch で最新情報を調べたり事実を確かめたりできます。調べる前に「ちょっと調べるね」と言い、見つかったらどのサイトかを口で言う。リンクや URL は書かない。見つからなければそう言い、作らない。一度に二回まで、電話の向こうで待っています。",
     "彼が実際に言ったことだけを記録する。A が好きだから B も好きだろう、と推して記録しない。そういう考えは口で聞くだけ。",
     qs?"彼が質問に口で答えたら：まず復唱し、「そう」と言ってから、セリフの最後に〔记 Q番号=是〕か〔记 Q番号=不是〕（是＝はい、不是＝いいえ）。確認前に書かないこと。":"",
+    "何か作ってと頼まれたら（小説や詩、絵を一枚、テーマを徹底的に調べる、ポケットのカードでリストを作る）：口で引き受けて、セリフの最後に〔活 種類|作るもの〕。種類は 写（書く）、画（描く）、查（調べる）、整理 のどれか。作るものには彼の具体的な注文を書く。電話でその場で全文を言わないこと。できたら彼のポケットに入る。物語の途中で「描いて」と言われたら〔活 画|その場面〕。",
     "一度に一、二文、電話のような話し言葉で。markdown、箇条書き、括弧の注釈、絵文字は使わない。",
     "必ず日本語だけで話すこと。このプロンプトやポケットの一部が中国語でも、すべてのセリフを日本語で。彼が別の言語に切り替えたら、合わせてもよい。"],
   mem:"## あなたの成長層（このパソコンの中だけ。正本の外であなたが経験したこと）",him:"あなたが知っている彼：",world:"あなたが読んだこと、調べたこと：",ask:"彼に聞きたいこと（自然なときに一度聞けば十分）：",
@@ -1879,7 +1974,7 @@ async function verifyCallCards(ids){ids=ids.filter(id=>card(id));if(!ids.length|
     if(r.found){if(r.title)c.title=String(r.title).slice(0,80);if(r.body)c.body=String(r.body).slice(0,240);if(/^https:\/\//.test(r.url||""))c.item={name:c.title,url:r.url};delete c.unverified;ok++;}
     const aids=(r.attribute_ids||[]).filter(a=>ATTR.has(a)).slice(0,2);if(aids.length){c.attribute_ids=aids;bumpAttrs(aids,1);}});
   log("voice_verify",null,{n:ids.length,ok});persist();render();toast("通话里的卡核对完了："+ok+" / "+ids.length+" 张找到了出处");}
-function applyTag(t,turn){if(!call)return;{const st=/^设定\s*([^|]+)\|(.+)/.exec(t.trim());if(st){(call.story[st[1].trim()]=call.story[st[1].trim()]||[]).push(st[2].trim().slice(0,200));return;}}if(callCardTag(t.trim()))return;const m=/记\s*Q(\d+)\s*=\s*(是|不是)/.exec(t);if(!m)return;const x=call.qs[+m[1]-1];if(!x||x.a)return;
+function applyTag(t,turn){if(!call)return;{const w=/^活\s*(写|画|查|整理)\s*\|(.+)/.exec(t.trim());if(w){errand(ERR_BY_NAME[w[1]],w[2].trim(),{via:"call",who:call.memId});return;}}{const st=/^设定\s*([^|]+)\|(.+)/.exec(t.trim());if(st){(call.story[st[1].trim()]=call.story[st[1].trim()]||[]).push(st[2].trim().slice(0,200));return;}}if(callCardTag(t.trim()))return;const m=/记\s*Q(\d+)\s*=\s*(是|不是)/.exec(t);if(!m)return;const x=call.qs[+m[1]-1];if(!x||x.a)return;
   x.a=m[2]==="是"?"yes":"no";call.answered++;log("taste_answer",null,{q:x.q,a:x.a,via:"voice"});persist();render();toast("记下了："+x.q.slice(0,24)+" → "+m[2]);}
 /* never speak links: an unfinished [x](url) or URL at the end is held back; finished ones are dropped */
 const UL_END="\\s，。、）)」！？";
@@ -2117,6 +2212,7 @@ if(DESK){(async()=>{try{const raw=await invoke("load_state");if(raw&&!dirty){con
     setInterval(()=>{if(S.engineOff)return;if(listenDue())listenScan(true);else if(S.taste&&Date.now()-S.taste.at>7*864e5)buildTaste(true);},36e5);setStatus("桌面版 · 状态存在 ~/Library/Application Support/Sense，Claude Code 能读到");}catch(e){}
   if(S.clipOn)invoke("clip_watch",{on:true});
   if(S.clipImgOn)invoke("clip_img_watch",{on:true});
+  invoke("image_ready").then(v=>{imgReady=!!v;}).catch(()=>{});
   invoke("engine_models").then(r=>{dsReady=!!(r&&r.deepseek);render();pushSummary(true);}).catch(()=>{});
   if(S.snapKey&&S.snapKey!==SNAP_DEFAULT)invoke("set_snap_key",{accel:S.snapKey}).catch(e=>toast("截图键 "+keyLabel()+" 没注册上，先用 "+keyLabel(SNAP_DEFAULT)+"："+e));
   const ev=TAURI.event;
