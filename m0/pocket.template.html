@@ -252,6 +252,8 @@ html:not(.nohelp) .sheet .acts [data-help]::after{content:"?";display:inline-blo
 .fopts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.fname{flex:1;min-width:180px;font:inherit;padding:6px 10px;border-radius:6px;border:2px solid var(--line,#999);background:var(--panel);color:inherit}.fgold{display:flex;gap:6px;align-items:center;cursor:pointer}
 .card .heard{position:absolute;left:6px;bottom:6px;font-size:10px;padding:1px 5px;border-radius:3px;background:var(--paper-2);color:var(--ink);border:1px dashed currentColor}
 .recaps{display:flex;flex-direction:column;gap:10px}.recap{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start}.recap p{margin:4px 0 8px}
+.memlist{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:6px}.memlist li{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;background:var(--paper-2);padding:6px 10px;border-radius:6px}.memlist li .btn{flex:none;padding:2px 10px}
+.mempre{white-space:pre-wrap;font:inherit;background:var(--paper-2);padding:8px 10px;border-radius:6px;margin:4px 0 10px}.memadd{margin-top:14px}
 .pouchwrap{all:unset;position:relative;display:inline-flex;align-items:center;gap:4px;padding:2px 4px;border-radius:8px;cursor:default}
 html.desk .pouchwrap{cursor:pointer}html.desk .pouchwrap:hover,.pouchwrap:focus-visible{background:color-mix(in srgb,var(--hdr-ink) 16%,transparent)}
 .pouchwrap .caret{display:none;width:0;height:0;border:4px solid transparent;border-top:5px solid var(--hdr-ink);margin-top:5px}html.desk .pouchwrap .caret{display:block}
@@ -1749,6 +1751,7 @@ function settings(){const m=$("#main");
   m.append(h("section",{class:"setsec"},h("h2",{class:"sec"},"其他"),h("div",{class:"btnrow"},
     h("button",{class:"btn ghost",type:"button",onclick:()=>{sound=!sound;try{localStorage.setItem(KEY+"-sound",sound?"1":"0")}catch(e){};blip("keep");render();}},"音效："+(sound?"开":"关")),
     h("button",{class:"btn ghost",type:"button",onclick:()=>capAdjust()},(()=>{const C=caps();return"口袋上限：留 "+C.total+" · 跟 "+C.silver;})()),
+    h("button",{class:"btn ghost",type:"button",onclick:()=>openMemory()},"她知道的事（角色的成长层）"),
     h("button",{class:"btn ghost",type:"button",onclick:()=>{helpOff=!helpOff;try{localStorage.setItem(KEY+"-help",helpOff?"0":"1")}catch(e){};document.documentElement.classList.toggle("nohelp",helpOff);helpHide();render();toast(helpOff?"按钮说明关了":"按钮说明开了：鼠标停在卡片按钮上就会解释");}},"按钮说明："+(helpOff?"关":"开")),
     DESK?h("button",{class:"btn"+(petOn()?" gold":" ghost"),type:"button",onclick:()=>onCmd({cmd:"pet"})},"桌宠："+(petOn()?"在桌面上":"收着")):null),
     DESK?h("p",{class:"note"},"桌宠是口袋精，戴着你角色的帽子。它只演真发生的事：进卡会吃、碎卡会抖、引擎在跑会拿放大镜、有卡快碎或任务能领头上冒「!」、引擎暂停就睡觉。单击弹快捷菜单，双击打开口袋，按住拖走，把图片拖到它身上就是喂进口袋（和 ⌃⌘A 截图一样建石卡）。"):null));}
@@ -1827,7 +1830,7 @@ async function verifyCallCards(ids){ids=ids.filter(id=>card(id));if(!ids.length|
     if(r.found){if(r.title)c.title=String(r.title).slice(0,80);if(r.body)c.body=String(r.body).slice(0,240);if(/^https:\/\//.test(r.url||""))c.item={name:c.title,url:r.url};delete c.unverified;ok++;}
     const aids=(r.attribute_ids||[]).filter(a=>ATTR.has(a)).slice(0,2);if(aids.length){c.attribute_ids=aids;bumpAttrs(aids,1);}});
   log("voice_verify",null,{n:ids.length,ok});persist();render();toast("通话里的卡核对完了："+ok+" / "+ids.length+" 张找到了出处");}
-function applyTag(t,turn){if(!call)return;if(callCardTag(t.trim()))return;const m=/记\s*Q(\d+)\s*=\s*(是|不是)/.exec(t);if(!m)return;const x=call.qs[+m[1]-1];if(!x||x.a)return;
+function applyTag(t,turn){if(!call)return;{const st=/^设定\s*([^|]+)\|(.+)/.exec(t.trim());if(st){(call.story[st[1].trim()]=call.story[st[1].trim()]||[]).push(st[2].trim().slice(0,200));return;}}if(callCardTag(t.trim()))return;const m=/记\s*Q(\d+)\s*=\s*(是|不是)/.exec(t);if(!m)return;const x=call.qs[+m[1]-1];if(!x||x.a)return;
   x.a=m[2]==="是"?"yes":"no";call.answered++;log("taste_answer",null,{q:x.q,a:x.a,via:"voice"});persist();render();toast("记下了："+x.q.slice(0,24)+" → "+m[2]);}
 /* never speak links: an unfinished [x](url) or URL at the end is held back; finished ones are dropped */
 const UL_END="\\s，。、）)」！？";
@@ -1857,7 +1860,8 @@ function onVoiceMsg(d){if(!call)return;
   let m;try{m=JSON.parse(d);}catch(e){return;}
   switch(m.type){
     case"user_start":callStage("hearing");break;
-    case"segment":{const seg={id:m.id,done:false};call.segs[m.id]=seg;call.cur=seg;call.expect={sr:m.sr,seg,multi:!!m.chunks};break;}
+    case"transcript":if(m.text)call.lines.push({by:"me",t:String(m.text)});break;
+    case"segment":{if(m.text)call.lines.push({by:"her",t:String(m.text)});const seg={id:m.id,done:false};call.segs[m.id]=seg;call.cur=seg;call.expect={sr:m.sr,seg,multi:!!m.chunks};break;}
     case"segment_end":{const seg=call.segs[m.id];if(seg){seg.done=true;call.expect=null;maybePlayed(seg);}break;}
     case"filler":call.expect={sr:m.sr,seg:null,filler:true,multi:false};break;
     case"duck":call.out.gain.setTargetAtTime(m.on?.25:1,call.ac.currentTime,.05);break;
@@ -1869,6 +1873,58 @@ function onVoiceMsg(d){if(!call)return;
       else if(f.type==="character_abort"){const t=call.turns.find(t=>!t.aborted);if(t)t.aborted=true;}
       break;}
     case"error":if(m.fatal!==false)toast("通话出错："+(m.message||m.where||""));break;}}
+/* ---------- character knowledge (0036): canon is soul.md; what she learned lives in her local folder ----------
+   Same split as the soul schema: canon vs knowledge (what she knows, through which channel, since when). */
+/* her files are named by the author's local day, not UTC */
+function localDay(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function memId(who){return(who||engineModel())+(S.petMale?"-m":"");}
+const CHAR_NAME={claude:"Claude",deepseek:"DeepSeek",pouch:"口袋精"};
+const KN_SECS=["关于他","关于世界","想问他的"];
+function knParse(md){const out={};KN_SECS.forEach(k=>out[k]=[]);let sec=null;
+  String(md||"").split("\n").forEach(l=>{const m=/^##\s+(.+)/.exec(l);if(m){sec=out[m[1].trim()]?m[1].trim():null;return;}if(sec&&/^-\s+/.test(l))out[sec].push(l.replace(/^-\s+/,"").trim());});return out;}
+function knRender(id,kn){const base=id.replace(/-m$/,"");return["---","id: "+id,"name: "+(CHAR_NAME[base]||base)+(id.endsWith("-m")?"（男版）":""),"kind: knowledge","updated: "+localDay(),"---",
+  "# "+(CHAR_NAME[base]||base)+" 知道的事","","成长层（决策 0036）：她通过和你聊天、你的口袋、她自己读到查到的东西知道的事。每条写明什么时候、从哪知道的。正本在 soul.md，这里不改写正本。",""]
+  .concat(...KN_SECS.map(k=>["## "+k,...kn[k].map(x=>"- "+x),""])).join("\n");}
+function memCtx(mem){if(!mem)return"";const kn=knParse(mem.knowledge);const cut=(a,n)=>a.slice(-n);
+  const parts=["## 你的成长层（只在这台电脑上；正本之外你经历出来的东西）"];
+  if(kn["关于他"].length)parts.push("你知道的他：\n- "+cut(kn["关于他"],30).join("\n- "));
+  if(kn["关于世界"].length)parts.push("你读到、查到过的：\n- "+cut(kn["关于世界"],15).join("\n- "));
+  if(kn["想问他的"].length)parts.push("你想问他的（找机会自然地问一句，问过就算）：\n- "+cut(kn["想问他的"],5).join("\n- "));
+  if(mem.opinions&&mem.opinions.trim())parts.push("你的主见：\n"+mem.opinions.trim().slice(-1500));
+  const d=(mem.diary||[]).slice(0,3);if(d.length)parts.push("你最近的日记：\n"+d.map(x=>x.date+"："+x.text.replace(/^---[\s\S]*?---\s*/,"").replace(/\s+/g," ").slice(0,160)).join("\n"));
+  const st=(mem.stories||[]).slice(0,4);if(st.length)parts.push("你们一起编过的故事（设定集节选）：\n"+st.map(x=>"《"+x.name+"》"+x.text.replace(/^---[\s\S]*?---\s*/,"").slice(0,700)).join("\n\n"));
+  parts.push("他说「来编个故事」「来玩 RP」「接着上次的故事」：照设定集接着讲，守住前面定下的人物动机和世界规则，埋过的坑记得填。他当场定下的设定，在你那句话末尾写〔设定 故事名|一句设定〕。新故事先起个短名字。");
+  return parts.join("\n\n");}
+async function memLoad(id){try{return await invoke("char_mem_load",{id});}catch(e){tr("mem load: "+e);return null;}}
+/* hang-up: the in-memory transcript is handed to an agent once, sorted into knowledge / diary / stories, then dropped */
+async function memDistill(c){const lines=c.lines||[];if(!DESK||lines.length<2||!c.mem)return null;
+  const id=c.memId,kn=knParse(c.mem.knowledge),name=CHAR_NAME[c.who]||c.who;
+  const touched=Object.keys(c.story||{});const bibles=(c.mem.stories||[]).filter(s=>touched.includes(s.name)||lines.some(l=>l.t.includes(s.name)));
+  const talk=lines.map(l=>(l.by==="me"?"他：":"你：")+l.t).join("\n").slice(-12000);
+  const prompt=`你是${name}，刚和他打完一通电话。下面是这通电话（语音识别，可能有错字）。只用它整理你自己的成长层，然后这份对话就会被丢掉。\n\n## 你已经知道的\n${["关于他","关于世界","想问他的"].map(k=>k+"：\n"+kn[k].slice(-40).map(x=>"- "+x).join("\n")).join("\n")}\n\n${bibles.map(b=>"## 故事《"+b.name+"》现有设定集\n"+b.text.slice(0,3000)).join("\n\n")}\n${touched.length?"这通电话当场定下的设定："+JSON.stringify(c.story):""}\n\n## 这通电话\n${talk}\n\n规则：\n- knowledge 只写这通电话里新知道的、以后有用的事，一条一句，用你自己的话，不要复述原话，不要重复已经知道的。about 是 他 / 世界 / 想问他 之一。从他喜欢 A 推出他可能喜欢 B，只能写成「想问他」。\n- 别人的真名、别人说过的话不写。他没说的不要编。\n- diary 用你的口吻写两三句今天和他聊了什么、你怎么想，不复述原话。\n- 如果这通电话在编故事，stories 给出每个故事更新后的完整设定集（Markdown：人物、世界规则、到目前为止的情节、没填的坑），name 用短名字；没编故事就空数组。\n只输出 JSON：{"knowledge":[{"about":"他","text":""}],"diary":"","stories":[{"name":"","text":""}]}`;
+  let out;try{out=await agent(prompt,{turns:4});}catch(e){tr("mem distill: "+(e&&(e.message||e.code)||e));return null;}
+  const tag="（"+localDay().slice(5)+" · 通话）";const SEC={他:"关于他",世界:"关于世界",想问他:"想问他的"};const added=[];
+  (out&&out.knowledge||[]).slice(0,12).forEach(k=>{const sec=SEC[k.about]||"关于他";const t=String(k.text||"").replace(/\s+/g," ").trim().slice(0,160);if(!t)return;kn[sec].push(t+tag);added.push({sec,line:t+tag});});
+  try{if(added.length)await invoke("char_mem_write",{id,path:"knowledge.md",content:knRender(id,kn)});
+    if(out&&out.diary)await invoke("char_mem_write",{id,path:"diary/"+localDay()+".md",content:"\n## "+new Date().toTimeString().slice(0,5)+" · 和他通话 "+c.s+" 秒\n"+String(out.diary).slice(0,1200)+"\n",append:true});
+    for(const st of(out&&out.stories||[]).slice(0,3)){const n=String(st.name||"").replace(/[\/\\.:]/g,"").trim().slice(0,40);if(n&&st.text)await invoke("char_mem_write",{id,path:"stories/"+n+".md",content:"---\nname: "+n+"\nkind: story\nwith: "+id+"\nupdated: "+localDay()+"\n---\n"+String(st.text).slice(0,20000)});}
+  }catch(e){tr("mem write: "+e);toast("她的记忆没写上："+e);return null;}
+  log("char_mem",null,{id,k:added.length,stories:(out&&out.stories||[]).length});return{id,added};}
+async function memForget(id,sec,line){const mem=await memLoad(id);if(!mem)return;const kn=knParse(mem.knowledge);kn[sec]=kn[sec].filter(x=>x!==line);
+  await invoke("char_mem_write",{id,path:"knowledge.md",content:knRender(id,kn)});log("char_forget",null,{id});}
+async function openMemory(id){id=id||memId();const mem=await memLoad(id);if(!mem){toast("读不到她的记忆");return;}
+  const base=id.replace(/-m$/,"");const kn=knParse(mem.knowledge);
+  const sec=k=>h("div",{},h("div",{class:"meta"},k+" · "+kn[k].length+" 条"),kn[k].length?h("ul",{class:"memlist"},kn[k].slice().reverse().map(x=>{const b=h("button",{class:"btn ghost",type:"button","aria-label":"让她忘掉这条"},"忘掉");
+      b.addEventListener("click",async()=>{await memForget(id,k,x);b.closest("li").remove();});return h("li",{},h("span",{},x),b);})):h("p",{class:"note"},"还没有。"));
+  const who=h("div",{class:"btnrow"},["claude","deepseek","pouch"].flatMap(w=>[w,w+"-m"]).map(w=>h("button",{class:"btn "+(w===id?"":"ghost"),type:"button",onclick:()=>openMemory(w)},(CHAR_NAME[w.replace(/-m$/,"")]||w)+(w.endsWith("-m")?" 男版":""))));
+  const clear=h("button",{class:"btn ghost smash",type:"button"},"清空她的成长层");clear.addEventListener("click",async()=>{if(clear.dataset.sure){await invoke("char_mem_clear",{id});log("char_mem_clear",null,{id});toast("清空了，正本不动");openMemory(id);}else{clear.dataset.sure="1";clear.textContent="再点一次确认清空";}});
+  sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"成长层（决策 0036）· 只在这台电脑上"),h("h3",{},(CHAR_NAME[base]||base)+(id.endsWith("-m")?" 男版":"")+" 知道的事"),
+      h("p",{class:"note"},"正本（性格、说话方式）在 soul.md，不会被改。这里是她和你聊天、自己读到查到之后知道的事，每条写着什么时候、从哪知道的。不对就点「忘掉」。")),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
+    who,...KN_SECS.map(sec),
+    (mem.diary||[]).length?h("details",{},h("summary",{class:"meta"},"她的日记 · "+mem.diary.length+" 天"),...mem.diary.map(d=>h("div",{},h("b",{},d.date),h("pre",{class:"mempre"},d.text.trim())))):null,
+    (mem.stories||[]).length?h("details",{},h("summary",{class:"meta"},"一起编的故事 · "+mem.stories.length+" 个"),...mem.stories.map(s=>h("div",{},h("b",{},"《"+s.name+"》"),h("pre",{class:"mempre"},s.text.replace(/^---[\s\S]*?---\s*/,"").trim())))):null,
+    mem.opinions&&mem.opinions.trim()?h("details",{},h("summary",{class:"meta"},"她的主见"),h("pre",{class:"mempre"},mem.opinions.trim())):null,
+    h("div",{class:"acts"},clear));}
 let callBoot=false,callEnd=null;
 /* Every step of a call is visible (pet label, menu) and traced, so a call that dies says where (0034). */
 function callStage(st){if(!call)return;call.state=st;tr("call "+st);pushSummary(true);}
@@ -1878,11 +1934,12 @@ async function startCall(retry){if(call&&!retry){endCall("你挂断了");return;
   if(callBoot)return;callBoot=true;
   const qs=voiceQs();const id=Date.now();const vid=(soul.voices||{})[lang];const live=()=>call&&call.id===id;
   const url=voiceURL()+"/ws?brain=relay&log=meta&character="+who+"&language="+VLANG[lang]+(vid?"&voice="+vid:"");
-  call={id,who,lang,qs,t0:Date.now(),made:[],turns:[],segs:{},srcs:[],playAt:0,answered:0,state:"boot",retry:!!retry};pushSummary(true);
+  call={id,who,lang,qs,t0:Date.now(),made:[],lines:[],story:{},turns:[],segs:{},srcs:[],playAt:0,answered:0,state:"boot",retry:!!retry};pushSummary(true);
   try{
     if(/\/\/(127\.0\.0\.1|localhost)[:/]/.test(voiceURL())){callStage("boot");await invoke("voice_server",{restart:!!retry});}
     if(!live())return;
-    await invoke("voice_start",{call:id,model:who,system:soul.soul+"\n\n"+voiceCtx(qs,lang)});
+    call.memId=memId(who);call.mem=await memLoad(call.memId);if(!live())return;
+    await invoke("voice_start",{call:id,model:who,system:soul.soul+"\n\n"+memCtx(call.mem)+"\n\n"+voiceCtx(qs,lang)});
     callStage("mic");
     const stream=await withTimeout(navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}),10000,"麦克风十秒没反应");
     if(!live()){stream.getTracks().forEach(t=>t.stop());return;}
@@ -1911,6 +1968,11 @@ function endCall(reason,quiet){const c=call;if(!c)return;call=null;clearTimeout(
     if(c.hello){log("call",null,{who:c.who,s:Math.round(ms/1000),answered:c.answered});}
     toast((reason&&reason!=="你挂断了"?reason:"挂了")+(c.hello?" · "+Math.round(ms/1000)+" 秒":"")+(c.answered?" · 记了 "+c.answered+" 道题":""));}
   if(c.made&&c.made.length)setTimeout(()=>callRecap(c.made),600);
+  if(!quiet&&c.hello){c.s=Math.round(ms/1000);memDistill(c).then(r=>{c.lines=null;if(!r||!r.added.length)return;
+    const box=document.querySelector(".sheet .recaps");const name=CHAR_NAME[c.who]||c.who;
+    const list=h("div",{class:"memadd"},h("div",{class:"meta"},name+" 记住了 "+r.added.length+" 条（不对就点忘掉）"),h("ul",{class:"memlist"},r.added.map(a=>{const b=h("button",{class:"btn ghost",type:"button"},"忘掉");b.addEventListener("click",async()=>{await memForget(r.id,a.sec,a.line);b.closest("li").remove();});return h("li",{},h("span",{},a.line),b);})));
+    if(box)box.after(list);else toast(name+" 记住了 "+r.added.length+" 条：设置 → 其他 → 她知道的事");});}
+  else c.lines=null;
   persist();render();pushSummary(true);}
 let clipQ=[],clipQuiet=false,petLast=null;
 /* Screenshot key and clipboard images (0029). ⌃⌘A belongs to WeChat; macOS lets both apps register it and the first one wins silently. */

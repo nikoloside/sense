@@ -10,6 +10,7 @@
 #[cfg(target_os = "macos")]
 mod clipboard;
 mod voice;
+mod charmem;
 
 use base64::Engine;
 use serde::Serialize;
@@ -1043,7 +1044,7 @@ pub fn run() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            load_state, save_state, snap_now, scan_history, run_claude, scan_context, clip_watch, clip_img_watch, set_snap_key, engine_models, voice::voice_start, voice::voice_say, voice::voice_stop, voice::voice_server, save_png, open_url, scan_youtube,
+            load_state, save_state, snap_now, scan_history, run_claude, scan_context, clip_watch, clip_img_watch, set_snap_key, engine_models, voice::voice_start, voice::voice_say, voice::voice_stop, voice::voice_server, charmem::char_mem_load, charmem::char_mem_write, charmem::char_mem_clear, save_png, open_url, scan_youtube,
             menu_toggle, menu_hide, menu_fit, show_main, quit_app, pet_show, pet_drag, trace
         ])
         .setup(move |app| {
