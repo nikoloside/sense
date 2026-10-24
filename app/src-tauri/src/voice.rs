@@ -103,3 +103,124 @@ pub fn voice_stop() {
         stop_locked(&mut slot);
     }
 }
+
+// ---------- voice-live 服务（0030）：由 Sense 自己起、自己关，不用另外打开 ----------
+//
+// 机器相关的东西（voice-live 的目录、uv 的路径、环境变量）放在本机的 voice.json，不进仓库：
+// {"dir": "...", "uv": "...", "port": 8777, "env": {"VOICE_LIVE_TTS": "fish", ...}}
+// 端口上已经有人在听就直接用；否则起一个，Sense 退出时连同它的子进程一起关掉。
+// 服务的输出不落盘：只在内存里留最后几行，起不来时拿来报错。
+
+use std::collections::VecDeque;
+use std::net::{SocketAddr, TcpStream};
+use std::time::{Duration, Instant};
+
+static SERVER: Mutex<Option<Child>> = Mutex::new(None);
+static STARTING: Mutex<()> = Mutex::new(());
+static TAIL: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
+
+#[derive(serde::Deserialize)]
+struct ServerConf {
+    dir: String,
+    uv: Option<String>,
+    port: Option<u16>,
+    #[serde(default)]
+    env: std::collections::HashMap<String, String>,
+}
+
+fn conf() -> Result<ServerConf, String> {
+    let p = super::data_dir().join("voice.json");
+    let s = std::fs::read_to_string(&p).map_err(|_| format!("没配置语音服务：{} 不存在", p.display()))?;
+    serde_json::from_str(&s).map_err(|e| format!("voice.json 读不懂：{e}"))
+}
+
+fn listening(port: u16) -> bool {
+    TcpStream::connect_timeout(&SocketAddr::from(([127, 0, 0, 1], port)), Duration::from_millis(300)).is_ok()
+}
+
+fn ensure() -> Result<String, String> {
+    let _g = STARTING.lock().unwrap();
+    let c = conf()?;
+    let port = c.port.unwrap_or(8777);
+    if listening(port) {
+        return Ok("ready".into());
+    }
+    {
+        let mut slot = SERVER.lock().unwrap();
+        let alive = slot.as_mut().map(|ch| matches!(ch.try_wait(), Ok(None))).unwrap_or(false);
+        if !alive {
+            use std::os::unix::process::CommandExt;
+            let uv = c.uv.clone().unwrap_or_else(|| "uv".into());
+            let mut cmd = Command::new(&uv);
+            cmd.args(["run", "python", "-m", "voice_live"])
+                .current_dir(&c.dir)
+                .envs(&c.env)
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::piped())
+                .process_group(0);
+            let mut ch = cmd.spawn().map_err(|e| format!("起不来 voice-live（{uv}）：{e}"))?;
+            if let Some(err) = ch.stderr.take() {
+                std::thread::spawn(move || {
+                    for line in BufReader::new(err).lines().map_while(Result::ok) {
+                        let mut t = TAIL.lock().unwrap();
+                        t.push_back(line);
+                        while t.len() > 12 {
+                            t.pop_front();
+                        }
+                    }
+                });
+            }
+            super::trace(format!("voice-live spawn pid={}", ch.id()));
+            *slot = Some(ch);
+        }
+    }
+    let t0 = Instant::now();
+    while t0.elapsed() < Duration::from_secs(120) {
+        if listening(port) {
+            super::trace(format!("voice-live ready after {}s", t0.elapsed().as_secs()));
+            return Ok("ready".into());
+        }
+        let exited = SERVER.lock().unwrap().as_mut().map(|ch| !matches!(ch.try_wait(), Ok(None))).unwrap_or(true);
+        if exited {
+            let tail = TAIL.lock().unwrap().iter().rev().take(3).cloned().collect::<Vec<_>>().join(" / ");
+            super::trace(format!("voice-live exited early"));
+            return Err(format!("voice-live 退出了：{}", tail.chars().take(300).collect::<String>()));
+        }
+        std::thread::sleep(Duration::from_millis(500));
+    }
+    Err("voice-live 两分钟还没起来".into())
+}
+
+/// 页面打电话前调：没起就起，等到能连上为止。
+#[tauri::command]
+pub async fn voice_server() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(ensure).await.map_err(|e| e.to_string())?
+}
+
+/// 启动 Sense 时在后台先起好（有 voice.json 才起），打电话时就不用等。
+pub fn server_boot() {
+    if conf().is_ok() {
+        std::thread::spawn(|| {
+            if let Err(e) = ensure() {
+                super::trace(format!("voice-live boot: {e}"));
+            }
+        });
+    }
+}
+
+/// Sense 退出时关掉自己起的那个（别人起的不动）。整个进程组一起关，uv 下面的 python 也走。
+pub fn server_stop() {
+    if let Some(mut ch) = SERVER.lock().unwrap().take() {
+        let _ = Command::new("/bin/kill").args(["-TERM", &format!("-{}", ch.id())]).status();
+        let t0 = Instant::now();
+        while t0.elapsed() < Duration::from_secs(3) {
+            if !matches!(ch.try_wait(), Ok(None)) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        let _ = Command::new("/bin/kill").args(["-KILL", &format!("-{}", ch.id())]).status();
+        let _ = ch.wait();
+    }
+}

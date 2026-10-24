@@ -1809,8 +1809,11 @@ function onVoiceMsg(d){if(!call)return;
       else if(f.type==="character_abort"){const t=call.turns.find(t=>!t.aborted);if(t)t.aborted=true;}
       break;}
     case"error":if(m.fatal!==false)toast("通话出错："+(m.message||m.where||""));break;}}
+let callBoot=false;
 async function startCall(){if(call){endCall();return;}if(!DESK){toast("语音只在桌面版");return;}
   const who=engineModel(),lang=S.voiceLang||"zh",soul=SOULS[who];if(!soul){toast("没有 "+who+" 的 soul.md");return;}
+  if(callBoot)return;if(/\/\/(127\.0\.0\.1|localhost)[:/]/.test(voiceURL())){callBoot=true;const slow=setTimeout(()=>toast("语音服务启动中…第一次要半分钟左右"),800);
+    try{await invoke("voice_server");}catch(e){toast("语音服务没起来："+e);return;}finally{clearTimeout(slow);callBoot=false;}}
   const qs=voiceQs();const id=Date.now();const vid=(soul.voices||{})[lang];
   const url=voiceURL()+"/ws?brain=relay&log=meta&character="+who+"&language="+VLANG[lang]+(vid?"&voice="+vid:"");
   call={id,who,lang,qs,t0:Date.now(),turns:[],segs:{},srcs:[],playAt:0,answered:0,state:"idle"};pushSummary(true);
@@ -1828,7 +1831,7 @@ async function startCall(){if(call){endCall();return;}if(!DESK){toast("语音只
   const ws=new WebSocket(url);ws.binaryType="arraybuffer";call.ws=ws;
   ws.onopen=()=>{call&&(call.opened=true);log("call_start",null,{who,lang});toast("接通了："+(who==="deepseek"?"DeepSeek":"Claude")+"，说吧（再按一次挂断）");};
   ws.onmessage=e=>onVoiceMsg(e.data);
-  ws.onerror=()=>{if(call&&call.id===id&&!call.opened)toast("连不上语音服务 "+voiceURL()+"：voice-live 开着吗？");};
+  ws.onerror=()=>{if(call&&call.id===id&&!call.opened)toast("连不上语音服务 "+voiceURL());};
   ws.onclose=()=>{if(call&&call.id===id)endCall();};}
 function endCall(){const c=call;if(!c)return;call=null;
   try{c.ws&&c.ws.close();}catch(e){}try{c.stream&&c.stream.getTracks().forEach(t=>t.stop());}catch(e){}try{c.ac&&c.ac.close();}catch(e){}clearInterval(c.meter);
