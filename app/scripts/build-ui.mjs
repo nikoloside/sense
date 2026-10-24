@@ -18,10 +18,13 @@ const out = (name, html) => { writeFileSync(resolve(here, "../ui", name), html);
 // 角色正本（characters/<id>/soul.md + voice.md 里的中日英 reference_id），给语音通话用（0030）。
 const LANG = { "中文": "zh", "日本語": "ja", "English": "en" };
 const souls = {};
-for (const id of ["claude", "deepseek", "pouch"]) {
+// 男版是 <id>-m；每门通话语言一份 soul（soul.md 是中文正本，soul.en.md / soul.ja.md 是译本），系统提示整份用通话语言。
+const body = f => readFileSync(f, "utf8").replace(/^---[\s\S]*?---\n/, "").trim();
+for (const id of ["claude", "deepseek", "pouch", "claude-m", "deepseek-m", "pouch-m"]) {
   const dir = resolve(root, "characters", id);
   if (!existsSync(dir)) continue;
-  const soul = readFileSync(resolve(dir, "soul.md"), "utf8").replace(/^---[\s\S]*?---\n/, "").trim();
+  const soul = { zh: body(resolve(dir, "soul.md")) };
+  for (const l of ["en", "ja"]) if (existsSync(resolve(dir, `soul.${l}.md`))) soul[l] = body(resolve(dir, `soul.${l}.md`));
   const voices = {};
   for (const m of readFileSync(resolve(dir, "voice.md"), "utf8").matchAll(/^\| (中文|日本語|English) \| `([0-9a-f]{32})`/gm)) voices[LANG[m[1]]] = m[2];
   souls[id] = { soul, voices };

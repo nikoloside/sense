@@ -1773,27 +1773,70 @@ const VLANG={zh:"Chinese",ja:"Japanese",en:"English"},VLANG_NAME={zh:"中文",ja
 let call=null;
 function voiceURL(){return(S.voiceUrl||"ws://127.0.0.1:8777").replace(/\/+$/,"");}
 function voiceQs(){return(S.taste&&S.taste.questions||[]).filter(x=>!x.a).slice(0,6);}
-function voiceCtx(qs,lang){const live=liveCards();const n=t=>live.filter(c=>c.tier===t).length;
-  const recent=S.added.slice(-8).reverse().map(c=>card(c.id)).filter(c=>c&&!c.archived).map(c=>"「"+c.title+"」（"+TIER[c.tier]+"·"+KIND[c.kind]+"）");
-  const crumble=live.filter(c=>c.crumble!=null).sort((a,b)=>a.crumble-b.crumble).slice(0,5).map(c=>"「"+c.title+"」"+(c.crumble<1?"今天碎":"还剩 "+Math.ceil(c.crumble)+" 天"));
-  const follow=live.filter(c=>c.tier==="silver"||c.tier==="gold").slice(0,20).map(c=>"「"+c.title+"」"+TIER[c.tier]);
-  const news=Object.values(seats()).filter(st=>(st.feed||[]).length).sort((a,b)=>(b.last||0)-(a.last||0)).slice(0,6).map(st=>{const f=st.feed[0];return refName(st.ref)+"："+f.title+(f.date?"（"+f.date+"）":"");});
-  return["## 这通电话开始时的口袋摘要（"+today()+"）",
-    "一共 "+live.length+" 张卡：金 "+n("gold")+"、银 "+n("silver")+"、铜 "+n("bronze")+"、石 "+n("stone")+"。",
-    recent.length?"最近进来的："+recent.join("、"):"",crumble.length?"快碎的："+crumble.join("、"):"",follow.length?"在关注的："+follow.join("、"):"",
-    news.length?"追踪台最近查到的：\n- "+news.join("\n- "):"",
-    qs.length?"要问他的是非题：\n"+qs.map((x,i)=>"Q"+(i+1)+" "+x.q).join("\n"):"",
-    "口袋里的卡（编号「标题」品级）：\n"+live.filter(c=>c.tier!=="stone").slice(0,80).map(c=>c.id+"「"+c.title.slice(0,40)+"」"+TIER[c.tier]).join("\n"),
-    "## 这通电话的规矩",
+/* The call's system prompt is written whole in the call language (0037): soul, growth layer, summary and rules.
+   Tags stay as written (〔卡 …〕 etc.): they are markup for the page, never spoken. Card titles are his own words and stay as they are. */
+const VC={
+zh:{tier:TIER,kind:KIND,today:"今天碎",left:n=>"还剩 "+n+" 天",
+  head:d=>"## 这通电话开始时的口袋摘要（"+d+"）",total:(n,g,s,b,t)=>"一共 "+n+" 张卡：金 "+g+"、银 "+s+"、铜 "+b+"、石 "+t+"。",
+  recent:"最近进来的：",crumble:"快碎的：",follow:"在关注的：",news:"追踪台最近查到的：",qs:"要问他的是非题：",list:"口袋里的卡（编号「标题」品级）：",
+  rules:qs=>["## 这通电话的规矩",
     "你可以替他动口袋：在你那句话的末尾写标记，标记不会被念出来，你嘴上只说一句「记下了」之类就继续聊，不要停下来确认。",
     "他说到一个具体的东西（作品、人、地方、东西、一个想法）并且表示喜欢、在意、想记住：写〔卡 种类|名字|他的原话一句|强〕。种类是 判断、推荐、人物、关注、兴趣、金句、收藏 之一。他只是顺口提到、语气不确定，最后写 弱 而不是 强。",
     "他说到的东西口袋里已经有：写〔碰 编号|他的原话一句〕，不要再记一张。",
     "他说要盯着、想知道它的新消息：写〔跟 编号〕；刚记的新卡没有编号，就写〔跟 名字〕。",
     "你可以用 WebSearch 上网查最新的消息、核对事实。查之前先说半句「我查一下」，查到了用嘴说出自哪个网站，不要写链接或网址；查不到就直说，不要编。一次最多查两次，电话那头在等。",
     "只记他亲口说的。不要从他喜欢 A 推出他也喜欢 B 并记下来；那种想法只能用嘴问他。",
-    qs.length?"他用嘴回答了某道题：先复述一遍，他说「对」之后，在你那句话的末尾写〔记 Q编号=是〕或〔记 Q编号=不是〕。这段标记不会被念出来。没确认就不要写。":"",
+    qs?"他用嘴回答了某道题：先复述一遍，他说「对」之后，在你那句话的末尾写〔记 Q编号=是〕或〔记 Q编号=不是〕。这段标记不会被念出来。没确认就不要写。":"",
     "每次只说一两句，像打电话那样口语。不要用 markdown、列表、括号注释或表情符号。",
-    "用"+VLANG_NAME[lang]+"回答。"].filter(Boolean).join("\n");}
+    "用中文回答。"],
+  mem:"## 你的成长层（只在这台电脑上；正本之外你经历出来的东西）",him:"你知道的他：",world:"你读到、查到过的：",ask:"你想问他的（找机会自然地问一句，问过就算）：",
+  op:"你的主见：",diary:"你最近的日记：",stories:"你们一起编过的故事（设定集节选）：",
+  rp:"他说「来编个故事」「来玩 RP」「接着上次的故事」：照设定集接着讲，守住前面定下的人物动机和世界规则，埋过的坑记得填。他当场定下的设定，在你那句话末尾写〔设定 故事名|一句设定〕。新故事先起个短名字。"},
+en:{tier:{stone:"Stone",bronze:"Bronze",silver:"Silver",gold:"Gold"},kind:{decision:"judgment",recommendation:"recommendation",person:"person",follow:"follow",interest:"interest",quote:"quote",collection:"saved"},today:"crumbles today",left:n=>n+" days left",
+  head:d=>"## His pocket at the start of this call ("+d+")",total:(n,g,s,b,t)=>n+" cards: "+g+" Gold, "+s+" Silver, "+b+" Bronze, "+t+" Stone.",
+  recent:"Just came in: ",crumble:"About to crumble: ",follow:"Being followed: ",news:"Latest from the tracker:",qs:"Yes/no questions to ask him:",list:"Cards in the pocket (id「title」tier):",
+  rules:qs=>["## Rules for this call",
+    "Card titles, quotes and notes in this prompt are his own words and may be in Chinese. When you mention one, say it naturally in English (translate or paraphrase it); never read Chinese aloud.",
+    "You can update his pocket for him by writing a tag at the end of your line. Tags are never read aloud. Write the tag keywords exactly as shown below (they are fixed markup in Chinese characters), out loud just say something like \"noted\" and keep talking; don't stop to confirm.",
+    "When he names something concrete (a work, a person, a place, a thing, an idea) and says he likes it, cares about it or wants to remember it: write 〔卡 kind|name|one line of his own words|强〕. kind is one of 判断 (judgment), 推荐 (recommendation), 人物 (person), 关注 (follow), 兴趣 (interest), 金句 (quote), 收藏 (saved). If he only mentions it in passing or sounds unsure, end with 弱 instead of 强.",
+    "If it's already in his pocket: write 〔碰 id|one line of his own words〕 instead of a new card.",
+    "If he wants to keep an eye on it or hear its news: write 〔跟 id〕; a card you just made has no id yet, so write 〔跟 name〕.",
+    "You can use WebSearch for recent news and to check facts. Say \"let me check\" first; when you find it, say which site it's from, never a link or URL; if you can't find it, say so, don't make things up. At most two searches at a time, he's waiting on the line.",
+    "Only record what he actually said. Don't infer he likes B because he likes A and record that; such guesses may only be asked, out loud.",
+    qs?"When he answers one of the questions: repeat it back first; after he says yes, write 〔记 Q<number>=是〕 or 〔记 Q<number>=不是〕 at the end of your line (是 = yes, 不是 = no). Don't write it before he confirms.":"",
+    "One or two sentences at a time, casual like a phone call. No markdown, lists, parenthetical notes or emoji.",
+    "Speak English only, every line, even if parts of this prompt or his pocket are in Chinese. If he switches language, you may follow him."],
+  mem:"## Your growth layer (only on this computer; what you've lived beyond your canon)",him:"What you know about him:",world:"What you've read or looked up:",ask:"Things you want to ask him (find a natural moment, once is enough):",
+  op:"Your own opinions:",diary:"Your recent diary:",stories:"Stories you made up together (story bible excerpts):",
+  rp:"When he says \"let's make up a story\", \"let's roleplay\" or \"continue last time's story\": continue from the story bible, keep the characters' motives and the world's rules, pay off what you set up. When he fixes a new detail on the spot, write 〔设定 story name|one line〕 at the end of your line. Give a new story a short name first."},
+ja:{tier:{stone:"石",bronze:"銅",silver:"銀",gold:"金"},kind:{decision:"判断",recommendation:"おすすめ",person:"人物",follow:"フォロー",interest:"興味",quote:"名言",collection:"保存"},today:"今日崩れる",left:n=>"あと "+n+" 日",
+  head:d=>"## この通話が始まったときのポケット（"+d+"）",total:(n,g,s,b,t)=>"カードは全部で "+n+" 枚：金 "+g+"、銀 "+s+"、銅 "+b+"、石 "+t+"。",
+  recent:"最近入ったもの：",crumble:"もうすぐ崩れるもの：",follow:"フォロー中：",news:"追跡台が最近見つけたこと：",qs:"彼に聞くはい／いいえの質問：",list:"ポケットのカード（番号「タイトル」ランク）：",
+  rules:qs=>["## この通話のルール",
+    "このプロンプトにあるカードのタイトル・引用・メモは彼自身の言葉で、中国語のことがあります。口にするときは日本語で自然に言い換えてください。中国語をそのまま読み上げないこと。",
+    "彼の代わりにポケットを更新できます。自分のセリフの最後にタグを書きます。タグは読み上げられません。タグのキーワードは下に書いたとおり（固定の記号で、漢字のまま）書いてください。口では「メモしたよ」くらいで会話を続け、確認のために止まらないこと。",
+    "彼が具体的なもの（作品・人・場所・物・考え）を挙げて、好き・気になる・覚えておきたいと言ったら：〔卡 種類|名前|彼の言葉ひとこと|强〕。種類は 判断、推荐（おすすめ）、人物、关注（フォロー）、兴趣（興味）、金句（名言）、收藏（保存）のどれか。ついでに触れただけ・自信なさげなら、最後を 强 ではなく 弱 にする。",
+    "もうポケットにあるもの：新しく作らず〔碰 番号|彼の言葉ひとこと〕。",
+    "見張っていたい・新しい情報を知りたいと言ったら：〔跟 番号〕。作ったばかりで番号がないなら〔跟 名前〕。",
+    "WebSearch で最新情報を調べたり事実を確かめたりできます。調べる前に「ちょっと調べるね」と言い、見つかったらどのサイトかを口で言う。リンクや URL は書かない。見つからなければそう言い、作らない。一度に二回まで、電話の向こうで待っています。",
+    "彼が実際に言ったことだけを記録する。A が好きだから B も好きだろう、と推して記録しない。そういう考えは口で聞くだけ。",
+    qs?"彼が質問に口で答えたら：まず復唱し、「そう」と言ってから、セリフの最後に〔记 Q番号=是〕か〔记 Q番号=不是〕（是＝はい、不是＝いいえ）。確認前に書かないこと。":"",
+    "一度に一、二文、電話のような話し言葉で。markdown、箇条書き、括弧の注釈、絵文字は使わない。",
+    "必ず日本語だけで話すこと。このプロンプトやポケットの一部が中国語でも、すべてのセリフを日本語で。彼が別の言語に切り替えたら、合わせてもよい。"],
+  mem:"## あなたの成長層（このパソコンの中だけ。正本の外であなたが経験したこと）",him:"あなたが知っている彼：",world:"あなたが読んだこと、調べたこと：",ask:"彼に聞きたいこと（自然なときに一度聞けば十分）：",
+  op:"あなたの意見：",diary:"最近の日記：",stories:"一緒に作った物語（設定集の抜粋）：",
+  rp:"彼が「物語を作ろう」「RP しよう」「前回の続き」と言ったら：設定集から続け、決めた人物の動機と世界のルールを守り、張った伏線は回収する。その場で決まった設定は、セリフの最後に〔设定 物語名|一文の設定〕。新しい物語にはまず短い名前を付ける。"}};
+function voiceCtx(qs,lang){const T=VC[lang]||VC.zh;const live=liveCards();const n=t=>live.filter(c=>c.tier===t).length;
+  const recent=S.added.slice(-8).reverse().map(c=>card(c.id)).filter(c=>c&&!c.archived).map(c=>"「"+c.title+"」"+(lang==="en"?" ("+T.tier[c.tier]+", "+T.kind[c.kind]+")":"（"+T.tier[c.tier]+"·"+T.kind[c.kind]+"）"));
+  const crumble=live.filter(c=>c.crumble!=null).sort((a,b)=>a.crumble-b.crumble).slice(0,5).map(c=>"「"+c.title+"」"+(c.crumble<1?T.today:T.left(Math.ceil(c.crumble))));
+  const follow=live.filter(c=>c.tier==="silver"||c.tier==="gold").slice(0,20).map(c=>"「"+c.title+"」"+T.tier[c.tier]);
+  const news=Object.values(seats()).filter(st=>(st.feed||[]).length).sort((a,b)=>(b.last||0)-(a.last||0)).slice(0,6).map(st=>{const f=st.feed[0];return refName(st.ref)+": "+f.title+(f.date?" ("+f.date+")":"");});
+  return[T.head(today()),T.total(live.length,n("gold"),n("silver"),n("bronze"),n("stone")),
+    recent.length?T.recent+recent.join(", "):"",crumble.length?T.crumble+crumble.join(", "):"",follow.length?T.follow+follow.join(", "):"",
+    news.length?T.news+"\n- "+news.join("\n- "):"",
+    qs.length?T.qs+"\n"+qs.map((x,i)=>"Q"+(i+1)+" "+x.q).join("\n"):"",
+    T.list+"\n"+live.filter(c=>c.tier!=="stone").slice(0,80).map(c=>c.id+"「"+c.title.slice(0,40)+"」"+T.tier[c.tier]).join("\n"),
+    ...T.rules(qs.length)].filter(Boolean).join("\n");}
 function callSend(m){if(call&&call.ws&&call.ws.readyState===1)call.ws.send(JSON.stringify(m));}
 function brainSend(frame){callSend({type:"brain",frame:Object.assign({characterId:call.who},frame)});}
 /* In-call cards (0034): the brain writes silent tags, the page acts on them right away; hang-up shows the list with undo, then an agent checks the names. */
@@ -1891,15 +1934,15 @@ function knParse(md){const out={};KN_SECS.forEach(k=>out[k]=[]);let sec=null;
 function knRender(id,kn){const base=id.replace(/-m$/,"");return["---","id: "+id,"name: "+(CHAR_NAME[base]||base)+(id.endsWith("-m")?"（男版）":""),"kind: knowledge","updated: "+localDay(),"---",
   "# "+(CHAR_NAME[base]||base)+" 知道的事","","成长层（决策 0036）：她通过和你聊天、你的口袋、她自己读到查到的东西知道的事。每条写明什么时候、从哪知道的。正本在 soul.md，这里不改写正本。",""]
   .concat(...KN_SECS.map(k=>["## "+k,...kn[k].map(x=>"- "+x),""])).join("\n");}
-function memCtx(mem){if(!mem)return"";const kn=knParse(mem.knowledge);const cut=(a,n)=>a.slice(-n);
-  const parts=["## 你的成长层（只在这台电脑上；正本之外你经历出来的东西）"];
-  if(kn["关于他"].length)parts.push("你知道的他：\n- "+cut(kn["关于他"],30).join("\n- "));
-  if(kn["关于世界"].length)parts.push("你读到、查到过的：\n- "+cut(kn["关于世界"],15).join("\n- "));
-  if(kn["想问他的"].length)parts.push("你想问他的（找机会自然地问一句，问过就算）：\n- "+cut(kn["想问他的"],5).join("\n- "));
-  if(mem.opinions&&mem.opinions.trim())parts.push("你的主见：\n"+mem.opinions.trim().slice(-1500));
-  const d=(mem.diary||[]).slice(0,3);if(d.length)parts.push("你最近的日记：\n"+d.map(x=>x.date+"："+x.text.replace(/^---[\s\S]*?---\s*/,"").replace(/\s+/g," ").slice(0,160)).join("\n"));
-  const st=(mem.stories||[]).slice(0,4);if(st.length)parts.push("你们一起编过的故事（设定集节选）：\n"+st.map(x=>"《"+x.name+"》"+x.text.replace(/^---[\s\S]*?---\s*/,"").slice(0,700)).join("\n\n"));
-  parts.push("他说「来编个故事」「来玩 RP」「接着上次的故事」：照设定集接着讲，守住前面定下的人物动机和世界规则，埋过的坑记得填。他当场定下的设定，在你那句话末尾写〔设定 故事名|一句设定〕。新故事先起个短名字。");
+function memCtx(mem,lang){if(!mem)return"";const T=VC[lang]||VC.zh;const kn=knParse(mem.knowledge);const cut=(a,n)=>a.slice(-n);
+  const parts=[T.mem];
+  if(kn["关于他"].length)parts.push(T.him+"\n- "+cut(kn["关于他"],30).join("\n- "));
+  if(kn["关于世界"].length)parts.push(T.world+"\n- "+cut(kn["关于世界"],15).join("\n- "));
+  if(kn["想问他的"].length)parts.push(T.ask+"\n- "+cut(kn["想问他的"],5).join("\n- "));
+  if(mem.opinions&&mem.opinions.trim())parts.push(T.op+"\n"+mem.opinions.trim().slice(-1500));
+  const d=(mem.diary||[]).slice(0,3);if(d.length)parts.push(T.diary+"\n"+d.map(x=>x.date+"："+x.text.replace(/^---[\s\S]*?---\s*/,"").replace(/\s+/g," ").slice(0,160)).join("\n"));
+  const st=(mem.stories||[]).slice(0,4);if(st.length)parts.push(T.stories+"\n"+st.map(x=>"《"+x.name+"》"+x.text.replace(/^---[\s\S]*?---\s*/,"").slice(0,700)).join("\n\n"));
+  parts.push(T.rp);
   return parts.join("\n\n");}
 async function memLoad(id){try{return await invoke("char_mem_load",{id});}catch(e){tr("mem load: "+e);return null;}}
 /* hang-up: the in-memory transcript is handed to an agent once, sorted into knowledge / diary / stories, then dropped */
@@ -1936,7 +1979,7 @@ let callBoot=false,callEnd=null;
 function callStage(st){if(!call)return;call.state=st;tr("call "+st);pushSummary(true);}
 const withTimeout=(p,ms,msg)=>Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error(msg)),ms))]);
 async function startCall(retry){if(call&&!retry){endCall("你挂断了");return;}if(!DESK){toast("语音只在桌面版");return;}
-  const who=engineModel(),lang=S.voiceLang||"zh",soul=SOULS[who];if(!soul){toast("没有 "+who+" 的 soul.md");return;}
+  const who=engineModel(),lang=S.voiceLang||"zh",soul=SOULS[memId(who)]||SOULS[who];if(!soul){toast("没有 "+who+" 的 soul.md");return;}
   if(callBoot)return;callBoot=true;
   const qs=voiceQs();const id=Date.now();const vid=(soul.voices||{})[lang];const live=()=>call&&call.id===id;
   const url=voiceURL()+"/ws?brain=relay&log=meta&character="+who+"&language="+VLANG[lang]+(vid?"&voice="+vid:"");
@@ -1945,7 +1988,7 @@ async function startCall(retry){if(call&&!retry){endCall("你挂断了");return;
     if(/\/\/(127\.0\.0\.1|localhost)[:/]/.test(voiceURL())){callStage("boot");await invoke("voice_server",{restart:!!retry});}
     if(!live())return;
     call.memId=memId(who);call.mem=await memLoad(call.memId);if(!live())return;
-    await invoke("voice_start",{call:id,model:who,system:soul.soul+"\n\n"+memCtx(call.mem)+"\n\n"+voiceCtx(qs,lang)});
+    await invoke("voice_start",{call:id,model:who,system:(soul.soul[lang]||soul.soul.zh)+"\n\n"+memCtx(call.mem,lang)+"\n\n"+voiceCtx(qs,lang)});
     callStage("mic");
     const stream=await withTimeout(navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}),10000,"麦克风十秒没反应");
     if(!live()){stream.getTracks().forEach(t=>t.stop());return;}

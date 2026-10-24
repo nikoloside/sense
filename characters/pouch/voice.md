@@ -3,7 +3,7 @@
 
 - 后端：voice-live（本机，fish 分支）。通话时带 `?voice=<reference_id>&language=<zh|ja|en>`。
 - 声音都来自 worldlines-play 的声线清单（voice-roster，底下是 worldlines-assets/voices），只用「入选」的；日语和英语只用母语声音。
-- 状态：作者 2026-10-23 试听后选定。
+- 状态：日语、英语是作者 2026-10-25 在试听页选定的；中文沿用 2026-10-23 Claude 挑的那个，作者没换。
 
 | 语言 | reference_id | 声音库里的名字 | 气质 |
 |---|---|---|---|
