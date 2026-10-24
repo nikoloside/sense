@@ -39,7 +39,8 @@ pub fn voice_start(app: AppHandle, call: u64, model: String, system: String) -> 
     let mut cmd = Command::new(bin);
     cmd.current_dir(&work)
         .args(["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--include-partial-messages", "--verbose"])
-        .args(["--no-session-persistence", "--strict-mcp-config", "--tools", ""])
+        // 电话里能上网查（0034）：只给查网页的两样，不给读写本机文件、跑命令。
+        .args(["--no-session-persistence", "--strict-mcp-config", "--tools", "WebSearch,WebFetch", "--allowedTools", "WebSearch,WebFetch"])
         .arg("--system-prompt")
         .arg(&system);
     if model == "deepseek" {
@@ -69,6 +70,9 @@ pub fn voice_start(app: AppHandle, call: u64, model: String, system: String) -> 
             match v.get("type").and_then(|t| t.as_str()) {
                 Some("stream_event") => {
                     let e = &v["event"];
+                    if e["type"] == "content_block_start" && e["content_block"]["type"] == "tool_use" {
+                        emit("tool", e["content_block"]["name"].as_str().unwrap_or("").to_string());
+                    }
                     if e["type"] == "content_block_delta" && e["delta"]["type"] == "text_delta" {
                         if let Some(t) = e["delta"]["text"].as_str() {
                             emit("delta", t.to_string());
@@ -138,12 +142,33 @@ fn listening(port: u16) -> bool {
     TcpStream::connect_timeout(&SocketAddr::from(([127, 0, 0, 1], port)), Duration::from_millis(300)).is_ok()
 }
 
+/// 端口开着不等于活着：问一次 /healthz，两秒内要答 200。
+fn healthy(port: u16) -> bool {
+    use std::io::Read;
+    let Ok(mut s) = TcpStream::connect_timeout(&SocketAddr::from(([127, 0, 0, 1], port)), Duration::from_millis(500)) else { return false };
+    let _ = s.set_read_timeout(Some(Duration::from_secs(2)));
+    if s.write_all(b"GET /healthz HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n").is_err() {
+        return false;
+    }
+    let mut buf = [0u8; 16];
+    matches!(s.read(&mut buf), Ok(n) if n >= 12 && buf[9..12] == *b"200")
+}
+
 fn ensure() -> Result<String, String> {
     let _g = STARTING.lock().unwrap();
     let c = conf()?;
     let port = c.port.unwrap_or(8777);
-    if listening(port) {
+    if healthy(port) {
         return Ok("ready".into());
+    }
+    if listening(port) {
+        // 卡住了：是自己起的就重起；别人起的不动，只报错。
+        let ours = SERVER.lock().unwrap().is_some();
+        super::trace(format!("voice-live listening but not healthy, ours={ours}"));
+        if !ours {
+            return Err(format!("{port} 端口上的语音服务不回应，它不是 Sense 起的，先把它关掉"));
+        }
+        server_stop();
     }
     {
         let mut slot = SERVER.lock().unwrap();
@@ -177,7 +202,7 @@ fn ensure() -> Result<String, String> {
     }
     let t0 = Instant::now();
     while t0.elapsed() < Duration::from_secs(120) {
-        if listening(port) {
+        if healthy(port) {
             super::trace(format!("voice-live ready after {}s", t0.elapsed().as_secs()));
             return Ok("ready".into());
         }
@@ -194,8 +219,16 @@ fn ensure() -> Result<String, String> {
 
 /// 页面打电话前调：没起就起，等到能连上为止。
 #[tauri::command]
-pub async fn voice_server() -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(ensure).await.map_err(|e| e.to_string())?
+pub async fn voice_server(restart: Option<bool>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if restart.unwrap_or(false) {
+            super::trace("voice-live restart requested".into());
+            server_stop();
+        }
+        ensure()
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// 启动 Sense 时在后台先起好（有 voice.json 才起），打电话时就不用等。

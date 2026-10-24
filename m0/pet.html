@@ -21,11 +21,15 @@ body{font-family:var(--f-pixel);position:relative}
 @keyframes zz{0%{transform:translate(0,0);opacity:0}20%{opacity:1}100%{transform:translate(10px,-22px);opacity:0}}
 .spark{position:absolute;width:6px;height:6px;background:var(--gold);pointer-events:none;animation:sp .8s ease-out forwards}
 @keyframes sp{to{transform:translate(var(--dx),var(--dy));opacity:0}}
+.callst{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);display:none;align-items:center;gap:5px;white-space:nowrap;background:var(--ink);color:var(--paper);font-size:11px;padding:2px 8px;border-radius:9px;pointer-events:none}
+.callst.show{display:flex}.callst i{width:7px;height:7px;border-radius:50%;background:var(--chalk-2)}
+.callst[data-s=idle] i{background:#5cb85c}.callst[data-s=hearing] i{background:#5cb85c;animation:mk .6s steps(2) infinite}.callst[data-s=thinking] i,.callst[data-s=searching] i,.callst[data-s=reading] i{background:var(--gold);animation:mk .8s steps(2) infinite}.callst[data-s=speaking] i{background:#4f7bd1}
 @media (prefers-reduced-motion:reduce){.mark.show,.mark.z,#pet.bob,#pet.hop,#pet.shake{animation:none}.spark{display:none}}
 </style>
 <body>
 <div class="bubble" id="bub"><span id="bubt"></span></div>
 <div class="mark" id="mark">!</div>
+<div class="callst" id="callst" role="status" aria-live="polite"><i></i><span></span></div>
 <img id="pet" alt="桌宠" draggable="false">
 <script>
 (function(){
@@ -62,7 +66,12 @@ ev.listen("sense://summary",e=>{const first=!S;S=e.payload;document.documentElem
   if(S.imgAsk&&S.imgAsk.at!==lastAsk){lastAsk=S.imgAsk.at;say("剪贴板里有张新图，点我收",9000);}
   if(S.ev&&(first?false:(!lastEv||S.ev.at>lastEv)))react(S.ev);if(S.ev)lastEv=Math.max(lastEv||0,S.ev.at);
   if(!moodUntil){const was=mood;mood=base();if(mood==="busy"&&was!=="busy"&&(S.engine.taste||S.engine.busy))say(S.engine.taste?"在整理你的品味…":"在查「"+S.engine.busy+"」…",5000);}
+  callLabel();
+  if(S.callEnd&&S.callEnd.at!==lastEnd){if(lastEnd!==undefined&&Date.now()-S.callEnd.at<5000)say(S.callEnd.reason==="你挂断了"||S.callEnd.reason==="挂了"?"挂了 · "+S.callEnd.s+" 秒":"电话断了："+S.callEnd.reason,8000);lastEnd=S.callEnd.at;}
   marks();draw();});
+let lastEnd;
+const CALL_T={boot:"启动语音服务",mic:"开麦克风",connecting:"连接中",idle:"在听",hearing:"你在说",thinking:"在想",searching:"在查网页",reading:"在读网页",speaking:"在说"};
+function callLabel(){const el=$("#callst");const c=S&&S.call;el.classList.toggle("show",!!c);if(!c)return;el.dataset.s=c.state||"";el.querySelector("span").textContent="通话 · "+(CALL_T[c.state]||c.state||"");}
 /* 通话时主窗口按播放音量推口型（0030） */
 ev.listen("sense://talk",e=>{talk=e.payload&&e.payload.who?e.payload:null;});
 ev.listen("sense://pet-drag",e=>{const k=e.payload.kind;if(k==="enter"){dragOver=true;say("给我吧",3000);}else if(k==="leave"){dragOver=false;}else{dragOver=false;

@@ -89,7 +89,7 @@ function render(){const p=$("#panel");p.innerHTML="";
   p.append(h("div",{class:"top"},pouch(),h("div",{class:"who"},h("b",{},"Lv."+S.lv+" "+S.title),h("small",{},S.cls+" · "+S.live+" 张卡 · 金 "+S.counts.gold+" 银 "+S.counts.silver),h("div",{class:"xp"},h("i",{style:"width:"+S.into+"%"})))));
   p.append(h("div",{class:"eng"+(E.off?" off":busy?" busy":"")},h("i",{class:"dot"}),h("span",{},E.off?"引擎暂停了 · 手动按钮照常能用":E.taste?"正在整理品味 · "+E.taste:E.busy?"正在查「"+E.busy+"」":E.next?"在转 · 下一个「"+E.next.name+"」"+E.next.when:"在转 · 追踪台上没有座位")));
   const who=(S.call&&S.call.who)||(S.engine&&S.engine.model)||"claude";const nm=who==="deepseek"?"DeepSeek":"Claude";
-  p.append(h("button",{class:"callbtn"+(S.call?" on":""),type:"button",onclick:()=>cmd("call",null,true)},S.call?(S.call.state==="speaking"?nm+" 在说… · 点一下挂断":S.call.state==="thinking"?nm+" 在想… · 点一下挂断":"通话中 · 点一下挂断"):"和 "+nm+" 说话"));
+  p.append(h("button",{class:"callbtn"+(S.call?" on":""),type:"button",onclick:()=>cmd("call",null,true)},S.call?(({boot:"启动语音服务…",mic:"开麦克风…",connecting:"连接中…",idle:nm+" 在听",hearing:"你在说…",thinking:nm+" 在想…",searching:nm+" 在查网页…",reading:nm+" 在读网页…",speaking:nm+" 在说…"})[S.call.state]||"通话中")+" · 点一下挂断":"和 "+nm+" 说话"));
   const nc=S.crumble.length;
   p.append(h("div",{class:"tiles"},
     h("button",{class:"tile"+(S.nNew?"":" zero"),type:"button",onclick:()=>go("new")},h("b",{},S.nNew),h("small",{},"NEW 新卡")),

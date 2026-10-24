@@ -250,6 +250,8 @@ html:not(.nohelp) .sheet .acts [data-help]::after{content:"?";display:inline-blo
 .alstrip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}.alstrip button{all:unset;cursor:pointer;flex:none;width:64px;height:40px;border-radius:4px;overflow:hidden;opacity:.55;border:2px solid transparent}.alstrip button.on{opacity:1;border-color:var(--gold)}.alstrip button:focus-visible{outline:2px solid var(--focus,#4f7bd1)}
 .alstrip button>*{width:100%;height:100%;object-fit:cover;image-rendering:pixelated;display:block}
 .fopts{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.fname{flex:1;min-width:180px;font:inherit;padding:6px 10px;border-radius:6px;border:2px solid var(--line,#999);background:var(--panel);color:inherit}.fgold{display:flex;gap:6px;align-items:center;cursor:pointer}
+.card .heard{position:absolute;left:6px;bottom:6px;font-size:10px;padding:1px 5px;border-radius:3px;background:var(--paper-2);color:var(--ink);border:1px dashed currentColor}
+.recaps{display:flex;flex-direction:column;gap:10px}.recap{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start}.recap p{margin:4px 0 8px}
 .pouchwrap{all:unset;position:relative;display:inline-flex;align-items:center;gap:4px;padding:2px 4px;border-radius:8px;cursor:default}
 html.desk .pouchwrap{cursor:pointer}html.desk .pouchwrap:hover,.pouchwrap:focus-visible{background:color-mix(in srgb,var(--hdr-ink) 16%,transparent)}
 .pouchwrap .caret{display:none;width:0;height:0;border:4px solid transparent;border-top:5px solid var(--hdr-ink);margin-top:5px}html.desk .pouchwrap .caret{display:block}
@@ -576,7 +578,7 @@ const ATTR=new Map(DATA.attributes.map(a=>[a.id,a]));
 function attr(id){const a=ATTR.get(id);if(!a)return null;const s=S.attrs[id]||{};return Object.assign({},a,{uses:(a.uses||0)+(s.d||0),status:s.status||a.status,edit:s.edit,learned:s.learned||[],rank:s.rank||0});}
 function learn(id,type,text){if(!ATTR.has(id))return;const s=S.attrs[id]||(S.attrs[id]={});(s.learned||(s.learned=[])).push({type,text,at:new Date().toISOString()});}
 function allCards(){return DATA.cards.concat(S.added);}
-function card(id){const c=allCards().find(x=>x.id===id);if(!c)return null;const s=S.cards[id]||{};const det=s.detach||[];return Object.assign({},c,{tier:s.tier||c.tier,kind:s.kind||c.kind,archived:!!s.archived,shattered:!!s.shattered,isNew:!s.used&&!s.archived&&c.tier!=="gold",crumble:crumbleLeft(c,s),used:!!s.used||c.tier==="gold",note:s.note,stackedUnder:s.stackedUnder,attribute_ids:(c.attribute_ids||[]).filter(a=>!det.includes(a))});}
+function card(id){const c=allCards().find(x=>x.id===id);if(!c)return null;const s=S.cards[id]||{};const det=s.detach||[];return Object.assign({},c,{tier:s.tier||c.tier,kind:s.kind||c.kind,archived:!!s.archived,shattered:!!s.shattered,isNew:!s.used&&!s.archived&&c.tier!=="gold",crumble:crumbleLeft(c,s),used:!!s.used||c.tier==="gold",note:s.note,stackedUnder:s.stackedUnder,evidence:s.voiceEv?(c.evidence||[]).concat(s.voiceEv):c.evidence,attribute_ids:(c.attribute_ids||[]).filter(a=>!det.includes(a))});}
 function cs(id){return S.cards[id]||(S.cards[id]={});}
 function log(action,cardId,detail){S.log.push({at:new Date().toISOString(),action,card:cardId||null,detail:detail||null});if(typeof petHear==="function")petHear(action,cardId,detail||{});}
 function bumpAttrs(ids,d){(ids||[]).forEach(id=>{if(!ATTR.has(id))return;const s=S.attrs[id]||(S.attrs[id]={});s.d=(s.d||0)+d;if((ATTR.get(id).uses||0)+s.d<0)s.d=-(ATTR.get(id).uses||0);});}
@@ -727,6 +729,7 @@ function face(c,opts={}){
   const names=(c.attribute_ids||[]).map(id=>{const a=attr(id);return a?"「"+a.text+"」":null;}).filter(Boolean).join(" ");
   el.append(cv,h("div",{class:"face"},h("div",{class:"eb"},iconCanvas(c.kind),KIND[c.kind]+(c.subkind==="bookmark"?" · 书签":c.subkind==="screenshot"?" · 截图":""),h("span",{class:"tier"},TIER[c.tier])),h("div",{class:"t"},c.title),names?h("div",{class:"attrs"},names):null));
   if(c.isNew)el.append(h("span",{class:"badge"},"NEW"));
+  if(c.unverified)el.append(h("span",{class:"heard",title:"通话里听来的，还没核实名字"},"听来的"));
   if(c.crumble!=null){el.classList.add("cracked");el.append(h("span",{class:"crack",title:"一次都没处理过，到期会碎"},c.crumble<1?"今天碎":"还剩 "+Math.ceil(c.crumble)+" 天"));}
   const st=stackOf(c.id);if(st.length)el.append(h("span",{class:"stack"},"叠 "+st.length));
   if(!opts.static&&!opts.onClick)el.addEventListener("click",()=>openCard(c.id));
@@ -1771,21 +1774,76 @@ function voiceCtx(qs,lang){const live=liveCards();const n=t=>live.filter(c=>c.ti
     recent.length?"最近进来的："+recent.join("、"):"",crumble.length?"快碎的："+crumble.join("、"):"",follow.length?"在关注的："+follow.join("、"):"",
     news.length?"追踪台最近查到的：\n- "+news.join("\n- "):"",
     qs.length?"要问他的是非题：\n"+qs.map((x,i)=>"Q"+(i+1)+" "+x.q).join("\n"):"",
+    "口袋里的卡（编号「标题」品级）：\n"+live.filter(c=>c.tier!=="stone").slice(0,80).map(c=>c.id+"「"+c.title.slice(0,40)+"」"+TIER[c.tier]).join("\n"),
     "## 这通电话的规矩",
+    "你可以替他动口袋：在你那句话的末尾写标记，标记不会被念出来，你嘴上只说一句「记下了」之类就继续聊，不要停下来确认。",
+    "他说到一个具体的东西（作品、人、地方、东西、一个想法）并且表示喜欢、在意、想记住：写〔卡 种类|名字|他的原话一句|强〕。种类是 判断、推荐、人物、关注、兴趣、金句、收藏 之一。他只是顺口提到、语气不确定，最后写 弱 而不是 强。",
+    "他说到的东西口袋里已经有：写〔碰 编号|他的原话一句〕，不要再记一张。",
+    "他说要盯着、想知道它的新消息：写〔跟 编号〕；刚记的新卡没有编号，就写〔跟 名字〕。",
+    "你可以用 WebSearch 上网查最新的消息、核对事实。查之前先说半句「我查一下」，查到了用嘴说出自哪个网站，不要写链接或网址；查不到就直说，不要编。一次最多查两次，电话那头在等。",
+    "只记他亲口说的。不要从他喜欢 A 推出他也喜欢 B 并记下来；那种想法只能用嘴问他。",
     qs.length?"他用嘴回答了某道题：先复述一遍，他说「对」之后，在你那句话的末尾写〔记 Q编号=是〕或〔记 Q编号=不是〕。这段标记不会被念出来。没确认就不要写。":"",
     "每次只说一两句，像打电话那样口语。不要用 markdown、列表、括号注释或表情符号。",
     "用"+VLANG_NAME[lang]+"回答。"].filter(Boolean).join("\n");}
 function callSend(m){if(call&&call.ws&&call.ws.readyState===1)call.ws.send(JSON.stringify(m));}
 function brainSend(frame){callSend({type:"brain",frame:Object.assign({characterId:call.who},frame)});}
-function applyTag(t,turn){const m=/记\s*Q(\d+)\s*=\s*(是|不是)/.exec(t);if(!m||!call)return;const x=call.qs[+m[1]-1];if(!x||x.a)return;
+/* In-call cards (0034): the brain writes silent tags, the page acts on them right away; hang-up shows the list with undo, then an agent checks the names. */
+const KIND_BY_NAME=Object.fromEntries(Object.entries(KIND).map(([k,v])=>[v,k]));
+function findTitle(t){const n=norm(t);return n?liveCards().find(c=>norm(c.title)===n)||null:null;}
+function callCardTag(t){
+  let m=/^卡\s*([^|]*)\|([^|]+)\|([^|]*)(?:\|\s*(强|弱))?/.exec(t);
+  if(m){const title=m[2].trim().slice(0,80),quote=m[3].trim().slice(0,160),strong=m[4]!=="弱";if(!title)return true;
+    const old=findTitle(title);if(old){voiceTouch(old.id,quote);return true;}
+    const c=addCard({kind:KIND_BY_NAME[m[1].trim()]||"recommendation",tier:strong?"bronze":"stone",title,body:"",via:"voice",unverified:true,
+      evidence:[{when:today(),where:"通话 · "+(call.who==="deepseek"?"DeepSeek":call.who==="pouch"?"口袋精":"Claude"),what:quote||title}],
+      tier_reason:strong?"通话里你说你在意它":"通话里提到的"},null,strong?"+1 铜卡 · 通话":"+1 石卡 · 通话");
+    if(strong)touch(c.id);call.made.push({id:c.id,act:"new",quote});persist();return true;}
+  m=/^碰\s*([^|]+)(?:\|(.*))?/.exec(t);
+  if(m){const c=card(m[1].trim())||findTitle(m[1]);if(c)voiceTouch(c.id,(m[2]||"").trim());return true;}
+  m=/^跟\s*(.+)/.exec(t);
+  if(m){const k=m[1].trim();const c=card(k)||findTitle(k);if(c&&c.tier!=="silver"&&c.tier!=="gold"){if(c.tier==="stone")cs(c.id).tier="bronze";followCard(c.id,true);call.made.push({id:c.id,act:"follow"});}return true;}
+  return false;}
+function voiceTouch(id,quote){const c=card(id);if(!c)return;const s=cs(id);touch(id);if(c.tier==="stone")s.tier="bronze";
+  (s.voiceEv=s.voiceEv||[]).push({when:today(),where:"通话",what:quote||"通话里又提到它"});log("voice_touch",id);
+  if(!call.made.some(x=>x.id===id))call.made.push({id,act:"touch",quote});persist();render();toast("碰了一下：「"+c.title.slice(0,20)+"」");}
+function undoCallItem(x){if(x.act==="new"){S.added=S.added.filter(c=>c.id!==x.id);delete S.cards[x.id];log("voice_undo",x.id);}
+  else if(x.act==="follow")followCard(x.id,false);x.undone=true;persist();render();}
+function callRecap(made){const by=new Map();made.forEach(x=>{const y=by.get(x.id);if(!y)by.set(x.id,Object.assign({},x));else{if(x.act==="new"){y.act="new";y.quote=x.quote||y.quote;}if(x.act==="follow")y.follow=true;}});
+  const items=[...by.values()].filter(x=>card(x.id));if(!items.length)return;
+  const ACT={new:"新记",touch:"碰了一下",follow:"开始跟"};
+  const row=x=>{const c=card(x.id);const b=h("button",{class:"btn ghost",type:"button"},"撤销");
+    b.addEventListener("click",()=>{undoCallItem(x);b.disabled=true;b.textContent="撤销了";});
+    return h("div",{class:"recap"},c?face(c):h("span",{},"（已撤销）"),h("div",{},h("b",{},ACT[x.act]+(x.follow&&x.act!=="follow"?" · 开始跟":"")),x.quote?h("p",{class:"note"},"你说：「"+x.quote+"」"):null,x.act==="touch"?null:b));};
+  sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"这通电话"),h("h3",{},"记了 "+items.length+" 张"),
+      h("p",{class:"note"},canAgent()?"新记的卡 Sense 正在上网核对名字（语音可能听错），补上属性和链接。核对不出来的会标「听来的」。":"记错的点撤销。")),
+      h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),h("div",{class:"recaps"},items.map(row)));
+  verifyCallCards(items.filter(x=>x.act==="new").map(x=>x.id));}
+async function verifyCallCards(ids){ids=ids.filter(id=>card(id));if(!ids.length||!canAgent())return;
+  const at=DATA.attributes.slice(0,60).map(a=>a.id+"=「"+a.text+"」").join("；");
+  const list=ids.map(id=>{const c=card(id);return{id,kind:KIND[c.kind],heard:c.title,said:(c.evidence&&c.evidence[0]&&c.evidence[0].what)||""};});
+  const prompt=`用户在语音通话里提到了这些东西。名字来自语音识别，可能听错同音字、近音字或外文名。\n${JSON.stringify(list,null,1)}\n用 WebSearch 核对每一个：它指的是哪个真实存在的作品、人、东西？给出正确的名字（作品带作者或年份）。只有确定才算 found；不确定就 found=false、名字原样，不要编。\n再从这些已有属性里，挑最多 2 条确实相符的（没有就空数组）：${at}\n只输出 JSON：{"items":[{"id":"","found":true,"title":"","body":"一句话说它是什么","url":"官方或维基的 https 链接，没有就空字符串","attribute_ids":[]}]}`;
+  let out;try{out=await agent(prompt,{web:true,turns:16});}catch(e){toast("通话里的卡没核对上："+(e&&(e.message||e.code)||e));return;}
+  let ok=0;(out&&out.items||[]).forEach(r=>{const c=S.added.find(x=>x.id===r.id);if(!c)return;
+    if(r.found){if(r.title)c.title=String(r.title).slice(0,80);if(r.body)c.body=String(r.body).slice(0,240);if(/^https:\/\//.test(r.url||""))c.item={name:c.title,url:r.url};delete c.unverified;ok++;}
+    const aids=(r.attribute_ids||[]).filter(a=>ATTR.has(a)).slice(0,2);if(aids.length){c.attribute_ids=aids;bumpAttrs(aids,1);}});
+  log("voice_verify",null,{n:ids.length,ok});persist();render();toast("通话里的卡核对完了："+ok+" / "+ids.length+" 张找到了出处");}
+function applyTag(t,turn){if(!call)return;if(callCardTag(t.trim()))return;const m=/记\s*Q(\d+)\s*=\s*(是|不是)/.exec(t);if(!m)return;const x=call.qs[+m[1]-1];if(!x||x.a)return;
   x.a=m[2]==="是"?"yes":"no";call.answered++;log("taste_answer",null,{q:x.q,a:x.a,via:"voice"});persist();render();toast("记下了："+x.q.slice(0,24)+" → "+m[2]);}
+/* never speak links: an unfinished [x](url) or URL at the end is held back; finished ones are dropped */
+const UL_END="\\s，。、）)」！？";
+function unlink(t){
+  const c=[t.search(/[（(]$|[（(]?\[[^\]\n]*(\](\([^)\s]*\)?)?)?$/),t.search(new RegExp("https?://[^"+UL_END+"]*$")),t.search(/(?:^|[^a-z])(h|ht|htt|http|https|https?:|https?:\/|https?:\/\/)$/)].filter(x=>x>=0);
+  const k=c.length?Math.min(...c):t.length;
+  const done=t.slice(0,k).replace(/[（(]?\[[^\]\n]*\]\([^)\s]*\)[)）]?/g,"").replace(new RegExp("https?://[^"+UL_END+"]+","g"),"").replace(/（\s*）|\(\s*\)/g,"");
+  return[done,t.slice(k)];}
 function voiceDelta(turn,delta){let t=turn.buf+delta,out="";
   for(;;){const i=t.indexOf("〔");if(i<0){out+=t;t="";break;}out+=t.slice(0,i);const j=t.indexOf("〕",i);if(j<0){t=t.slice(i);break;}applyTag(t.slice(i+1,j),turn);t=t.slice(j+1);}
-  turn.buf=t;if(out)brainSend({type:"character_delta",delta:out});}
+  const [say,hold]=unlink(out);turn.buf=hold+t;if(say)brainSend({type:"character_delta",delta:say});}
 function onBrainEv({call:id,kind,text}){if(!call||call.id!==id)return;const turn=call.turns[0];
   if(kind==="delta"){if(turn&&!turn.aborted)voiceDelta(turn,text);}
   else if(kind==="error"){if(turn&&!turn.aborted)brainSend({type:"error",message:text||"brain error"});}
-  else if(kind==="idle"){call.turns.shift();if(turn&&!turn.aborted){if(turn.buf&&!turn.buf.startsWith("〔"))brainSend({type:"character_delta",delta:turn.buf});brainSend({type:"character_idle"});}}
+  else if(kind==="idle"){call.turns.shift();if(turn&&!turn.aborted){{const rest=unlink(turn.buf+" ").join("").trim();if(rest&&!rest.startsWith("〔"))brainSend({type:"character_delta",delta:rest});}brainSend({type:"character_idle"});}}
+  else if(kind==="tool"){callStage(/Fetch/.test(text)?"reading":"searching");}
   else if(kind==="exit"){endCall("角色那边断了");}}
 /* playback: a JSON header, then PCM16 for that segment; report what was actually heard */
 function playPCM(buf,sr,seg,filler){const ac=call.ac;const i16=new Int16Array(buf);const ab=ac.createBuffer(1,i16.length,sr);const ch=ab.getChannelData(0);for(let i=0;i<i16.length;i++)ch[i]=i16[i]/32768;
@@ -1794,9 +1852,11 @@ function playPCM(buf,sr,seg,filler){const ac=call.ac;const i16=new Int16Array(bu
   if(!filler&&seg&&!seg.started_at)seg.started_at=Date.now()+Math.round((at-ac.currentTime)*1000);if(seg)seg.endAt=call.playAt;}
 function maybePlayed(seg){if(seg.reported||!seg.done||!call||call.ac.currentTime<seg.endAt-.01)return;seg.reported=true;callSend({type:"played",seg:seg.id,started_at:seg.started_at,ended_at:Date.now()});}
 function onVoiceMsg(d){if(!call)return;
+  if(typeof d==="string"&&!call.hello&&d.includes('"hello"')){call.hello=true;clearTimeout(call.helloT);log("call_start",null,{who:call.who,lang:call.lang});callStage("idle");toast("接通了："+(call.who==="deepseek"?"DeepSeek":"Claude")+"，说吧（再按一次挂断）");}
   if(d instanceof ArrayBuffer){const x=call.expect;if(!x)return;playPCM(d,x.sr,x.seg,x.filler);if(!x.multi){if(x.seg){x.seg.done=true;}call.expect=null;}return;}
   let m;try{m=JSON.parse(d);}catch(e){return;}
   switch(m.type){
+    case"user_start":callStage("hearing");break;
     case"segment":{const seg={id:m.id,done:false};call.segs[m.id]=seg;call.cur=seg;call.expect={sr:m.sr,seg,multi:!!m.chunks};break;}
     case"segment_end":{const seg=call.segs[m.id];if(seg){seg.done=true;call.expect=null;maybePlayed(seg);}break;}
     case"filler":call.expect={sr:m.sr,seg:null,filler:true,multi:false};break;
@@ -1809,34 +1869,48 @@ function onVoiceMsg(d){if(!call)return;
       else if(f.type==="character_abort"){const t=call.turns.find(t=>!t.aborted);if(t)t.aborted=true;}
       break;}
     case"error":if(m.fatal!==false)toast("通话出错："+(m.message||m.where||""));break;}}
-let callBoot=false;
-async function startCall(){if(call){endCall();return;}if(!DESK){toast("语音只在桌面版");return;}
+let callBoot=false,callEnd=null;
+/* Every step of a call is visible (pet label, menu) and traced, so a call that dies says where (0034). */
+function callStage(st){if(!call)return;call.state=st;tr("call "+st);pushSummary(true);}
+const withTimeout=(p,ms,msg)=>Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error(msg)),ms))]);
+async function startCall(retry){if(call&&!retry){endCall("你挂断了");return;}if(!DESK){toast("语音只在桌面版");return;}
   const who=engineModel(),lang=S.voiceLang||"zh",soul=SOULS[who];if(!soul){toast("没有 "+who+" 的 soul.md");return;}
-  if(callBoot)return;if(/\/\/(127\.0\.0\.1|localhost)[:/]/.test(voiceURL())){callBoot=true;const slow=setTimeout(()=>toast("语音服务启动中…第一次要半分钟左右"),800);
-    try{await invoke("voice_server");}catch(e){toast("语音服务没起来："+e);return;}finally{clearTimeout(slow);callBoot=false;}}
-  const qs=voiceQs();const id=Date.now();const vid=(soul.voices||{})[lang];
+  if(callBoot)return;callBoot=true;
+  const qs=voiceQs();const id=Date.now();const vid=(soul.voices||{})[lang];const live=()=>call&&call.id===id;
   const url=voiceURL()+"/ws?brain=relay&log=meta&character="+who+"&language="+VLANG[lang]+(vid?"&voice="+vid:"");
-  call={id,who,lang,qs,t0:Date.now(),turns:[],segs:{},srcs:[],playAt:0,answered:0,state:"idle"};pushSummary(true);
-  try{await invoke("voice_start",{call:id,model:who,system:soul.soul+"\n\n"+voiceCtx(qs,lang)});}catch(e){toast("没打通："+e);call=null;pushSummary(true);return;}
-  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}
-  catch(e){toast("麦克风没打开："+(e.message||e)+"。系统设置 → 隐私与安全性 → 麦克风里允许 Sense 口袋");endCall();return;}
-  if(!call||call.id!==id){stream.getTracks().forEach(t=>t.stop());return;}
-  const ac=new AudioContext();call.ac=ac;call.stream=stream;
-  const mic=ac.createMediaStreamSource(stream),proc=ac.createScriptProcessor(4096,1,1),mute=ac.createGain();mute.gain.value=0;const ratio=ac.sampleRate/16000;
-  proc.onaudioprocess=e=>{if(!call||!call.ws||call.ws.readyState!==1)return;const inp=e.inputBuffer.getChannelData(0);const n=Math.floor(inp.length/ratio);const o=new Int16Array(n);
-    for(let i=0;i<n;i++){const v=Math.max(-1,Math.min(1,inp[Math.floor(i*ratio)]));o[i]=v*32767;}call.ws.send(o.buffer);};
-  mic.connect(proc);proc.connect(mute);mute.connect(ac.destination);call.proc=proc;
-  call.out=ac.createGain();call.an=ac.createAnalyser();call.an.fftSize=512;call.out.connect(call.an);call.an.connect(ac.destination);
-  const lv=new Float32Array(512);call.meter=setInterval(()=>{if(!call)return;call.an.getFloatTimeDomainData(lv);let q=0;for(const v of lv)q+=v*v;try{TAURI.event.emit("sense://talk",{who:call.who,level:Math.sqrt(q/lv.length)});}catch(e){}},100);
-  const ws=new WebSocket(url);ws.binaryType="arraybuffer";call.ws=ws;
-  ws.onopen=()=>{call&&(call.opened=true);log("call_start",null,{who,lang});toast("接通了："+(who==="deepseek"?"DeepSeek":"Claude")+"，说吧（再按一次挂断）");};
-  ws.onmessage=e=>onVoiceMsg(e.data);
-  ws.onerror=()=>{if(call&&call.id===id&&!call.opened)toast("连不上语音服务 "+voiceURL());};
-  ws.onclose=()=>{if(call&&call.id===id)endCall();};}
-function endCall(){const c=call;if(!c)return;call=null;
-  try{c.ws&&c.ws.close();}catch(e){}try{c.stream&&c.stream.getTracks().forEach(t=>t.stop());}catch(e){}try{c.ac&&c.ac.close();}catch(e){}clearInterval(c.meter);
+  call={id,who,lang,qs,t0:Date.now(),made:[],turns:[],segs:{},srcs:[],playAt:0,answered:0,state:"boot",retry:!!retry};pushSummary(true);
+  try{
+    if(/\/\/(127\.0\.0\.1|localhost)[:/]/.test(voiceURL())){callStage("boot");await invoke("voice_server",{restart:!!retry});}
+    if(!live())return;
+    await invoke("voice_start",{call:id,model:who,system:soul.soul+"\n\n"+voiceCtx(qs,lang)});
+    callStage("mic");
+    const stream=await withTimeout(navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}),10000,"麦克风十秒没反应");
+    if(!live()){stream.getTracks().forEach(t=>t.stop());return;}
+    const ac=new AudioContext();call.ac=ac;call.stream=stream;
+    const mic=ac.createMediaStreamSource(stream),proc=ac.createScriptProcessor(4096,1,1),mute=ac.createGain();mute.gain.value=0;const ratio=ac.sampleRate/16000;
+    proc.onaudioprocess=e=>{if(!call||!call.ws||call.ws.readyState!==1)return;const inp=e.inputBuffer.getChannelData(0);const n=Math.floor(inp.length/ratio);const o=new Int16Array(n);
+      for(let i=0;i<n;i++){const v=Math.max(-1,Math.min(1,inp[Math.floor(i*ratio)]));o[i]=v*32767;}call.ws.send(o.buffer);};
+    mic.connect(proc);proc.connect(mute);mute.connect(ac.destination);call.proc=proc;
+    call.out=ac.createGain();call.an=ac.createAnalyser();call.an.fftSize=512;call.out.connect(call.an);call.an.connect(ac.destination);
+    const lv=new Float32Array(512);call.meter=setInterval(()=>{if(!call)return;call.an.getFloatTimeDomainData(lv);let q=0;for(const v of lv)q+=v*v;try{TAURI.event.emit("sense://talk",{who:call.who,level:Math.sqrt(q/lv.length)});}catch(e){}},100);
+    callStage("connecting");
+    const ws=new WebSocket(url);ws.binaryType="arraybuffer";call.ws=ws;
+    ws.onopen=()=>{if(live())call.opened=true;};
+    ws.onmessage=e=>onVoiceMsg(e.data);
+    ws.onclose=e=>{if(!live())return;tr("call ws close code="+e.code+" hello="+!!call.hello);endCall(call.hello?"语音服务那边断了（"+e.code+"）":"连不上语音服务");};
+    /* no hello in 8 s: the server is stuck. Restart it once and dial again. */
+    call.helloT=setTimeout(()=>{if(!live()||call.hello)return;tr("call no hello in 8s retry="+!!retry);
+      if(retry){endCall("语音服务没回应，重起过一次也不行");return;}endCall(null,true);toast("语音服务没回应，重起一下再拨…");setTimeout(()=>startCall(true),300);},8000);
+  }catch(e){const msg=String(e&&e.message||e);tr("call failed: "+msg);if(live())endCall(/麦克风|Permission|NotAllowed/i.test(msg)?"麦克风没打开："+msg+"。系统设置 → 隐私与安全性 → 麦克风里允许 Sense 口袋":"没打通："+msg);}
+  finally{callBoot=false;}}
+function endCall(reason,quiet){const c=call;if(!c)return;call=null;clearTimeout(c.helloT);
+  try{c.ws&&(c.ws.onclose=null,c.ws.close());}catch(e){}try{c.stream&&c.stream.getTracks().forEach(t=>t.stop());}catch(e){}try{c.ac&&c.ac.close();}catch(e){}clearInterval(c.meter);
   invoke("voice_stop").catch(()=>{});try{TAURI.event.emit("sense://talk",{});}catch(e){}
-  const ms=Date.now()-c.t0;if(c.ws&&ms>1500){log("call",null,{who:c.who,s:Math.round(ms/1000),answered:c.answered});toast("挂了 · "+Math.round(ms/1000)+" 秒"+(c.answered?" · 记了 "+c.answered+" 道题":""));}
+  const ms=Date.now()-c.t0;tr("call end: "+(reason||"(retry)")+" after "+Math.round(ms/1000)+"s");
+  if(!quiet){callEnd={at:Date.now(),reason:reason||"挂了",s:Math.round(ms/1000),who:c.who};
+    if(c.hello){log("call",null,{who:c.who,s:Math.round(ms/1000),answered:c.answered});}
+    toast((reason&&reason!=="你挂断了"?reason:"挂了")+(c.hello?" · "+Math.round(ms/1000)+" 秒":"")+(c.answered?" · 记了 "+c.answered+" 道题":""));}
+  if(c.made&&c.made.length)setTimeout(()=>callRecap(c.made),600);
   persist();render();pushSummary(true);}
 let clipQ=[],clipQuiet=false,petLast=null;
 /* Screenshot key and clipboard images (0029). ⌃⌘A belongs to WeChat; macOS lets both apps register it and the first one wins silently. */
@@ -1871,7 +1945,7 @@ function summary(){const live=liveCards();const L=lvl();const by={};live.forEach
     nNew:live.filter(c=>c.isNew).length,crumble:live.filter(c=>c.crumble!=null).sort((a,b)=>a.crumble-b.crumble).map(c=>({id:c.id,title:c.title,left:c.crumble})),
     qReady:QUESTS.filter(q=>!(S.qclaimed||{})[q.id]&&q.cur()>=q.n).map(q=>({t:q.t,xp:q.xp})),
     engine:{model:engineModel(),working:agentRun>0,off:!!S.engineOff,busy:trackBusy?refName(trackBusy):null,taste:tasteBusy||null,next:nx?{name:refName(nx.ref),when:rel(nx.next)}:null},
-    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",cap:(()=>{const C=caps();return{kept:keptCards().length,total:C.total,silver:silverCards().length,silverCap:C.silver};})(),petMale:!!S.petMale,newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
+    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",cap:(()=>{const C=caps();return{kept:keptCards().length,total:C.total,silver:silverCards().length,silverCap:C.silver};})(),petMale:!!S.petMale,newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,callEnd,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
 let sumT=null;
 function pushSummary(now){if(!DESK)return;clearTimeout(sumT);sumT=setTimeout(()=>{try{TAURI.event.emit("sense://summary",summary());}catch(e){}},now?0:250);}
 function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-tab",k)}catch(e){};};
