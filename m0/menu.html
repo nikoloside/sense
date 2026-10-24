@@ -27,6 +27,7 @@ body{font-family:var(--f-body);font-size:13px;line-height:1.45;color:var(--ink)}
 .tile.zero{opacity:.55}
 h4{font-family:var(--f-pixel);font-weight:400;font-size:12px;letter-spacing:.06em;color:var(--chalk-2);margin:10px 12px 4px}
 .rows{display:flex;flex-direction:column;padding:0 6px}
+.langs{display:flex;align-items:center;gap:4px;margin:2px 10px 6px;font-size:12px}.langs small{opacity:.7;margin-right:auto}.langs button{all:unset;cursor:pointer;padding:2px 8px;border-radius:6px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent)}.langs button.on{background:var(--accent);color:var(--paper,#fff)}.langs button:focus-visible{outline:2px solid var(--accent)}
 .callbtn{all:unset;box-sizing:border-box;cursor:pointer;display:block;margin:6px 10px 2px;padding:8px 10px;border-radius:8px;border:2px solid var(--accent);color:var(--accent);text-align:center;font-size:13px}.callbtn:hover,.callbtn:focus-visible{background:color-mix(in srgb,var(--accent) 12%,transparent)}.callbtn.on{background:var(--accent);color:#fff}
 .ask{display:flex;align-items:center;gap:8px;margin:2px 8px 8px;padding:8px;border:2px solid var(--accent);border-radius:8px}
 .ask img{width:40px;height:40px;object-fit:cover;border-radius:4px}.ask span{flex:1;min-width:0;display:flex;flex-direction:column}.ask small{color:var(--chalk-2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -59,6 +60,7 @@ h4{font-family:var(--f-pixel);font-weight:400;font-size:12px;letter-spacing:.06e
 </style>
 <body>
 <div class="panel" id="panel"><div class="wait">口袋还在加载…</div></div>
+<script>/*__I18N_RUNTIME__*/</script>
 <script>
 (function(){
 const T=window.__TAURI__;const invoke=T.core.invoke;const ev=T.event;
@@ -90,6 +92,10 @@ function render(){const p=$("#panel");p.innerHTML="";
   p.append(h("div",{class:"eng"+(E.off?" off":busy?" busy":"")},h("i",{class:"dot"}),h("span",{},E.off?"引擎暂停了 · 手动按钮照常能用":E.taste?"正在整理品味 · "+E.taste:E.busy?"正在查「"+E.busy+"」":E.next?"在转 · 下一个「"+E.next.name+"」"+E.next.when:"在转 · 追踪台上没有座位")));
   const who=(S.call&&S.call.who)||(S.engine&&S.engine.model)||"claude";const nm=who==="deepseek"?"DeepSeek":"Claude";
   p.append(h("button",{class:"callbtn"+(S.call?" on":""),type:"button",onclick:()=>cmd("call",null,true)},S.call?(({boot:"启动语音服务…",mic:"开麦克风…",connecting:"连接中…",idle:nm+" 在听",hearing:"你在说…",thinking:nm+" 在想…",searching:nm+" 在查网页…",reading:nm+" 在读网页…",speaking:nm+" 在说…"})[S.call.state]||"通话中")+" · 点一下挂断":"和 "+nm+" 说话"));
+  {const L=S.voiceLang||"zh";p.append(h("div",{class:"langs",role:"group","aria-label":"通话语言"},h("small",{},S.call?"通话语言 · 下一通生效":"通话语言"),
+    [["zh","中文"],["ja","日本語"],["en","English"]].map(([k,t])=>h("button",{type:"button",translate:"no",class:k===L?"on":"","aria-pressed":String(k===L),onclick:()=>cmd("voicelang",k,false)},t))));
+   const U=S.uiLang||"zh";p.append(h("div",{class:"langs",role:"group","aria-label":"界面语言"},h("small",{},"界面语言"),
+    [["zh","中文"],["ja","日本語"],["en","English"]].map(([k,t])=>h("button",{type:"button",translate:"no",class:k===U?"on":"","aria-pressed":String(k===U),onclick:()=>cmd("uilang",k,false)},t))));}
   const nc=S.crumble.length;
   p.append(h("div",{class:"tiles"},
     h("button",{class:"tile"+(S.nNew?"":" zero"),type:"button",onclick:()=>go("new")},h("b",{},S.nNew),h("small",{},"NEW 新卡")),
@@ -112,7 +118,7 @@ function render(){const p=$("#panel");p.innerHTML="";
   p.append(h("div",{class:"foot"},h("button",{class:"main",type:"button",onclick:()=>go("open")},"打开口袋"),h("button",{type:"button",onclick:()=>go("go","settings")},"设置"),h("button",{type:"button",onclick:()=>invoke("quit_app")},"退出")));
   fit();}
 function fit(){requestAnimationFrame(()=>invoke("menu_fit",{h:Math.ceil($("#panel").getBoundingClientRect().height)}));}
-ev.listen("sense://summary",e=>{S=e.payload;render();});
+ev.listen("sense://summary",e=>{S=e.payload;i18nSet(S.uiLang||"zh");render();});
 ev.listen("sense://menu-open",()=>{ev.emitTo("main","sense://cmd",{cmd:"need",arg:null});});
 addEventListener("keydown",e=>{if(e.key==="Escape")invoke("menu_hide");});
 ev.emitTo("main","sense://cmd",{cmd:"need",arg:null});render();

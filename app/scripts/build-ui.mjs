@@ -26,12 +26,15 @@ for (const id of ["claude", "deepseek", "pouch"]) {
   for (const m of readFileSync(resolve(dir, "voice.md"), "utf8").matchAll(/^\| (中文|日本語|English) \| `([0-9a-f]{32})`/gm)) voices[LANG[m[1]]] = m[2];
   souls[id] = { soul, voices };
 }
+// 界面语言（0037）：翻译表和运行时塞进三个窗口。
+const i18nJs = readFileSync(resolve(root, "m0/i18n/runtime.js"), "utf8").replace("/*__I18N__*/{}", JSON.stringify({ en: JSON.parse(readFileSync(resolve(root, "m0/i18n/en.json"), "utf8")), ja: JSON.parse(readFileSync(resolve(root, "m0/i18n/ja.json"), "utf8")) }).replaceAll("</script", "<\\/script"));
+const withI18n = (name, s) => { if (s.split("/*__I18N_RUNTIME__*/").length !== 2) throw new Error(name + " must contain exactly one /*__I18N_RUNTIME__*/"); return s.replace("/*__I18N_RUNTIME__*/", () => i18nJs); };
 if (tpl.split("/*__SOULS__*/").length !== 2) throw new Error("template must contain exactly one /*__SOULS__*/");
-out("index.html", shell(tpl.replace("/*__POCKET__*/", data.replaceAll("</script", "<\\/script")).replace("/*__SOULS__*/{}", JSON.stringify(souls).replaceAll("</script", "<\\/script"))));
+out("index.html", shell(withI18n("pocket.template.html", tpl).replace("/*__POCKET__*/", data.replaceAll("</script", "<\\/script")).replace("/*__SOULS__*/{}", JSON.stringify(souls).replaceAll("</script", "<\\/script"))));
 for (const name of ["menu.html", "pet.html"]) {
   const src = readFileSync(resolve(root, "m0", name), "utf8");
   if (!src.includes("/*__THEMES__*/")) throw new Error(name + " must contain /*__THEMES__*/");
-  out(name, `<!doctype html><html lang="zh"><head><meta charset="utf-8">${src.replace("/*__THEMES__*/", themes[1])}</html>`);
+  out(name, `<!doctype html><html lang="zh"><head><meta charset="utf-8">${withI18n(name, src).replace("/*__THEMES__*/", themes[1])}</html>`);
 }
 // 角色图（docs/art/characters.md）：桌宠用 256 的那份。
 for (const id of ["claude", "deepseek", "pouch", "claude-m", "deepseek-m", "pouch-m", "charm"]) {

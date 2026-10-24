@@ -509,6 +509,7 @@ footer ul{margin:4px 0;padding-left:18px}
 <script>
 const DATA = /*__POCKET__*/;
 </script>
+<script>/*__I18N_RUNTIME__*/</script>
 <script>
 (function(){
 "use strict";
@@ -729,7 +730,7 @@ function face(c,opts={}){
   const stk=c.thumb?[]:stackIds(c);
   let cv;if(c.thumb&&/^data:image\//.test(c.thumb)){cv=h("img",{class:"art",src:c.thumb,alt:"",style:"object-fit:cover"});}else if(stk.length){cv=h("div",{class:"art mosaic n"+Math.min(4,stk.length),"aria-hidden":"true"},...stk.slice(0,4).map(id=>artOf(card(id))));}else{cv=h("canvas",{class:"art","aria-hidden":"true"});drawArt(cv,hash(c.id+c.title),c.kind,c.tier);}
   const names=(c.attribute_ids||[]).map(id=>{const a=attr(id);return a?"「"+a.text+"」":null;}).filter(Boolean).join(" ");
-  el.append(cv,h("div",{class:"face"},h("div",{class:"eb"},iconCanvas(c.kind),KIND[c.kind]+(c.subkind==="bookmark"?" · 书签":c.subkind==="screenshot"?" · 截图":""),h("span",{class:"tier"},TIER[c.tier])),h("div",{class:"t"},c.title),names?h("div",{class:"attrs"},names):null));
+  el.append(cv,h("div",{class:"face"},h("div",{class:"eb"},iconCanvas(c.kind),KIND[c.kind]+(c.subkind==="bookmark"?" · 书签":c.subkind==="screenshot"?" · 截图":""),h("span",{class:"tier"},TIER[c.tier])),h("div",{class:"t",translate:"no"},c.title),names?h("div",{class:"attrs",translate:"no"},names):null));
   if(c.isNew)el.append(h("span",{class:"badge"},"NEW"));
   if(c.unverified)el.append(h("span",{class:"heard",title:"通话里听来的，还没核实名字"},"听来的"));
   if(c.crumble!=null){el.classList.add("cracked");el.append(h("span",{class:"crack",title:"一次都没处理过，到期会碎"},c.crumble<1?"今天碎":"还剩 "+Math.ceil(c.crumble)+" 天"));}
@@ -834,14 +835,14 @@ function openCard(id,o){
   if(!c2.archived&&(c2.tier==="stone"||c2.tier==="bronze")&&c2.subkind!=="update")acts.append(h("button",{class:"btn ghost",type:"button",onclick:()=>{closeSheet();putOnTrack(c2.id);}},seats()[c2.id]?"在追踪台上出题":"放上追踪台出题"));
   if(!c2.archived&&(c2.tier==="silver"||c2.tier==="gold"))acts.append(h("button",{class:"btn",type:"button",disabled:!canAgent()||!!trackBusy||null,onclick:()=>{closeSheet();syncTracks();runSeat(c2.id,true);tab="track";render();}},c2.tier==="gold"?"现在推荐一轮":"现在查一次动向"));
   if(!c2.archived&&!cs(c2.id).stackedUnder){const fz=fusionsFor(c2.id);acts.append(h("button",{class:"btn gold",type:"button",onclick:()=>{closeSheet();openFusion(fz[0]||{inputs:[c2.id],manual:true});}},fz.length?"融合…（Sense 有建议）":"融合…"));}
-  const attrs=(c2.attribute_ids||[]).map(aid=>{const a=attr(aid);if(!a)return null;return h("div",{class:"achip"},h("b",{},"「"+a.text+"」"),h("span",{},(a.reason||"")+(a.contrast?" · 反对："+a.contrast:"")),h("span",{},(a.status==="confirmed"?"已确认":"候选")+" · 用了 "+a.uses+" 次"));});
+  const attrs=(c2.attribute_ids||[]).map(aid=>{const a=attr(aid);if(!a)return null;return h("div",{class:"achip"},h("b",{translate:"no"},"「"+a.text+"」"),h("span",{translate:"no"},(a.reason||"")+(a.contrast?" · 反对："+a.contrast:"")),h("span",{},(a.status==="confirmed"?"已确认":"候选")+" · 用了 "+a.uses+" 次"));});
   const st=stackOf(id);
   sheet(c2.tier,
     h("div",{class:"top"},face(c2,{static:true}),h("div",{style:"display:flex;flex-direction:column;gap:6px;min-width:0;flex:1"},
-      h("div",{class:"meta"},KIND[c2.kind]+"卡 · "+TIER[c2.tier]+(c2.archived?" · 已归档":"")),h("h3",{},c2.title),h("div",{class:"meta"},TIER_DO[c2.tier]+(c2.tier==="bronze"?" · 碰了 "+(cs(c2.id).touch||0)+" / "+S.threshold+" 次，够了自动开始关注":"")),c2.tier_reason?h("div",{class:"meta"},"品级："+c2.tier_reason):null),
+      h("div",{class:"meta"},KIND[c2.kind]+"卡 · "+TIER[c2.tier]+(c2.archived?" · 已归档":"")),h("h3",{translate:"no"},c2.title),h("div",{class:"meta"},TIER_DO[c2.tier]+(c2.tier==="bronze"?" · 碰了 "+(cs(c2.id).touch||0)+" / "+S.threshold+" 次，够了自动开始关注":"")),c2.tier_reason?h("div",{class:"meta"},"品级："+c2.tier_reason):null),
       h("button",{class:"close",type:"button",onclick:closeSheet,"aria-label":"关闭"},"关闭")),
-    c2.body?h("p",{},c2.body):null,
-    c2.note?h("p",{class:"meta"},"你改过："+c2.note):null,
+    c2.body?h("p",{translate:"no"},c2.body):null,
+    c2.note?h("p",{class:"meta"},"你改过：",h("span",{translate:"no"},c2.note)):null,
     c2.item&&c2.item.url&&/^https:\/\//.test(c2.item.url)?h("p",{},h("a",{href:c2.item.url,target:"_blank",rel:"noopener"},c2.item.name||c2.item.url)):null,
     c2.watch?h("p",{class:"meta"},"跟踪："+c2.watch.query+(cs(c2.id).last_seen||c2.watch.last_seen?" · 上次看到 "+(cs(c2.id).last_seen||c2.watch.last_seen):"")+(seats()[c2.id]?" · 在追踪台上，"+CAD[seats()[c2.id].cadence][0]:"")):null,
     attrs.length?h("div",{style:"display:flex;flex-direction:column;gap:6px"},h("div",{class:"meta"},"背后的属性"),...attrs):null,
@@ -849,7 +850,7 @@ function openCard(id,o){
     linBlock(id),
     c2.kind==="decision"?h("textarea",{id:"editTa",placeholder:"想改成怎么说？写一句再点「改一句」","aria-label":"改一句"}):null,
     acts,
-    c2.evidence&&c2.evidence.length?h("details",{},h("summary",{class:"meta"},"证据 "+c2.evidence.length+" 条"),h("ul",{class:"ev"},c2.evidence.map(e=>h("li",{},h("span",{class:"w"},e.when+" · "+e.where),e.what)))):null);
+    c2.evidence&&c2.evidence.length?h("details",{},h("summary",{class:"meta"},"证据 "+c2.evidence.length+" 条"),h("ul",{class:"ev"},c2.evidence.map(e=>h("li",{},h("span",{class:"w"},e.when+" · "+e.where),h("span",{translate:"no"},e.what))))):null);
 }
 
 /* ---------- lineage (0028): only relations the pocket already recorded, centred on one card ---------- */
@@ -1085,7 +1086,10 @@ async function blobToDataURL(b){return await new Promise((res,rej)=>{const r=new
    agentRun counts calls in flight so the desk shows whoever is working right now. */
 let dsReady=false,agentRun=0;
 function engineModel(){return S.engineModel==="deepseek"&&dsReady?"deepseek":"claude";}
-async function agent(prompt,o={}){
+/* new text the engine writes follows the interface language (0037); what is already in the pocket stays as it is */
+function setUiLang(k){if(!["zh","en","ja"].includes(k))return;const first=!S.uiLang;S.uiLang=k;if(first&&!S.voiceLang)S.voiceLang=k;log("ui_lang",null,{k});persist();render();pushSummary(true);}
+function langNote(){return S.uiLang==="en"?"\n\n（界面语言是 English：JSON 里所有给用户看的文字都用 English 写，键名不变；引用的原话、作品名照原样。）":S.uiLang==="ja"?"\n\n（界面语言是日本語：JSON 里所有给用户看的文字都用日本語写，键名不变；引用的原话、作品名照原样。）":"";}
+async function agent(prompt,o={}){prompt+=langNote();
   if(DESK){const model=engineModel();agentRun++;pushSummary(true);
     try{const imgs=o.images?await Promise.all(o.images.map(blobToDataURL)):null;
       const out=await invoke("run_claude",{prompt,web:!!o.web,chrome:!!o.chrome,images:imgs,readDirs:o.dirs||null,maxTurns:o.turns||null,model});return J(out);}
@@ -1714,12 +1718,12 @@ function engine(){const T_=seats();const next=Object.values(T_).filter(s=>!s.pau
       h("p",{class:"note"},dsReady?"两边跑的是同一个 claude 命令、同样的提示词和工具；选 DeepSeek 时它连到 DeepSeek 的 Anthropic 兼容接口（deepseek-flash），联网搜索由 DeepSeek 服务端执行。桌上站的就是现在在干活的那一位。":
         "要用 DeepSeek：在 ~/Library/Application Support/Sense/config.json 里加一行 \"deepseek_api_key\": \"你的 key\"，再重开 app。key 只留在这台电脑上。")):null,
     DESK?h("div",{class:"engbox"},h("h3",{},"语音通话"),
-      h("p",{class:"note"},"和现在干活的那位角色打电话："+(engineModel()==="deepseek"?"DeepSeek":"Claude")+"。听和说由本机的 voice-live 负责，台词由引擎出。只在通话中开麦克风；录音和逐字稿都不留，只记一行打了多久、记了几道题。"),
+      h("p",{class:"note"},"和现在干活的那位角色打电话："+(engineModel()==="deepseek"?"DeepSeek":"Claude")+"。听和说由本机的 voice-live 负责（Sense 自己起、自己关），台词由引擎出。只在通话中开麦克风；录音不留，逐字稿只在内存里，挂断时她整理成几条记进自己的成长层（设置 → 其他 → 她知道的事），然后丢掉。语言也能在桌宠菜单里切。"),
       h("div",{class:"btnrow",style:"align-items:center"},
         h("button",{class:"btn"+(call?" gold":""),type:"button",onclick:startCall},call?"挂断":"打电话"),
         h("select",{class:"attr","aria-label":"通话语言",onchange:e=>{S.voiceLang=e.target.value;persist();}},Object.keys(VLANG).map(k=>h("option",{value:k,selected:(S.voiceLang||"zh")===k},VLANG_NAME[k]))),
         (()=>{const i=h("input",{class:"attr",value:voiceURL(),"aria-label":"voice-live 地址",style:"min-width:220px"});i.addEventListener("change",()=>{S.voiceUrl=i.value.trim()||null;persist();});return i;})()),
-      h("details",{},h("summary",{class:"note",style:"cursor:pointer"},"怎么开 voice-live（一次）"),h("pre",{class:"cmd"},"cd ~/Workspaces/worldlines/voice-live@fish\nVOICE_LIVE_ASR=fish VOICE_LIVE_TTS=fish VOICE_LIVE_TTS_FALLBACK= uv run python -m voice_live"),h("p",{class:"note"},"Fish 的 key 放在 voice-live 自己的 .env 里。Sense 连的时候带 log=meta，voice-live 那边只记时长，不记说了什么。"))):null,
+      h("details",{},h("summary",{class:"note",style:"cursor:pointer"},"voice-live 在哪里配置"),h("p",{class:"note"},"Sense 启动时按 ~/Library/Application Support/Sense/voice.json 自己起 voice-live（目录、uv 路径、环境变量），退出时关掉；端口上已有一个在跑就直接用。Fish 的钥匙只在本机。Sense 连的时候带 log=meta，voice-live 那边只记时长和步骤，不记说了什么。"))):null,
     h("div",{class:"engcols"},
       h("div",{class:"engbox"},h("h3",{},"怎么调 agent"),h("p",{},"桌面版每次都起一个本机的 Claude Code，用你登录的账号和默认模型，prompt 从标准输入进去，结果要 JSON。"),h("pre",{class:"cmd"},cmd),
         h("ul",{},h("li",{},"工作目录：~/Library/Application Support/Sense/agent"),h("li",{},"不读 MCP、不留会话；默认一个工具都不给，要联网才给 WebSearch/WebFetch，要读日志才给 Read/Glob/Grep 并 --add-dir 那个目录"),h("li",{},"截图写成临时文件给它读，读完删掉"),h("li",{},"它返回 is_error（比如额度用完）时，原话显示在对应的卡或座位上"))),
@@ -1737,6 +1741,8 @@ function engine(){const T_=seats();const next=Object.values(T_).filter(s=>!s.pau
       h("div",{class:"engbox"},h("h3",{},"最近一次"),h("ul",{},
         h("li",{},"追踪台："+lastOf(l=>l.action==="track_run")),h("li",{},"品味整理："+lastOf(l=>l.action==="taste_built")),h("li",{},"委托："+lastOf(l=>l.action==="quests_new")),h("li",{},"截图："+lastOf(l=>l.action==="clip_in"))))));}
 function settings(){const m=$("#main");
+  m.append(h("section",{class:"setsec"},h("h2",{class:"sec"},"界面语言",h("em",{},"只换界面；你的卡、证据、属性原样显示")),
+    h("div",{class:"btnrow"},[["zh","中文"],["en","English"],["ja","日本語"]].map(([k,t])=>h("button",{class:"btn"+((S.uiLang||"zh")===k?"":" ghost"),type:"button",translate:"no","aria-pressed":String((S.uiLang||"zh")===k),onclick:()=>setUiLang(k)},t)))));
   m.append(hero());
   const open=QUESTS.filter(q=>!(S.qclaimed||{})[q.id]).sort((a,b)=>(Math.min(b.cur(),b.n)>=b.n)-(Math.min(a.cur(),a.n)>=a.n));const doneQ=QUESTS.filter(q=>(S.qclaimed||{})[q.id]);
   m.append(h("section",{class:"setsec"},h("h2",{class:"sec"},"任务板",h("em",{},"完成了点「领取」拿 XP")),
@@ -1914,16 +1920,16 @@ async function memForget(id,sec,line){const mem=await memLoad(id);if(!mem)return
   await invoke("char_mem_write",{id,path:"knowledge.md",content:knRender(id,kn)});log("char_forget",null,{id});}
 async function openMemory(id){id=id||memId();const mem=await memLoad(id);if(!mem){toast("读不到她的记忆");return;}
   const base=id.replace(/-m$/,"");const kn=knParse(mem.knowledge);
-  const sec=k=>h("div",{},h("div",{class:"meta"},k+" · "+kn[k].length+" 条"),kn[k].length?h("ul",{class:"memlist"},kn[k].slice().reverse().map(x=>{const b=h("button",{class:"btn ghost",type:"button","aria-label":"让她忘掉这条"},"忘掉");
+  const sec=k=>h("div",{},h("div",{class:"meta"},k+" · "+kn[k].length+" 条"),kn[k].length?h("ul",{class:"memlist",translate:"no"},kn[k].slice().reverse().map(x=>{const b=h("button",{class:"btn ghost",type:"button","aria-label":"让她忘掉这条"},"忘掉");
       b.addEventListener("click",async()=>{await memForget(id,k,x);b.closest("li").remove();});return h("li",{},h("span",{},x),b);})):h("p",{class:"note"},"还没有。"));
   const who=h("div",{class:"btnrow"},["claude","deepseek","pouch"].flatMap(w=>[w,w+"-m"]).map(w=>h("button",{class:"btn "+(w===id?"":"ghost"),type:"button",onclick:()=>openMemory(w)},(CHAR_NAME[w.replace(/-m$/,"")]||w)+(w.endsWith("-m")?" 男版":""))));
   const clear=h("button",{class:"btn ghost smash",type:"button"},"清空她的成长层");clear.addEventListener("click",async()=>{if(clear.dataset.sure){await invoke("char_mem_clear",{id});log("char_mem_clear",null,{id});toast("清空了，正本不动");openMemory(id);}else{clear.dataset.sure="1";clear.textContent="再点一次确认清空";}});
   sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"成长层（决策 0036）· 只在这台电脑上"),h("h3",{},(CHAR_NAME[base]||base)+(id.endsWith("-m")?" 男版":"")+" 知道的事"),
       h("p",{class:"note"},"正本（性格、说话方式）在 soul.md，不会被改。这里是她和你聊天、自己读到查到之后知道的事，每条写着什么时候、从哪知道的。不对就点「忘掉」。")),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
     who,...KN_SECS.map(sec),
-    (mem.diary||[]).length?h("details",{},h("summary",{class:"meta"},"她的日记 · "+mem.diary.length+" 天"),...mem.diary.map(d=>h("div",{},h("b",{},d.date),h("pre",{class:"mempre"},d.text.trim())))):null,
-    (mem.stories||[]).length?h("details",{},h("summary",{class:"meta"},"一起编的故事 · "+mem.stories.length+" 个"),...mem.stories.map(s=>h("div",{},h("b",{},"《"+s.name+"》"),h("pre",{class:"mempre"},s.text.replace(/^---[\s\S]*?---\s*/,"").trim())))):null,
-    mem.opinions&&mem.opinions.trim()?h("details",{},h("summary",{class:"meta"},"她的主见"),h("pre",{class:"mempre"},mem.opinions.trim())):null,
+    (mem.diary||[]).length?h("details",{},h("summary",{class:"meta"},"她的日记 · "+mem.diary.length+" 天"),...mem.diary.map(d=>h("div",{},h("b",{},d.date),h("pre",{class:"mempre",translate:"no"},d.text.trim())))):null,
+    (mem.stories||[]).length?h("details",{},h("summary",{class:"meta"},"一起编的故事 · "+mem.stories.length+" 个"),...mem.stories.map(s=>h("div",{},h("b",{},"《"+s.name+"》"),h("pre",{class:"mempre",translate:"no"},s.text.replace(/^---[\s\S]*?---\s*/,"").trim())))):null,
+    mem.opinions&&mem.opinions.trim()?h("details",{},h("summary",{class:"meta"},"她的主见"),h("pre",{class:"mempre",translate:"no"},mem.opinions.trim())):null,
     h("div",{class:"acts"},clear));}
 let callBoot=false,callEnd=null;
 /* Every step of a call is visible (pet label, menu) and traced, so a call that dies says where (0034). */
@@ -2007,7 +2013,7 @@ function summary(){const live=liveCards();const L=lvl();const by={};live.forEach
     nNew:live.filter(c=>c.isNew).length,crumble:live.filter(c=>c.crumble!=null).sort((a,b)=>a.crumble-b.crumble).map(c=>({id:c.id,title:c.title,left:c.crumble})),
     qReady:QUESTS.filter(q=>!(S.qclaimed||{})[q.id]&&q.cur()>=q.n).map(q=>({t:q.t,xp:q.xp})),
     engine:{model:engineModel(),working:agentRun>0,off:!!S.engineOff,busy:trackBusy?refName(trackBusy):null,taste:tasteBusy||null,next:nx?{name:refName(nx.ref),when:rel(nx.next)}:null},
-    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",cap:(()=>{const C=caps();return{kept:keptCards().length,total:C.total,silver:silverCards().length,silverCap:C.silver};})(),petMale:!!S.petMale,newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,callEnd,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
+    tasteAt:S.taste?new Date(S.taste.at).toLocaleDateString():null,clipOn:!!S.clipOn,petOn:petOn(),ev:petLast,snapKey:keyLabel(),petWho:S.petWho||"pouch",voiceLang:S.voiceLang||"zh",uiLang:S.uiLang||"zh",cap:(()=>{const C=caps();return{kept:keptCards().length,total:C.total,silver:silverCards().length,silverCap:C.silver};})(),petMale:!!S.petMale,newId:(()=>{const ids=new Set(live.filter(c=>c.isNew).map(c=>c.id));const r=S.added.slice().reverse().find(x=>ids.has(x.id));return r?r.id:[...ids][0]||null;})(),call:call?{who:call.who,state:call.state}:null,callEnd,imgAsk:imgAsk?{thumb:imgAsk.thumb,src:imgAsk.p.source_app||"",at:imgAsk.at}:null};}
 let sumT=null;
 function pushSummary(now){if(!DESK)return;clearTimeout(sumT);sumT=setTimeout(()=>{try{TAURI.event.emit("sense://summary",summary());}catch(e){}},now?0:250);}
 function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-tab",k)}catch(e){};};
@@ -2020,6 +2026,8 @@ function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-t
     case"clip":S.clipOn=!S.clipOn;invoke("clip_watch",{on:S.clipOn});persist();break;
     case"call":startCall();return;
     case"petmale":S.petMale=!S.petMale;persist();pushSummary(true);render();return;
+    case"uilang":setUiLang(arg);return;
+    case"voicelang":if(VLANG[arg]){S.voiceLang=arg;persist();pushSummary(true);render();toast("通话语言："+VLANG_NAME[arg]+(call?"（下一通生效）":""));}return;
     case"petwho":{const R=["pouch","claude","deepseek"];S.petWho=R[(R.indexOf(S.petWho||"pouch")+1)%R.length];}persist();pushSummary(true);render();return;
     case"imgtake":takeImg(true);return;
     case"imgskip":takeImg(false);return;
@@ -2031,7 +2039,7 @@ function onCmd({cmd,arg}){const goTab=k=>{tab=k;try{localStorage.setItem(KEY+"-t
     default:return;}
   render();}
 setInterval(()=>pushSummary(),60e3);
-function render(){renderTabs();renderPurse();pushSummary();const m=$("#main");m.innerHTML="";
+function render(){i18nSet(S.uiLang||"zh");renderTabs();renderPurse();pushSummary();const m=$("#main");m.innerHTML="";
   ({sense:sensePage,pocket,sources,track,table,cases,quests:cases,draw,attrs,settings}[tab]||sensePage)();
   if(tab==="pocket"){const si=$("#q");if(si&&document.activeElement!==si&&q){}}}
 

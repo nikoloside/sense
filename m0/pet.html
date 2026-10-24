@@ -31,6 +31,7 @@ body{font-family:var(--f-pixel);position:relative}
 <div class="mark" id="mark">!</div>
 <div class="callst" id="callst" role="status" aria-live="polite"><i></i><span></span></div>
 <img id="pet" alt="桌宠" draggable="false">
+<script>/*__I18N_RUNTIME__*/</script>
 <script>
 (function(){
 const T=window.__TAURI__;const invoke=T.core.invoke;const ev=T.event;
@@ -62,7 +63,7 @@ function sparks(){if(RM.matches)return;for(let i=0;i<8;i++){const s=document.cre
 function react(e){const K={eat:["eat",2400],crack:["crack",1500],cheer:["cheer",2000],find:["cheer",1800],gold:["cheer",2600]}[e.kind]||["idle",0];
   setMood(K[0],K[1]);say(e.text,e.id?9000:6000,e.id);if(e.kind==="cheer"||e.kind==="gold")sparks();}
 let lastAsk=null;
-ev.listen("sense://summary",e=>{const first=!S;S=e.payload;document.documentElement.dataset.theme=S.theme||"cream";
+ev.listen("sense://summary",e=>{const first=!S;S=e.payload;i18nSet(S.uiLang||"zh");document.documentElement.dataset.theme=S.theme||"cream";
   if(S.imgAsk&&S.imgAsk.at!==lastAsk){lastAsk=S.imgAsk.at;say("剪贴板里有张新图，点我收",9000);}
   if(S.ev&&(first?false:(!lastEv||S.ev.at>lastEv)))react(S.ev);if(S.ev)lastEv=Math.max(lastEv||0,S.ev.at);
   if(!moodUntil){const was=mood;mood=base();if(mood==="busy"&&was!=="busy"&&(S.engine.taste||S.engine.busy))say(S.engine.taste?"在整理你的品味…":"在查「"+S.engine.busy+"」…",5000);}
