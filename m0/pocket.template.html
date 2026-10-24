@@ -1192,11 +1192,69 @@ function workBlock(c){const w=c.work;if(!w||!w.ver||!w.ver.length)return null;le
       if(v.sources&&v.sources.length)body.append(h("ol",{class:"note"},v.sources.map(x2=>h("li",{},h("a",{href:x2.url,target:"_blank",rel:"noopener"},x2.title),x2.date?" · "+x2.date:""))));}
     catch(err){body.innerHTML="";body.append(h("p",{class:"note"},"文件找不到了："+String(err).slice(0,80)));}};
   if(DESK)show();
-  return h("div",{class:"work"},h("div",{class:"meta"},ERR_KIND[w.type]+" · "+whoName(w.who)+" 做的 · 派活：",h("span",{translate:"no"},"「"+w.ask+"」")),nav,body);}
+  return h("div",{class:"work"},h("div",{class:"meta"},ERR_KIND[w.type]+" · "+whoName(w.who)+(w.via==="self"?" 自己想做的：":" 做的 · 派活："),h("span",{translate:"no"},"「"+w.ask+"」")),nav,body);}
 function workActs(c2){const raw=S.added.find(x=>x.id===c2.id);const w=c2.work;if(!raw||!w)return[];const v=w.ver[w.ver.length-1];
   return[h("button",{class:"btn ghost",type:"button",disabled:!DESK||null,onclick:()=>{closeSheet();errand(w.type,w.ask,{who:w.who,of:c2.id});}},"再做一版"),
     h("button",{class:"btn ghost",type:"button","aria-pressed":String(!!raw.mine),onclick:()=>{raw.mine=!raw.mine;if(raw.mine)raw.domain="make";else delete raw.domain;log("work_mine",c2.id,{on:raw.mine});persist();closeSheet();openCard(c2.id);toast(raw.mine?"记成你的了：算进「创作」":"不算你的了");}},raw.mine?"这个像我 ✓":"这个像我"),
     v&&v.path?h("button",{class:"btn ghost",type:"button",onclick:()=>invoke("work_reveal",{path:v.path}).catch(()=>{})},"在 Finder 里显示"):null];}
+/* ---------- her own life (0036 step 3): once a day she reads, researches, thinks or draws on her own ----------
+   Each experience is a diary entry with its sources; an opinion is kept only if it points at one. His private data is never a source. */
+const LIFE_KIND={read:"读",research:"查",think:"想",draw:"画"};
+let lifeBusy=null;const lifeT0=Date.now();
+const lifeOn=()=>S.lifeOn!==false;
+function lifeOf(id){const L=S.life=S.life||{};return L[id]=L[id]||{};}
+function opParse(md){return String(md||"").split("\n").filter(l=>/^-\s+/.test(l)).map(l=>l.replace(/^-\s+/,"").trim());}
+function opRender(id,ops){return["---","id: "+id,"name: "+whoName(id),"kind: opinions","updated: "+localDay(),"---","# "+whoName(id)+" 的看法","",
+  "成长层（决策 0036）：她自己的主见。每条写明从哪次经历来的（日记日期 + 那件事）；说不出来源的看法不写。",""].concat(ops.map(x=>"- "+x)).join("\n")+"\n";}
+/* what she may do right now, and why not when she can't */
+function lifeKinds(id,mem){const ok={read:true,research:true,think:(mem.diary||[]).length>=2||opParse(mem.opinions).length>0,
+  draw:imgReady&&lifeOf(id).draw!==localDay()&&imgDay().n<imgCap()};return Object.keys(LIFE_KIND).filter(k=>ok[k]);}
+function lifeWhyNot(k,id){return k==="think"?"她还没什么可回想的：先让她读点东西、聊几次":k==="draw"?(!imgReady?"还没接出图服务":lifeOf(id).draw===localDay()?"她今天已经画过一张了":"今天的画额度用完了"):"";}
+/* the latest thing she did on her own, for the call to bring up once */
+function lastLived(mem){for(const d of mem&&mem.diary||[]){const s=d.text.split(/\n(?=## )/).filter(x=>x.includes("（自己做的）")).pop();if(s)return d.date+" "+s.replace(/^##\s*/,"").replace(/\s+/g," ").slice(0,360);}return"";}
+async function selfAct(id,kind,manual){
+  if(!DESK||lifeBusy||call)return null;id=id||memId();const mem=await memLoad(id);if(!mem)return null;
+  const ks=lifeKinds(id,mem);if(kind&&!ks.includes(kind)){toast(lifeWhyNot(kind,id));return null;}
+  const pool=ks.filter(k=>k!=="draw"||Math.random()<.5);kind=kind||pool[Math.floor(Math.random()*pool.length)]||"read";
+  const L=lifeOf(id);if(!manual)L.auto=localDay();lifeBusy={id,kind};persist();render();
+  const sl=(SOULS[id]||SOULS[id.replace(/-m$/,"")]||{}).soul||{},kn=knParse(mem.knowledge),ops=opParse(mem.opinions);
+  const tracked=Object.values(seats()).map(s=>card(s.ref)).filter(Boolean).slice(0,12).map(c=>"「"+c.title+"」"+KIND[c.kind]);
+  const how={read:`挑一篇公开能读到的东西读完（短篇小说、文章、作品介绍、评论），用 WebSearch / WebFetch 找到它。题目可以从他在跟的、他提过的、你日记里没想通的里挑，也可以是你自己好奇的。`,
+    research:`挑一个你好奇的题目查清楚，用 WebSearch / WebFetch，至少看两个来源。值得的话另交一页小报告：work 填 {"title":"","summary":"一句话","text":"Markdown，出处用 [1] [2] 标"}，不值得就 null。`,
+    think:`不上网。回看你最近的日记和看法，想清楚一件事：修改、收紧或推翻一条旧看法，或者从两次经历里得出一个新看法。sources 留空。`,
+    draw:`画一张你自己想画的，灵感从你最近的经历、一起编过的故事、他在跟的东西里找。另给 "work_title":"作品名，12 字以内"，"prompt":"给出图模型的英文描述：主体、构图、光线、画风；图里不要文字、商标、真人肖像"。sources 留空。`}[kind];
+  const prompt=`你是 ${whoName(id)}。下面是你的人设（正本，不会被经历改写）：\n${String(sl.zh||"").slice(0,2500)}\n\n## 你现在的看法\n${ops.map((x,i)=>(i+1)+". "+x).join("\n")||"（还没有）"}\n\n## 你最近的日记\n${(mem.diary||[]).slice(0,3).map(d=>d.date+"\n"+d.text.slice(-600)).join("\n\n")||"（还没有）"}\n\n## 他那边（只是题目线索，不是你的经历）\n他在跟的：${tracked.join("、")||"无"}\n你想问他的：${kn["想问他的"].slice(-5).join("；")||"无"}\n你知道他的：${kn["关于他"].slice(-10).join("；")||"无"}\n\n今天你自己做一件事（${LIFE_KIND[kind]}）：${how}\n\n规则：\n- 只看公开网页；不登录、不填表、不付款、不发任何消息；不碰他的私人资料。\n- 不写普通人的真名（作者和公众人物可以），不长段复述原文。\n- diary 用你的口吻写三五句：做了什么、看到了什么、你怎么想。\n- opinion：这次让你有了一个看法，或改了一个旧看法，就写一句，必须说得出「因为这次……」；没有就 null。改旧的就在 replace 填旧看法的编号。不为讨好他改看法；对作品可以有主见，不对他的品味下评语。\n只回 JSON：{"topic":"题目，12 字以内","diary":"","sources":[{"title":"","url":"https://…"}],"opinion":{"text":"","replace":null},"work":null${kind==="draw"?',"work_title":"","prompt":""':""}}`;
+  let r,cardId=null;
+  try{r=await agent(prompt,{web:kind==="read"||kind==="research",turns:kind==="read"||kind==="research"?14:3});
+    const topic=String(r.topic||LIFE_KIND[kind]).replace(/\s+/g," ").slice(0,30),day=localDay().slice(5);
+    const srcs=(Array.isArray(r.sources)?r.sources:[]).filter(x=>x&&/^https:\/\//.test(x.url||"")).slice(0,8).map(x=>({title:String(x.title||x.url).slice(0,120),url:x.url,date:""}));
+    const mkCard=(title,summary,ver,thumb)=>addCard({kind:"work",tier:"stone",title,body:summary,via:"self",thumb:thumb||undefined,
+      work:{type:kind==="draw"?"draw":"research",who:id,ask:topic,via:"self",ver:[ver]},evidence:[{when:today(),where:"她自己做的 · "+whoName(id),what:topic}]},null,"她做了一件作品").id;
+    if(kind==="draw"){const b64=await invoke("image_gen",{prompt:String(r.prompt||topic).slice(0,3000)});imgDay().n++;L.draw=localDay();
+      const wid="s"+Date.now().toString(36),title=String(r.work_title||topic).slice(0,60);
+      cardId=mkCard(title,String(r.diary||"").slice(0,200),{at:Date.now(),png:true,wid,path:await invoke("work_save",{who:id,id:wid,name:title,text:null,png:b64}),sources:[]},await shrinkPng(b64));}
+    else if(kind==="research"&&r.work&&String(r.work.text||"").trim()){const wid="s"+Date.now().toString(36),title=String(r.work.title||topic).slice(0,60);
+      const md="# "+title+"\n\n"+String(r.work.text).trim()+(srcs.length?"\n\n## 出处\n"+srcs.map((x,i)=>"["+(i+1)+"] "+x.title+" "+x.url).join("\n"):"")+"\n";
+      cardId=mkCard(title,String(r.work.summary||"").slice(0,200),{at:Date.now(),png:false,wid,path:await invoke("work_save",{who:id,id:wid,name:title,text:md,png:null}),sources:srcs});}
+    const diary=String(r.diary||"").trim().slice(0,1500);if(!diary)throw new Error("没写日记");
+    await invoke("char_mem_write",{id,path:"diary/"+localDay()+".md",append:true,content:["","## "+new Date().toTimeString().slice(0,5)+" · "+LIFE_KIND[kind]+"「"+topic+"」（自己做的）",diary,...srcs.map(x=>"- 出处："+x.title+" "+x.url),cardId?"- 作品："+cardId:null].filter(x=>x!==null).join("\n")+"\n"});
+    const op=r.opinion&&String(r.opinion.text||"").replace(/\s+/g," ").trim().slice(0,200);
+    if(op){const from="（来由："+day+" 日记 · "+LIFE_KIND[kind]+"「"+topic+"」",n=parseInt(r.opinion.replace,10);
+      if(n>=1&&n<=ops.length)ops[n-1]=op+from+"；改自：「"+ops[n-1].replace(/（来由：.*$/,"").slice(0,40)+"」）";else ops.push(op+from+"）");
+      await invoke("char_mem_write",{id,path:"opinions.md",content:opRender(id,ops.slice(-40))});}
+    L.last={at:Date.now(),kind,topic};log("self_act",cardId,{id,kind,op:!!op,manual:!!manual});
+    petLast={kind:"cheer",text:whoName(id)+(kind==="draw"?" 画了一张：":kind==="think"?" 想了一件事：":kind==="read"?" 读了：":" 查了：")+topic.slice(0,16),at:Date.now(),id:cardId};
+    toast(whoName(id)+" 自己"+LIFE_KIND[kind]+"了「"+topic+"」"+(op?"，有了一个看法":""));}
+  catch(err){L.err=String(err&&err.message||err).slice(0,160);tr("self act: "+L.err);if(manual)toast("她没做成："+L.err.slice(0,40));}
+  finally{lifeBusy=null;persist();render();pushSummary(true);}
+  return r;}
+/* once a day, when nothing else is running: never during a call, never while the engine is paused */
+setInterval(()=>{if(!DESK||!lifeOn()||S.engineOff||call||lifeBusy||agentRun||Date.now()-lifeT0<15*6e4)return;const id=memId();if(lifeOf(id).auto!==localDay())selfAct(id);},10*6e4);
+function lifeRow(id){const busy=lifeBusy&&lifeBusy.id===id;const last=lifeOf(id).last;
+  return h("div",{},h("div",{class:"meta"},"她自己的活动 · "+(lifeOn()?"每天自己做一件":"自动的关了")+(last?" · 上次："+LIFE_KIND[last.kind]+"「"+last.topic+"」":"")),
+    h("div",{class:"btnrow"},busy?h("span",{class:"note"},"正在"+LIFE_KIND[lifeBusy.kind]+"…"):null,
+      ...Object.keys(LIFE_KIND).map(k=>h("button",{class:"btn ghost",type:"button",disabled:!DESK||!!lifeBusy||!!call||null,onclick:async()=>{closeSheet();await selfAct(id,k,true);}},"让她去"+LIFE_KIND[k]))),
+    h("p",{class:"note"},"读、查：看公开网页；想：回看日记改看法；画：每天最多一张，算进出图额度。每次写一篇日记，有了看法记进「她的主见」，都写着从哪来。花的是你的调用额度。"));}
 
 /* ---------- clipboard stream (7.1.1) ---------- */
 const AGENT_APP=/claude|codex|cursor|chatgpt|terminal|iterm|ghostty|warp|windsurf|zed/i;
@@ -1848,6 +1906,7 @@ function settings(){const m=$("#main");
     h("button",{class:"btn ghost",type:"button",onclick:()=>{sound=!sound;try{localStorage.setItem(KEY+"-sound",sound?"1":"0")}catch(e){};blip("keep");render();}},"音效："+(sound?"开":"关")),
     h("button",{class:"btn ghost",type:"button",onclick:()=>capAdjust()},(()=>{const C=caps();return"口袋上限：留 "+C.total+" · 跟 "+C.silver;})()),
     h("button",{class:"btn ghost",type:"button",onclick:()=>openMemory()},"她知道的事（角色的成长层）"),
+    DESK?h("button",{class:"btn ghost",type:"button",onclick:()=>{S.lifeOn=!lifeOn();persist();render();}},"角色自己的活动："+(lifeOn()?"每天一件":"关")):null,
     DESK?h("button",{class:"btn ghost",type:"button",onclick:()=>{const o=[3,5,10,20];S.imgCap=o[(o.indexOf(imgCap())+1)%o.length];persist();render();}},
       imgReady?"出图：每天最多 "+imgCap()+" 张（今天 "+imgDay().n+"）":"出图：还没接（config.json 填 image_api_key）"):null,
     h("button",{class:"btn ghost",type:"button",onclick:()=>{helpOff=!helpOff;try{localStorage.setItem(KEY+"-help",helpOff?"0":"1")}catch(e){};document.documentElement.classList.toggle("nohelp",helpOff);helpHide();render();toast(helpOff?"按钮说明关了":"按钮说明开了：鼠标停在卡片按钮上就会解释");}},"按钮说明："+(helpOff?"关":"开")),
@@ -1884,6 +1943,7 @@ zh:{tier:TIER,kind:KIND,today:"今天碎",left:n=>"还剩 "+n+" 天",
     "用中文回答。"],
   mem:"## 你的成长层（只在这台电脑上；正本之外你经历出来的东西）",him:"你知道的他：",world:"你读到、查到过的：",ask:"你想问他的（找机会自然地问一句，问过就算）：",
   op:"你的主见：",diary:"你最近的日记：",stories:"你们一起编过的故事（设定集节选）：",
+  lived:"你最近自己经历的一件事（接通后可以先跟他说一句；一通电话最多主动提一次，他有事就先听他的）：",
   rp:"他说「来编个故事」「来玩 RP」「接着上次的故事」：照设定集接着讲，守住前面定下的人物动机和世界规则，埋过的坑记得填。他当场定下的设定，在你那句话末尾写〔设定 故事名|一句设定〕。新故事先起个短名字。"},
 en:{tier:{stone:"Stone",bronze:"Bronze",silver:"Silver",gold:"Gold"},kind:{decision:"judgment",recommendation:"recommendation",person:"person",follow:"follow",interest:"interest",quote:"quote",collection:"saved"},today:"crumbles today",left:n=>n+" days left",
   head:d=>"## His pocket at the start of this call ("+d+")",total:(n,g,s,b,t)=>n+" cards: "+g+" Gold, "+s+" Silver, "+b+" Bronze, "+t+" Stone.",
@@ -1902,6 +1962,7 @@ en:{tier:{stone:"Stone",bronze:"Bronze",silver:"Silver",gold:"Gold"},kind:{decis
     "Speak English only, every line, even if parts of this prompt or his pocket are in Chinese. If he switches language, you may follow him."],
   mem:"## Your growth layer (only on this computer; what you've lived beyond your canon)",him:"What you know about him:",world:"What you've read or looked up:",ask:"Things you want to ask him (find a natural moment, once is enough):",
   op:"Your own opinions:",diary:"Your recent diary:",stories:"Stories you made up together (story bible excerpts):",
+  lived:"Something you did on your own lately (you may bring it up first after connecting; at most once per call, and if he has something to say, listen first):",
   rp:"When he says \"let's make up a story\", \"let's roleplay\" or \"continue last time's story\": continue from the story bible, keep the characters' motives and the world's rules, pay off what you set up. When he fixes a new detail on the spot, write 〔设定 story name|one line〕 at the end of your line. Give a new story a short name first."},
 ja:{tier:{stone:"石",bronze:"銅",silver:"銀",gold:"金"},kind:{decision:"判断",recommendation:"おすすめ",person:"人物",follow:"フォロー",interest:"興味",quote:"名言",collection:"保存"},today:"今日崩れる",left:n=>"あと "+n+" 日",
   head:d=>"## この通話が始まったときのポケット（"+d+"）",total:(n,g,s,b,t)=>"カードは全部で "+n+" 枚：金 "+g+"、銀 "+s+"、銅 "+b+"、石 "+t+"。",
@@ -1920,6 +1981,7 @@ ja:{tier:{stone:"石",bronze:"銅",silver:"銀",gold:"金"},kind:{decision:"判�
     "必ず日本語だけで話すこと。このプロンプトやポケットの一部が中国語でも、すべてのセリフを日本語で。彼が別の言語に切り替えたら、合わせてもよい。"],
   mem:"## あなたの成長層（このパソコンの中だけ。正本の外であなたが経験したこと）",him:"あなたが知っている彼：",world:"あなたが読んだこと、調べたこと：",ask:"彼に聞きたいこと（自然なときに一度聞けば十分）：",
   op:"あなたの意見：",diary:"最近の日記：",stories:"一緒に作った物語（設定集の抜粋）：",
+  lived:"最近あなたが自分でしたこと（つながったら先に一言話してもいい。一回の通話で自分から持ち出すのは一度まで。彼に用があれば先に聞く）：",
   rp:"彼が「物語を作ろう」「RP しよう」「前回の続き」と言ったら：設定集から続け、決めた人物の動機と世界のルールを守り、張った伏線は回収する。その場で決まった設定は、セリフの最後に〔设定 物語名|一文の設定〕。新しい物語にはまず短い名前を付ける。"}};
 function voiceCtx(qs,lang){const T=VC[lang]||VC.zh;const live=liveCards();const n=t=>live.filter(c=>c.tier===t).length;
   const recent=S.added.slice(-8).reverse().map(c=>card(c.id)).filter(c=>c&&!c.archived).map(c=>"「"+c.title+"」"+(lang==="en"?" ("+T.tier[c.tier]+", "+T.kind[c.kind]+")":"（"+T.tier[c.tier]+"·"+T.kind[c.kind]+"）"));
@@ -2036,6 +2098,7 @@ function memCtx(mem,lang){if(!mem)return"";const T=VC[lang]||VC.zh;const kn=knPa
   if(kn["想问他的"].length)parts.push(T.ask+"\n- "+cut(kn["想问他的"],5).join("\n- "));
   if(mem.opinions&&mem.opinions.trim())parts.push(T.op+"\n"+mem.opinions.trim().slice(-1500));
   const d=(mem.diary||[]).slice(0,3);if(d.length)parts.push(T.diary+"\n"+d.map(x=>x.date+"："+x.text.replace(/^---[\s\S]*?---\s*/,"").replace(/\s+/g," ").slice(0,160)).join("\n"));
+  const lv=lastLived(mem);if(lv)parts.push(T.lived+"\n"+lv);
   const st=(mem.stories||[]).slice(0,4);if(st.length)parts.push(T.stories+"\n"+st.map(x=>"《"+x.name+"》"+x.text.replace(/^---[\s\S]*?---\s*/,"").slice(0,700)).join("\n\n"));
   parts.push(T.rp);
   return parts.join("\n\n");}
@@ -2064,7 +2127,7 @@ async function openMemory(id){id=id||memId();const mem=await memLoad(id);if(!mem
   const clear=h("button",{class:"btn ghost smash",type:"button"},"清空她的成长层");clear.addEventListener("click",async()=>{if(clear.dataset.sure){await invoke("char_mem_clear",{id});log("char_mem_clear",null,{id});toast("清空了，正本不动");openMemory(id);}else{clear.dataset.sure="1";clear.textContent="再点一次确认清空";}});
   sheet("bronze",h("div",{class:"top"},h("div",{style:"flex:1"},h("div",{class:"meta"},"成长层（决策 0036）· 只在这台电脑上"),h("h3",{},(CHAR_NAME[base]||base)+(id.endsWith("-m")?" 男版":"")+" 知道的事"),
       h("p",{class:"note"},"正本（性格、说话方式）在 soul.md，不会被改。这里是她和你聊天、自己读到查到之后知道的事，每条写着什么时候、从哪知道的。不对就点「忘掉」。")),h("button",{class:"close",type:"button",onclick:closeSheet},"关闭")),
-    who,...KN_SECS.map(sec),
+    who,lifeRow(id),...KN_SECS.map(sec),
     (mem.diary||[]).length?h("details",{},h("summary",{class:"meta"},"她的日记 · "+mem.diary.length+" 天"),...mem.diary.map(d=>h("div",{},h("b",{},d.date),h("pre",{class:"mempre",translate:"no"},d.text.trim())))):null,
     (mem.stories||[]).length?h("details",{},h("summary",{class:"meta"},"一起编的故事 · "+mem.stories.length+" 个"),...mem.stories.map(s=>h("div",{},h("b",{},"《"+s.name+"》"),h("pre",{class:"mempre",translate:"no"},s.text.replace(/^---[\s\S]*?---\s*/,"").trim())))):null,
     mem.opinions&&mem.opinions.trim()?h("details",{},h("summary",{class:"meta"},"她的主见"),h("pre",{class:"mempre",translate:"no"},mem.opinions.trim())):null,
